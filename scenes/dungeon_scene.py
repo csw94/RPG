@@ -58,4 +58,4 @@ class DungeonScene(FieldScene):
                     surface.blit(sprite("stairs", (TILE_SIZE, TILE_SIZE)), rect)
         px, py = self.player["x"] * TILE_SIZE, self.player["y"] * TILE_SIZE
         pygame.draw.rect(surface, (31, 31, 36), (px + 7, py + 27, 18, 3))
-        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE)), (px, py))
+        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16)), (px, py - 16))

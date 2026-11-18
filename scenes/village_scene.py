@@ -93,4 +93,4 @@ class VillageScene(FieldScene):
             surface.blit(sprite(sprite_name, (TILE_SIZE, TILE_SIZE)),
                          (position[0] * TILE_SIZE, position[1] * TILE_SIZE))
         px, py = self.player["x"] * TILE_SIZE, self.player["y"] * TILE_SIZE
-        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE)), (px, py))
+        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16)), (px, py - 16))

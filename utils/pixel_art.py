@@ -1,4 +1,4 @@
-"""Small hand-drawn pixel sprites rendered from a 16x16 pixel grid."""
+"""Hand-drawn pixel sprites, including the taller 16x24 hero sprite."""
 
 import random
 import pygame
@@ -52,61 +52,69 @@ def _rect(surface, color, x, y, width, height=1):
 
 
 def _player(weapon="rusty_sword", armor="traveler_clothes"):
-    surface = _canvas()
-    rows = (
-        "....HHHHHHHH....",
-        "...HHHHHHHHHH...",
-        "..HHHHHHHHHHHH..",
-        "..HHSSSSSSSSHH..",
-        "..HSSSSSSSSSSH..",
-        "..HSSSESSSESSH..",
-        "...SSSSSSSSSS...",
-        "...SSSWWSSSS....",
-        "...BBBBBBBB....",
-        "..BBBBBBBBBB..",
-        "..BBBBYYBBBB..",
-        "...BB....BB...",
-        "...PP....PP...",
-        "...PP....PP...",
-        "...KK....KK...",
-        "...KK....KK...",
-    )
-    colors = {
-        "H": PALETTE["hair"], "S": PALETTE["skin"], "E": PALETTE["ink"],
-        "B": PALETTE["blue"], "W": PALETTE["white"], "Y": PALETTE["gold"],
-        "P": PALETTE["pants"], "K": PALETTE["boot"],
-    }
-    for y, row in enumerate(rows):
-        offset = (16 - len(row)) // 2
-        for x, pixel in enumerate(row):
-            if pixel in colors:
-                surface.set_at((x + offset, y), colors[pixel])
-    # Hair shine, cheek, and sleeve details form deliberate pixel clusters.
-    _rect(surface, PALETTE["hair_light"], 5, 2, 4)
-    _rect(surface, PALETTE["skin_shadow"], 11, 6, 1)
-    _rect(surface, PALETTE["blue_light"], 4, 9, 2, 2)
-    _rect(surface, PALETTE["blue_dark"], 10, 10, 2, 1)
-    # A short steel sword and a red kite shield give the hero a medieval silhouette.
-    _rect(surface, PALETTE["stone_light"], 14, 6, 1, 5)
-    _rect(surface, PALETTE["metal"], 13, 7, 1, 3)
-    _rect(surface, PALETTE["gold"], 13, 11, 3, 1)
-    _rect(surface, PALETTE["boot"], 14, 12, 1, 2)
-    _rect(surface, (149, 57, 47), 1, 9, 2, 4)
-    _rect(surface, PALETTE["gold"], 1, 10, 2, 1)
+    """A taller, chibi-style adventurer with layered hair, tunic, and gear."""
+    surface = _canvas((16, 24))
+
+    # Tousled chestnut hair frames a large, expressive face.
+    _rect(surface, PALETTE["hair"], 4, 1, 8, 2)
+    _rect(surface, PALETTE["hair"], 2, 3, 12, 2)
+    _rect(surface, PALETTE["hair"], 1, 5, 14, 3)
+    _rect(surface, PALETTE["hair"], 2, 7, 3, 4)
+    _rect(surface, PALETTE["hair"], 11, 7, 3, 4)
+    _rect(surface, PALETTE["skin"], 4, 5, 8, 7)
+    _rect(surface, PALETTE["skin_shadow"], 3, 7, 1, 3)
+    _rect(surface, PALETTE["skin_shadow"], 12, 7, 1, 3)
+    _rect(surface, PALETTE["hair_light"], 3, 3, 4, 1)
+    _rect(surface, PALETTE["hair_light"], 9, 4, 3, 1)
+    _rect(surface, PALETTE["hair"], 4, 6, 3, 2)
+    _rect(surface, PALETTE["hair"], 9, 6, 3, 2)
+    _rect(surface, PALETTE["skin"], 5, 7, 6, 4)
+    _rect(surface, PALETTE["ink"], 6, 8, 1, 2)
+    _rect(surface, PALETTE["ink"], 9, 8, 1, 2)
+    _rect(surface, (220, 126, 113), 5, 10, 1, 1)
+    _rect(surface, (220, 126, 113), 10, 10, 1, 1)
+    _rect(surface, PALETTE["skin_shadow"], 7, 11, 2, 1)
+
+    # A forest-green mantle sits behind a cream tunic and leather belt.
+    _rect(surface, (56, 91, 66), 2, 12, 12, 6)
+    _rect(surface, (89, 124, 78), 2, 13, 2, 4)
+    _rect(surface, (89, 124, 78), 12, 13, 2, 4)
+    _rect(surface, (201, 179, 128), 4, 12, 8, 6)
+    _rect(surface, (232, 215, 174), 5, 12, 6, 4)
+    _rect(surface, (177, 145, 91), 4, 16, 8, 2)
+    _rect(surface, PALETTE["gold"], 7, 16, 2, 2)
+    _rect(surface, (129, 87, 53), 2, 13, 2, 4)
+    _rect(surface, (129, 87, 53), 12, 13, 2, 4)
+
+    # Short trousers, striped leggings, and sturdy boots.
+    _rect(surface, (92, 94, 78), 5, 18, 6, 2)
+    _rect(surface, (67, 69, 63), 5, 20, 2, 2)
+    _rect(surface, (67, 69, 63), 9, 20, 2, 2)
+    _rect(surface, (119, 83, 57), 4, 22, 4, 2)
+    _rect(surface, (119, 83, 57), 9, 22, 4, 2)
+    _rect(surface, (177, 125, 72), 4, 22, 4, 1)
+    _rect(surface, (177, 125, 72), 9, 22, 4, 1)
+
+    # The sword sits at the hero's side; its blade changes with the equipped weapon.
+    blade = (232, 239, 226) if weapon == "silver_sword" else (177, 193, 189)
+    _rect(surface, PALETTE["metal"], 1, 12, 1, 5)
+    _rect(surface, blade, 1, 11, 1, 5)
+    _rect(surface, PALETTE["gold"], 0, 16, 3, 1)
+    _rect(surface, PALETTE["boot"], 1, 17, 1, 3)
+
+    # The torso changes visibly when armor is equipped.
     if armor == "leather_armor":
-        _rect(surface, (126, 77, 45), 4, 9, 8, 2)
-        _rect(surface, (158, 104, 58), 5, 9, 6, 1)
-        _rect(surface, PALETTE["gold"], 7, 10, 2, 1)
+        _rect(surface, (126, 77, 45), 4, 13, 8, 4)
+        _rect(surface, (171, 111, 59), 5, 13, 6, 1)
+        _rect(surface, PALETTE["gold"], 7, 15, 2, 1)
+        _rect(surface, (83, 55, 39), 4, 17, 8, 1)
     elif armor == "chainmail":
-        _rect(surface, (134, 145, 147), 4, 9, 8, 2)
-        _rect(surface, (90, 103, 111), 4, 10, 8, 1)
-        _rect(surface, (177, 188, 182), 5, 9, 2, 1)
-        _rect(surface, (177, 188, 182), 9, 9, 2, 1)
-    if weapon == "silver_sword":
-        _rect(surface, (232, 239, 226), 14, 6, 1, 5)
-        _rect(surface, (202, 219, 220), 13, 7, 1, 3)
-    elif weapon == "iron_sword":
-        _rect(surface, (181, 193, 189), 14, 6, 1, 5)
+        _rect(surface, (134, 145, 147), 4, 13, 8, 4)
+        _rect(surface, (90, 103, 111), 4, 14, 8, 1)
+        _rect(surface, (177, 188, 182), 5, 13, 2, 1)
+        _rect(surface, (177, 188, 182), 9, 13, 2, 1)
+        _rect(surface, PALETTE["gold"], 7, 16, 2, 2)
+    return surface
     return surface
 
 

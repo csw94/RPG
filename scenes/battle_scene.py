@@ -121,7 +121,7 @@ class BattleScene(BaseScene):
             pygame.draw.rect(surface, (73, 145, 87), (x + (x % 3) * 3, 321 + (x % 4) * 5, 4, 7))
         pygame.draw.rect(surface, (42, 86, 66), (170, 314, 132, 9))
         pygame.draw.rect(surface, (42, 86, 66), (500, 304, 150, 11))
-        surface.blit(hero_sprite(self.game.field.weapon, self.game.field.armor, (80, 80)), (198, 224))
+        surface.blit(hero_sprite(self.game.field.weapon, self.game.field.armor, (80, 120)), (198, 184))
         surface.blit(sprite(self.enemy["sprite"], self.enemy["size"]), (518, 211))
         pygame.draw.rect(surface, self.game.colors["ink"], (54, 24, 263, 94))
         pygame.draw.rect(surface, self.game.colors["cream"], (58, 28, 255, 86))

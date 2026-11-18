@@ -50,6 +50,7 @@ python main.py
 pyinstaller --onefile --windowed --add-data "assets;assets" --name "ChroniclesOfPixel" main.py
 ```
 
-캐릭터, 맵 타일, 상자, 몬스터는 16×16 픽셀 아트 스프라이트로 표현합니다. 석재 프레임과
+주인공은 16×24 픽셀의 치비형 모험가 스프라이트이며, 맵 타일과 상자·몬스터는 16×16
+픽셀 아트로 표현합니다. 장착한 무기와 갑옷은 주인공 외형에도 반영됩니다. 석재 프레임과
 양피지 색상으로 중세 RPG 분위기를 냈습니다. 스프라이트 원본 코드는 `utils/pixel_art.py`,
 한글 폰트 라이선스는 `assets/fonts/OFL.txt`에 있습니다.

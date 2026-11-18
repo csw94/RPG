@@ -154,7 +154,7 @@ class FieldScene(BaseScene):
                     surface.blit(sprite("stairs", (TILE_SIZE, TILE_SIZE)), rect)
         px, py = self.player["x"] * TILE_SIZE, self.player["y"] * TILE_SIZE
         pygame.draw.rect(surface, (34, 62, 55), (px + 7, py + 27, 18, 3))
-        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE)), (px, py))
+        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16)), (px, py - 16))
         pygame.draw.rect(surface, self.game.colors["ink"], (0, 512, 800, 88))
         pygame.draw.rect(surface, self.game.colors["gold"], (0, 512, 800, 4))
         pygame.draw.rect(surface, self.game.colors["panel"], (8, 520, 784, 72))

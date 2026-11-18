@@ -138,7 +138,7 @@ class TitleScene(BaseScene):
         self.text(surface, "CHRONICLES OF PIXEL", (400, 86), 38, self.game.colors["gold"], True)
         self.text(surface, "왕국의 연대기 · 잊힌 성채의 전설", (400, 127), 19, self.game.colors["cream"], True)
         self._draw_crest(surface, (400, 221))
-        surface.blit(sprite("player", (64, 64)), (368, 190))
+        surface.blit(sprite("player", (64, 96)), (368, 174))
         for index, (label, rect) in enumerate(zip(self.OPTIONS, self._menu_buttons())):
             self.button(surface, rect, label, index == self.selected, 21)
         self.text(surface, "방향키로 선택 · Enter로 결정", (400, 568), 16, self.game.colors["muted"], True)
