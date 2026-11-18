@@ -6,7 +6,7 @@ from db.save_manager import SaveManager
 from scenes.battle_scene import BattleScene
 from scenes.field_scene import FieldScene
 from scenes.title_scene import TitleScene
-from settings import COLORS, FPS, HEIGHT, TITLE, WIDTH
+from settings import COLORS, FPS, HEIGHT, PIXEL_SCALE, TITLE, WIDTH
 from utils.resource import resource_path
 
 
@@ -15,6 +15,8 @@ class Game:
         pygame.init()
         pygame.display.set_caption(TITLE)
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.frame_surface = pygame.Surface((WIDTH, HEIGHT))
+        self.pixel_surface = pygame.Surface((WIDTH // PIXEL_SCALE, HEIGHT // PIXEL_SCALE))
         self.clock = pygame.time.Clock()
         self.colors = COLORS
         self.running = True
@@ -72,7 +74,9 @@ class Game:
                     self.running = False
             self.scene.handle_events(events)
             self.scene.update(dt)
-            self.scene.draw(self.screen)
+            self.scene.draw(self.frame_surface)
+            pygame.transform.scale(self.frame_surface, self.pixel_surface.get_size(), self.pixel_surface)
+            pygame.transform.scale(self.pixel_surface, (WIDTH, HEIGHT), self.screen)
             pygame.display.flip()
         pygame.quit()
 

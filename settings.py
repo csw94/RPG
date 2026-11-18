@@ -5,6 +5,7 @@ HEIGHT = 600
 FPS = 60
 TITLE = "Chronicles of Pixel"
 TILE_SIZE = 32
+PIXEL_SCALE = 2  # Render at half resolution, then enlarge with nearest-neighbor pixels.
 
 COLORS = {
     "ink": (25, 29, 42),
