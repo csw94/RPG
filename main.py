@@ -4,8 +4,11 @@ import pygame
 
 from db.save_manager import SaveManager
 from scenes.battle_scene import BattleScene
+from scenes.dungeon_scene import DungeonScene
 from scenes.field_scene import FieldScene
+from scenes.shop_scene import ShopScene
 from scenes.title_scene import TitleScene
+from scenes.village_scene import VillageScene
 from settings import COLORS, FPS, HEIGHT, TITLE, WIDTH
 from utils.resource import resource_path
 
@@ -43,8 +46,9 @@ class Game:
     def new_game(self, slot):
         self.notice = ""
         self.active_slot = slot
-        self.field = FieldScene(self)
-        self.scene_name, self.scene = "field", self.field
+        state = {"world": "village", "x": 12, "y": 13}
+        self.field = self._create_world(state)
+        self.scene_name, self.scene = self.field.world, self.field
         self.save_game()
 
     def load_game(self, slot):
@@ -52,20 +56,36 @@ class Game:
         if data:
             self.notice = ""
             self.active_slot = slot
-            self.field = FieldScene(self, data)
-            self.scene_name, self.scene = "field", self.field
+            self.field = self._create_world(data)
+            self.scene_name, self.scene = self.field.world, self.field
+
+    def _create_world(self, state):
+        worlds = {"field": FieldScene, "village": VillageScene, "dungeon": DungeonScene}
+        world_type = worlds.get(state.get("world", "field"), FieldScene)
+        return world_type(self, state)
+
+    def enter_world(self, world, position):
+        state = self.field.serialize()
+        state.update(world=world, x=position[0], y=position[1])
+        self.field = self._create_world(state)
+        self.scene_name, self.scene = self.field.world, self.field
+        self.save_game()
+
+    def open_shop(self):
+        self.scene_name = "shop"
+        self.scene = ShopScene(self)
 
     def save_game(self):
         if self.field:
             self.save_manager.save(self.field.serialize(), self.active_slot)
 
-    def start_battle(self):
+    def start_battle(self, enemy_type="slime"):
         self.scene_name = "battle"
-        self.scene = BattleScene(self)
+        self.scene = BattleScene(self, enemy_type)
 
     def finish_battle(self):
         self.save_game()
-        self.scene_name, self.scene = "field", self.field
+        self.scene_name, self.scene = self.field.world, self.field
 
     def run(self):
         while self.running:

@@ -4,7 +4,7 @@ import random
 import pygame
 from scenes.base_scene import BaseScene
 from settings import TILE_SIZE
-from utils.pixel_art import sprite
+from utils.pixel_art import hero_sprite, sprite
 
 
 class FieldScene(BaseScene):
@@ -13,6 +13,7 @@ class FieldScene(BaseScene):
     def __init__(self, game, state=None):
         super().__init__(game)
         state = state or {}
+        self.world = state.get("world", "field")
         self.player = {"x": int(state.get("x", 2)), "y": int(state.get("y", 2))}
         self.hp = int(state.get("hp", 30))
         self.max_hp = int(state.get("max_hp", 30))
@@ -21,19 +22,41 @@ class FieldScene(BaseScene):
         self.level = int(state.get("level", 1))
         self.xp = int(state.get("xp", 0))
         self.potions = int(state.get("potions", 3))
-        self.opened = {tuple(position) for position in state.get("opened", [])}
+        self.gold = int(state.get("gold", 40))
+        self.weapon = state.get("weapon", "rusty_sword")
+        self.armor = state.get("armor", "traveler_clothes")
+        self.owned_weapons = list(state.get("owned_weapons", ["rusty_sword"]))
+        self.owned_armors = list(state.get("owned_armors", ["traveler_clothes"]))
+        opened_by_world = state.get("opened_by_world", {})
+        self.opened_by_world = {
+            world: {tuple(position) for position in positions}
+            for world, positions in opened_by_world.items()
+        } if isinstance(opened_by_world, dict) else {}
+        if not self.opened_by_world and state.get("opened"):
+            self.opened_by_world["field"] = {tuple(position) for position in state["opened"]}
+        self.opened = self.opened_by_world.setdefault(self.world, set())
         self.message = "WASD 또는 방향키로 탐험하세요."
         self.move_cooldown = 0.0
+        self.encounter_rate = 0.10
+        self.enemy_pool = ("slime",)
         self.walls = {(x, y) for x in range(self.COLS) for y in range(self.ROWS)
                       if x in (0, self.COLS - 1) or y in (0, self.ROWS - 1)}
         self.walls.update({(8, y) for y in range(2, 11) if y != 6})
         self.walls.update({(x, 10) for x in range(8, 18) if x != 13})
-        self.chests = {(5, 4): "포션", (18, 6): "골드", (20, 12): "포션"}
+        self.chests = {(5, 4): "potion", (18, 6): "gold", (20, 12): "potion"}
 
     def serialize(self):
-        return {**self.player, "hp": self.hp, "max_hp": self.max_hp, "mp": self.mp,
-                "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
-                "potions": self.potions, "opened": sorted(self.opened)}
+        opened_by_world = {
+            world: [list(position) for position in sorted(positions)]
+            for world, positions in self.opened_by_world.items()
+        }
+        opened_by_world[self.world] = [list(position) for position in sorted(self.opened)]
+        return {**self.player, "world": self.world, "hp": self.hp, "max_hp": self.max_hp,
+                "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
+                "potions": self.potions, "gold": self.gold, "weapon": self.weapon,
+                "armor": self.armor, "owned_weapons": self.owned_weapons,
+                "owned_armors": self.owned_armors, "opened": sorted(self.opened),
+                "opened_by_world": opened_by_world}
 
     def _blocked(self, x, y):
         return (x, y) in self.walls
@@ -57,17 +80,24 @@ class FieldScene(BaseScene):
     def _interact(self):
         target = (self.player["x"], self.player["y"])
         if target in self.chests and target not in self.opened:
-            self.opened.add(target)
-            reward = self.chests[target]
-            if reward == "포션":
-                self.potions += 1
-                self.message = "상자를 열어 포션을 얻었습니다!"
-            else:
-                self.xp += 20
-                self.message = "상자에서 오래된 골드를 찾았습니다. 경험치 +20"
-            self.game.save_game()
+            self._open_chest(target)
+        elif target == (12, 1):
+            self.game.enter_world("village", (12, 14))
+        elif target == (22, 13):
+            self.game.enter_world("dungeon", (2, 14))
         else:
             self.message = "주변에는 아무것도 없습니다."
+
+    def _open_chest(self, position):
+        self.opened.add(position)
+        if self.chests[position] == "potion":
+            self.potions += 1
+            self.message = "상자를 열어 포션을 얻었습니다!"
+        else:
+            self.xp += 20
+            self.gold += 25
+            self.message = "상자에서 금화와 경험치 20을 얻었습니다!"
+        self.game.save_game()
 
     def update(self, dt):
         self.move_cooldown = max(0.0, self.move_cooldown - dt)
@@ -83,8 +113,8 @@ class FieldScene(BaseScene):
                 self.move_cooldown = 0.12
                 if (nx, ny) in self.chests and (nx, ny) not in self.opened:
                     self.message = "스페이스를 눌러 상자를 여세요."
-                elif random.random() < 0.10:
-                    self.game.start_battle()
+                elif self.encounter_rate and random.random() < self.encounter_rate:
+                    self.game.start_battle(random.choice(self.enemy_pool))
 
     def draw(self, surface):
         surface.fill(self.game.colors["ink"])
@@ -100,20 +130,24 @@ class FieldScene(BaseScene):
                     if (x, y) in ((8, 4), (8, 8)):
                         surface.blit(sprite("torch", (TILE_SIZE, TILE_SIZE)), rect)
                 else:
-                    tile = "dirt" if y == 6 and 8 <= x <= 18 else f"grass_{(x * 3 + y) % 4}"
+                    is_path = ((y == 6 and 8 <= x <= 18) or (x == 12 and 1 <= y <= 14)
+                               or (x == 22 and 6 <= y <= 13) or (y == 13 and 18 <= x <= 22))
+                    tile = "dirt" if is_path else f"grass_{(x * 3 + y) % 4}"
                     surface.blit(sprite(tile, (TILE_SIZE, TILE_SIZE)), rect)
                     if (x, y) in decorations and (x, y) not in self.chests:
                         surface.blit(sprite(decorations[(x, y)], (16, 16)), (rect.x + 8, rect.y + 8))
                 if (x, y) in self.chests:
                     chest = "chest_open" if (x, y) in self.opened else "chest"
                     surface.blit(sprite(chest, (TILE_SIZE, TILE_SIZE)), rect)
+                if (x, y) in ((12, 1), (22, 13)):
+                    surface.blit(sprite("stairs", (TILE_SIZE, TILE_SIZE)), rect)
         px, py = self.player["x"] * TILE_SIZE, self.player["y"] * TILE_SIZE
         pygame.draw.rect(surface, (34, 62, 55), (px + 7, py + 27, 18, 3))
-        surface.blit(sprite("player", (TILE_SIZE, TILE_SIZE)), (px, py))
+        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE)), (px, py))
         pygame.draw.rect(surface, self.game.colors["ink"], (0, 512, 800, 88))
         pygame.draw.rect(surface, self.game.colors["gold"], (0, 512, 800, 4))
         pygame.draw.rect(surface, self.game.colors["panel"], (8, 520, 784, 72))
         pygame.draw.rect(surface, self.game.colors["gold"], (8, 520, 784, 72), 2)
-        self.text(surface, f"슬롯 {self.game.active_slot}  ·  Lv.{self.level}  HP {self.hp}/{self.max_hp}  MP {self.mp}/{self.max_mp}  포션 {self.potions}", (20, 526), 19)
+        self.text(surface, f"슬롯 {self.game.active_slot}  ·  Lv.{self.level}  HP {self.hp}/{self.max_hp}  MP {self.mp}/{self.max_mp}  금화 {self.gold}", (20, 526), 18)
         self.text(surface, self.message, (20, 558), 16, self.game.colors["muted"])
         self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)

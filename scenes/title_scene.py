@@ -158,7 +158,7 @@ class TitleScene(BaseScene):
                           self.game.colors["cream"], True)
                 self.text(surface, f"HP {state.get('hp', 0)}/{state.get('max_hp', 0)}", (rect.centerx, rect.top + 153), 16,
                           self.game.colors["cream"], True)
-                self.text(surface, f"포션 {state.get('potions', 0)}개", (rect.centerx, rect.top + 178), 15,
+                self.text(surface, f"금화 {state.get('gold', 0)} · 포션 {state.get('potions', 0)}", (rect.centerx, rect.top + 178), 15,
                           self.game.colors["muted"], True)
             else:
                 self.text(surface, "빈 슬롯", (rect.centerx, rect.top + 149), 18, self.game.colors["muted"], True)

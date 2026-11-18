@@ -16,6 +16,9 @@ PALETTE = {
     "stone_light": (150, 148, 150),
     "stone_dark": (69, 70, 83),
     "metal": (171, 185, 184),
+    "roof": (112, 53, 40),
+    "roof_light": (162, 75, 47),
+    "bone": (225, 214, 174),
     "wood": (137, 77, 42),
     "wood_light": (188, 119, 55),
     "gold": (245, 194, 74),
@@ -37,6 +40,7 @@ PALETTE = {
 
 _BASE = {}
 _SCALED = {}
+_HERO_SCALED = {}
 
 
 def _canvas(size=(16, 16)):
@@ -47,7 +51,7 @@ def _rect(surface, color, x, y, width, height=1):
     pygame.draw.rect(surface, color, pygame.Rect(x, y, width, height))
 
 
-def _player():
+def _player(weapon="rusty_sword", armor="traveler_clothes"):
     surface = _canvas()
     rows = (
         "....HHHHHHHH....",
@@ -89,6 +93,20 @@ def _player():
     _rect(surface, PALETTE["boot"], 14, 12, 1, 2)
     _rect(surface, (149, 57, 47), 1, 9, 2, 4)
     _rect(surface, PALETTE["gold"], 1, 10, 2, 1)
+    if armor == "leather_armor":
+        _rect(surface, (126, 77, 45), 4, 9, 8, 2)
+        _rect(surface, (158, 104, 58), 5, 9, 6, 1)
+        _rect(surface, PALETTE["gold"], 7, 10, 2, 1)
+    elif armor == "chainmail":
+        _rect(surface, (134, 145, 147), 4, 9, 8, 2)
+        _rect(surface, (90, 103, 111), 4, 10, 8, 1)
+        _rect(surface, (177, 188, 182), 5, 9, 2, 1)
+        _rect(surface, (177, 188, 182), 9, 9, 2, 1)
+    if weapon == "silver_sword":
+        _rect(surface, (232, 239, 226), 14, 6, 1, 5)
+        _rect(surface, (202, 219, 220), 13, 7, 1, 3)
+    elif weapon == "iron_sword":
+        _rect(surface, (181, 193, 189), 14, 6, 1, 5)
     return surface
 
 
@@ -184,6 +202,86 @@ def _torch():
     return surface
 
 
+def _roof():
+    surface = _canvas()
+    surface.fill((76, 41, 38))
+    for y in (2, 7, 12):
+        _rect(surface, PALETTE["roof"], 0, y, 16, 4)
+        for x in (2, 8, 14):
+            _rect(surface, PALETTE["roof_light"], x, y, 2, 1)
+    return surface
+
+
+def _dungeon_floor(variant):
+    surface = _canvas()
+    surface.fill((64 + variant % 2 * 5, 64, 70))
+    rng = random.Random(variant + 175)
+    for _ in range(6):
+        x, y = rng.randrange(16), rng.randrange(16)
+        _rect(surface, (83, 82, 84), x, y, rng.choice((1, 2)), 1)
+    _rect(surface, (53, 53, 61), 0, 15, 16, 1)
+    return surface
+
+
+def _stairs():
+    surface = _canvas()
+    surface.fill((53, 53, 61))
+    for row in range(5):
+        _rect(surface, (100 + row * 5, 99 + row * 4, 101 + row * 3), 2 + row, 3 + row * 2, 12 - row * 2, 2)
+        _rect(surface, PALETTE["stone_light"], 2 + row, 3 + row * 2, 12 - row * 2, 1)
+    return surface
+
+
+def _well():
+    surface = _canvas()
+    _rect(surface, PALETTE["stone_dark"], 2, 5, 12, 9)
+    _rect(surface, PALETTE["stone_light"], 2, 5, 12, 2)
+    _rect(surface, (37, 68, 80), 4, 8, 8, 4)
+    _rect(surface, PALETTE["wood"], 4, 2, 2, 4)
+    _rect(surface, PALETTE["wood"], 10, 2, 2, 4)
+    _rect(surface, PALETTE["wood_light"], 4, 1, 8, 1)
+    _rect(surface, PALETTE["wood"], 7, 2, 2, 4)
+    return surface
+
+
+def _shopkeeper():
+    surface = _canvas()
+    _rect(surface, (65, 45, 35), 4, 2, 8, 3)
+    _rect(surface, (141, 89, 55), 3, 4, 10, 2)
+    _rect(surface, PALETTE["skin"], 5, 5, 6, 4)
+    _rect(surface, PALETTE["ink"], 6, 6, 1, 1)
+    _rect(surface, PALETTE["ink"], 9, 6, 1, 1)
+    _rect(surface, (80, 111, 67), 3, 9, 10, 5)
+    _rect(surface, PALETTE["gold"], 6, 9, 4, 1)
+    _rect(surface, PALETTE["boot"], 4, 14, 3, 2)
+    _rect(surface, PALETTE["boot"], 9, 14, 3, 2)
+    return surface
+
+
+def _villager():
+    surface = _shopkeeper()
+    for y in range(16):
+        for x in range(16):
+            if tuple(surface.get_at((x, y))[:3]) == (80, 111, 67):
+                surface.set_at((x, y), (66, 91, 132))
+    _rect(surface, PALETTE["gold"], 6, 11, 4, 1)
+    return surface
+
+
+def _skeleton():
+    surface = _canvas()
+    _rect(surface, PALETTE["bone"], 5, 2, 6, 5)
+    _rect(surface, PALETTE["ink"], 6, 4, 1, 1)
+    _rect(surface, PALETTE["ink"], 9, 4, 1, 1)
+    _rect(surface, PALETTE["bone"], 7, 7, 2, 5)
+    _rect(surface, PALETTE["bone"], 4, 8, 8, 2)
+    _rect(surface, PALETTE["bone"], 4, 10, 2, 4)
+    _rect(surface, PALETTE["bone"], 10, 10, 2, 4)
+    _rect(surface, (143, 66, 54), 3, 6, 1, 6)
+    _rect(surface, (143, 66, 54), 2, 5, 3, 2)
+    return surface
+
+
 def sprite(name, size=(32, 32)):
     """Return a cached pixel sprite, enlarged with nearest-neighbor sampling."""
     if name not in _BASE:
@@ -201,6 +299,14 @@ def sprite(name, size=(32, 32)):
             "flower_yellow": lambda: _flower(PALETTE["gold"]),
             "flower_red": lambda: _flower((221, 101, 94)),
             "torch": _torch,
+            "roof": _roof,
+            "dungeon_floor_0": lambda: _dungeon_floor(0),
+            "dungeon_floor_1": lambda: _dungeon_floor(1),
+            "stairs": _stairs,
+            "well": _well,
+            "shopkeeper": _shopkeeper,
+            "villager": _villager,
+            "skeleton": _skeleton,
         }
         _BASE[name] = builders[name]()
     key = (name, tuple(size)) if size else (name, None)
@@ -208,3 +314,11 @@ def sprite(name, size=(32, 32)):
         original = _BASE[name]
         _SCALED[key] = original.copy() if size is None else pygame.transform.scale(original, size)
     return _SCALED[key]
+
+
+def hero_sprite(weapon="rusty_sword", armor="traveler_clothes", size=(32, 32)):
+    """Return the player sprite with the currently equipped gear visible."""
+    key = (weapon, armor, tuple(size))
+    if key not in _HERO_SCALED:
+        _HERO_SCALED[key] = pygame.transform.scale(_player(weapon, armor), size)
+    return _HERO_SCALED[key]
