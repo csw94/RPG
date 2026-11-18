@@ -4,6 +4,7 @@ import random
 import pygame
 from scenes.base_scene import BaseScene
 from settings import TILE_SIZE
+from utils.pixel_art import sprite
 
 
 class FieldScene(BaseScene):
@@ -87,24 +88,26 @@ class FieldScene(BaseScene):
 
     def draw(self, surface):
         surface.fill(self.game.colors["ink"])
+        decorations = {
+            (3, 6): "flower_yellow", (6, 8): "flower_red", (11, 3): "flower_yellow",
+            (14, 7): "flower_red", (18, 3): "flower_yellow", (21, 8): "flower_red",
+        }
         for y in range(self.ROWS):
             for x in range(self.COLS):
                 rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-                shade = self.game.colors["green"] if (x + y) % 2 else self.game.colors["dark_green"]
-                pygame.draw.rect(surface, shade, rect)
-                pygame.draw.rect(surface, (48, 103, 73), rect, 1)
                 if (x, y) in self.walls:
-                    pygame.draw.rect(surface, (97, 82, 70), rect.inflate(-2, -2), border_radius=4)
-                    pygame.draw.rect(surface, (139, 118, 92), rect.inflate(-6, -8), 2, border_radius=3)
-                elif (x, y) in self.chests and (x, y) not in self.opened:
-                    pygame.draw.rect(surface, (132, 76, 42), rect.inflate(-8, -10), border_radius=4)
-                    pygame.draw.rect(surface, self.game.colors["gold"], rect.inflate(-8, -10), 2, border_radius=4)
-                    pygame.draw.rect(surface, self.game.colors["gold"], (rect.centerx - 3, rect.centery - 1, 6, 8))
+                    surface.blit(sprite("stone", (TILE_SIZE, TILE_SIZE)), rect)
+                else:
+                    tile = "dirt" if y == 6 and 8 <= x <= 18 else f"grass_{(x * 3 + y) % 4}"
+                    surface.blit(sprite(tile, (TILE_SIZE, TILE_SIZE)), rect)
+                    if (x, y) in decorations and (x, y) not in self.chests:
+                        surface.blit(sprite(decorations[(x, y)], (16, 16)), (rect.x + 8, rect.y + 8))
+                if (x, y) in self.chests:
+                    chest = "chest_open" if (x, y) in self.opened else "chest"
+                    surface.blit(sprite(chest, (TILE_SIZE, TILE_SIZE)), rect)
         px, py = self.player["x"] * TILE_SIZE, self.player["y"] * TILE_SIZE
-        pygame.draw.ellipse(surface, (28, 47, 58), (px + 5, py + 23, 23, 7))
-        pygame.draw.rect(surface, (64, 121, 199), (px + 8, py + 12, 16, 15), border_radius=4)
-        pygame.draw.circle(surface, (246, 205, 151), (px + 16, py + 9), 8)
-        pygame.draw.rect(surface, (89, 58, 43), (px + 8, py + 2, 16, 5), border_radius=2)
+        pygame.draw.rect(surface, (34, 62, 55), (px + 7, py + 27, 18, 3))
+        surface.blit(sprite("player", (TILE_SIZE, TILE_SIZE)), (px, py))
         pygame.draw.rect(surface, self.game.colors["panel"], (0, 512, 800, 88))
         self.text(surface, f"Lv.{self.level}  HP {self.hp}/{self.max_hp}  MP {self.mp}/{self.max_mp}  포션 {self.potions}", (18, 520), 20)
         self.text(surface, self.message, (18, 553), 17, self.game.colors["muted"])

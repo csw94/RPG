@@ -2,6 +2,16 @@
 
 import pygame
 from scenes.base_scene import BaseScene
+from utils.pixel_art import sprite
+
+
+def _pixel_hill(surface, color, center_x, top_y, width, height):
+    """Build a stepped hill from broad horizontal pixel bands."""
+    bands = max(1, height // 8)
+    for band in range(bands):
+        half_width = max(4, int((band + 1) * width / (bands * 2)))
+        y = top_y + band * 8
+        pygame.draw.rect(surface, color, (center_x - half_width, y, half_width * 2, 8))
 
 
 class BattleScene(BaseScene):
@@ -91,23 +101,30 @@ class BattleScene(BaseScene):
                 self.game.finish_battle()
 
     def draw(self, surface):
-        surface.fill((38, 54, 75))
-        pygame.draw.rect(surface, (57, 83, 90), (0, 330, 800, 270))
-        pygame.draw.ellipse(surface, (39, 50, 53), (160, 310, 150, 35))
-        pygame.draw.ellipse(surface, (39, 50, 53), (490, 295, 165, 42))
-        # Hero and slime are rendered from simple shapes, so no image assets are required.
-        pygame.draw.rect(surface, (61, 121, 196), (205, 246, 65, 76), border_radius=12)
-        pygame.draw.circle(surface, (246, 203, 151), (237, 222), 30)
-        pygame.draw.rect(surface, (104, 65, 47), (208, 191, 59, 14), border_radius=5)
-        pygame.draw.ellipse(surface, (114, 207, 130), (520, 215, 105, 88))
-        pygame.draw.circle(surface, (255, 255, 255), (550, 246), 8)
-        pygame.draw.circle(surface, (255, 255, 255), (592, 246), 8)
-        pygame.draw.circle(surface, (34, 43, 51), (552, 247), 3)
-        pygame.draw.circle(surface, (34, 43, 51), (594, 247), 3)
-        pygame.draw.rect(surface, self.game.colors["panel"], (58, 28, 255, 86), border_radius=10)
+        surface.fill((112, 174, 205))
+        # Chunky cloud and hill clusters establish a pixel-art battle backdrop.
+        for x, y, width in ((72, 147, 92), (546, 129, 116), (333, 207, 54)):
+            pygame.draw.rect(surface, (210, 230, 215), (x, y, width, 12))
+            pygame.draw.rect(surface, (210, 230, 215), (x + 14, y - 10, width - 28, 10))
+            pygame.draw.rect(surface, (151, 201, 211), (x + 8, y + 12, width - 16, 5))
+        _pixel_hill(surface, (93, 151, 115), 110, 228, 220, 80)
+        _pixel_hill(surface, (73, 132, 102), 555, 213, 290, 91)
+        pygame.draw.rect(surface, (64, 131, 83), (0, 307, 800, 67))
+        pygame.draw.rect(surface, (46, 108, 70), (0, 307, 800, 9))
+        for x in range(0, 800, 32):
+            pygame.draw.rect(surface, (73, 145, 87), (x + (x % 3) * 3, 321 + (x % 4) * 5, 4, 7))
+        pygame.draw.rect(surface, (42, 86, 66), (170, 314, 132, 9))
+        pygame.draw.rect(surface, (42, 86, 66), (500, 304, 150, 11))
+        surface.blit(sprite("player", (80, 80)), (198, 224))
+        surface.blit(sprite("slime", (112, 84)), (518, 211))
+        pygame.draw.rect(surface, self.game.colors["ink"], (54, 24, 263, 94))
+        pygame.draw.rect(surface, self.game.colors["cream"], (58, 28, 255, 86))
+        pygame.draw.rect(surface, self.game.colors["panel"], (61, 31, 249, 80))
         self.text(surface, "용사", (78, 42), 20)
         self._bar(surface, 78, 77, 215, self.game.field.hp, self.game.field.max_hp, self.game.colors["red"])
-        pygame.draw.rect(surface, self.game.colors["panel"], (486, 28, 255, 86), border_radius=10)
+        pygame.draw.rect(surface, self.game.colors["ink"], (482, 24, 263, 94))
+        pygame.draw.rect(surface, self.game.colors["cream"], (486, 28, 255, 86))
+        pygame.draw.rect(surface, self.game.colors["panel"], (489, 31, 249, 80))
         self.text(surface, "초록 슬라임", (506, 42), 20)
         self._bar(surface, 506, 77, 215, max(0, self.enemy_hp), self.enemy_max_hp, self.game.colors["green"])
         pygame.draw.rect(surface, self.game.colors["panel"], (0, 374, 800, 226))
@@ -121,7 +138,7 @@ class BattleScene(BaseScene):
 
     @staticmethod
     def _bar(surface, x, y, width, value, maximum, color):
-        pygame.draw.rect(surface, (55, 61, 73), (x, y, width, 14), border_radius=6)
+        pygame.draw.rect(surface, (55, 61, 73), (x, y, width, 14))
         fill = int(width * max(0, value) / maximum) if maximum else 0
         if fill:
-            pygame.draw.rect(surface, color, (x, y, fill, 14), border_radius=6)
+            pygame.draw.rect(surface, color, (x, y, fill, 14))

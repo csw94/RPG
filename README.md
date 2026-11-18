@@ -33,5 +33,6 @@ python main.py
 pyinstaller --onefile --windowed --add-data "assets;assets" --name "ChroniclesOfPixel" main.py
 ```
 
-캐릭터, 맵, 상자, 몬스터는 Pygame 도형으로 그리므로 별도의 이미지 파일이 없어도
-플레이할 수 있습니다. 포함된 한글 폰트의 라이선스는 `assets/fonts/OFL.txt`에 있습니다.
+캐릭터, 맵 타일, 상자, 몬스터는 16×16 픽셀 아트 스프라이트로 표현합니다.
+스프라이트 원본 코드는 `utils/pixel_art.py`에 있습니다. 포함된 한글 폰트의
+라이선스는 `assets/fonts/OFL.txt`에 있습니다.

@@ -27,6 +27,8 @@ class BaseScene(ABC):
         return rect
 
     def button(self, surface, rect, label, selected=False, size=22):
-        pygame.draw.rect(surface, self.game.colors["gold"] if selected else self.game.colors["panel"], rect, border_radius=8)
-        pygame.draw.rect(surface, self.game.colors["cream"], rect, 2, border_radius=8)
+        face = self.game.colors["gold"] if selected else self.game.colors["panel"]
+        pygame.draw.rect(surface, self.game.colors["ink"], rect.inflate(4, 4))
+        pygame.draw.rect(surface, self.game.colors["cream"], rect.inflate(2, 2))
+        pygame.draw.rect(surface, face, rect)
         self.text(surface, label, rect.center, size, self.game.colors["ink"] if selected else self.game.colors["cream"], True)

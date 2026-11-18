@@ -2,6 +2,7 @@
 
 import pygame
 from scenes.base_scene import BaseScene
+from utils.pixel_art import sprite
 
 
 class TitleScene(BaseScene):
@@ -48,10 +49,11 @@ class TitleScene(BaseScene):
     def draw(self, surface):
         surface.fill(self.game.colors["ink"])
         for x, y, radius in ((90, 100, 2), (680, 135, 3), (140, 460, 2), (720, 465, 2), (570, 90, 2)):
-            pygame.draw.circle(surface, self.game.colors["cream"], (x, y), radius)
-        self.text(surface, "CHRONICLES", (400, 150), 48, self.game.colors["gold"], True)
-        self.text(surface, "OF PIXEL", (400, 210), 34, self.game.colors["cream"], True)
-        self.text(surface, "작은 용사의 첫 번째 모험", (400, 265), 20, self.game.colors["muted"], True)
+            pygame.draw.rect(surface, self.game.colors["cream"], (x - radius, y - radius, radius * 2 + 1, radius * 2 + 1))
+        self.text(surface, "CHRONICLES", (400, 126), 48, self.game.colors["gold"], True)
+        self.text(surface, "OF PIXEL", (400, 182), 34, self.game.colors["cream"], True)
+        self.text(surface, "작은 용사의 첫 번째 모험", (400, 224), 20, self.game.colors["muted"], True)
+        surface.blit(sprite("player", (64, 64)), (368, 244))
         for i, (label, rect) in enumerate(zip(self.OPTIONS, self._buttons())):
             self.button(surface, rect, label, i == self.selected)
         if self.game.notice:
