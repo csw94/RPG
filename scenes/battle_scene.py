@@ -127,7 +127,10 @@ class BattleScene(BaseScene):
         pygame.draw.rect(surface, self.game.colors["panel"], (489, 31, 249, 80))
         self.text(surface, "초록 슬라임", (506, 42), 20)
         self._bar(surface, 506, 77, 215, max(0, self.enemy_hp), self.enemy_max_hp, self.game.colors["green"])
-        pygame.draw.rect(surface, self.game.colors["panel"], (0, 374, 800, 226))
+        pygame.draw.rect(surface, self.game.colors["ink"], (0, 374, 800, 226))
+        pygame.draw.rect(surface, self.game.colors["gold"], (0, 374, 800, 4))
+        pygame.draw.rect(surface, self.game.colors["panel"], (8, 382, 784, 210))
+        pygame.draw.rect(surface, self.game.colors["gold"], (8, 382, 784, 210), 2)
         self.text(surface, self.message, (400, 401), 19, self.game.colors["gold"], True)
         for i, (label, rect) in enumerate(zip(self.ACTIONS, self._buttons())):
             if i == 2:

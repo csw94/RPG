@@ -1,2 +1,3 @@
-Image assets are optional. The game currently draws its map, characters, and
-treasure chests with Pygame shapes, so it remains playable without image files.
+현재 캐릭터, 맵, 상자 스프라이트는 `utils/pixel_art.py`에서 16×16 도트로
+그립니다. PNG 이미지 에셋은 선택 사항이며, 추가하면 리소스 경로 헬퍼를 통해
+불러올 수 있습니다.

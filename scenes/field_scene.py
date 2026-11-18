@@ -50,7 +50,7 @@ class FieldScene(BaseScene):
                     self.game.save_game()
                     self.message = "진행 상황을 저장했습니다."
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if pygame.Rect(690, 12, 98, 40).collidepoint(event.pos):
+                if pygame.Rect(686, 536, 92, 38).collidepoint(event.pos):
                     self.game.save_game()
                     self.message = "진행 상황을 저장했습니다."
 
@@ -97,6 +97,8 @@ class FieldScene(BaseScene):
                 rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
                 if (x, y) in self.walls:
                     surface.blit(sprite("stone", (TILE_SIZE, TILE_SIZE)), rect)
+                    if (x, y) in ((8, 4), (8, 8)):
+                        surface.blit(sprite("torch", (TILE_SIZE, TILE_SIZE)), rect)
                 else:
                     tile = "dirt" if y == 6 and 8 <= x <= 18 else f"grass_{(x * 3 + y) % 4}"
                     surface.blit(sprite(tile, (TILE_SIZE, TILE_SIZE)), rect)
@@ -108,7 +110,10 @@ class FieldScene(BaseScene):
         px, py = self.player["x"] * TILE_SIZE, self.player["y"] * TILE_SIZE
         pygame.draw.rect(surface, (34, 62, 55), (px + 7, py + 27, 18, 3))
         surface.blit(sprite("player", (TILE_SIZE, TILE_SIZE)), (px, py))
-        pygame.draw.rect(surface, self.game.colors["panel"], (0, 512, 800, 88))
-        self.text(surface, f"Lv.{self.level}  HP {self.hp}/{self.max_hp}  MP {self.mp}/{self.max_mp}  포션 {self.potions}", (18, 520), 20)
-        self.text(surface, self.message, (18, 553), 17, self.game.colors["muted"])
-        self.button(surface, pygame.Rect(690, 520, 94, 40), "저장", False, 18)
+        pygame.draw.rect(surface, self.game.colors["ink"], (0, 512, 800, 88))
+        pygame.draw.rect(surface, self.game.colors["gold"], (0, 512, 800, 4))
+        pygame.draw.rect(surface, self.game.colors["panel"], (8, 520, 784, 72))
+        pygame.draw.rect(surface, self.game.colors["gold"], (8, 520, 784, 72), 2)
+        self.text(surface, f"슬롯 {self.game.active_slot}  ·  Lv.{self.level}  HP {self.hp}/{self.max_hp}  MP {self.mp}/{self.max_mp}  포션 {self.potions}", (20, 526), 19)
+        self.text(surface, self.message, (20, 558), 16, self.game.colors["muted"])
+        self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)

@@ -21,6 +21,7 @@ class Game:
         self.save_manager = SaveManager()
         self.notice = ""
         self.field = None
+        self.active_slot = None
         self.scene_name = "title"
         self.scene = TitleScene(self)
         self._fonts = {}
@@ -39,21 +40,24 @@ class Game:
         self.scene_name = name
         self.scene = TitleScene(self) if name == "title" else FieldScene(self)
 
-    def new_game(self):
+    def new_game(self, slot):
         self.notice = ""
+        self.active_slot = slot
         self.field = FieldScene(self)
         self.scene_name, self.scene = "field", self.field
+        self.save_game()
 
-    def load_game(self):
-        data = self.save_manager.load()
+    def load_game(self, slot):
+        data = self.save_manager.load(slot)
         if data:
             self.notice = ""
+            self.active_slot = slot
             self.field = FieldScene(self, data)
             self.scene_name, self.scene = "field", self.field
 
     def save_game(self):
         if self.field:
-            self.save_manager.save(self.field.serialize())
+            self.save_manager.save(self.field.serialize(), self.active_slot)
 
     def start_battle(self):
         self.scene_name = "battle"

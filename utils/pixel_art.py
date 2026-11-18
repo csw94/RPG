@@ -15,6 +15,7 @@ PALETTE = {
     "stone": (104, 103, 112),
     "stone_light": (150, 148, 150),
     "stone_dark": (69, 70, 83),
+    "metal": (171, 185, 184),
     "wood": (137, 77, 42),
     "wood_light": (188, 119, 55),
     "gold": (245, 194, 74),
@@ -81,6 +82,13 @@ def _player():
     _rect(surface, PALETTE["skin_shadow"], 11, 6, 1)
     _rect(surface, PALETTE["blue_light"], 4, 9, 2, 2)
     _rect(surface, PALETTE["blue_dark"], 10, 10, 2, 1)
+    # A short steel sword and a red kite shield give the hero a medieval silhouette.
+    _rect(surface, PALETTE["stone_light"], 14, 6, 1, 5)
+    _rect(surface, PALETTE["metal"], 13, 7, 1, 3)
+    _rect(surface, PALETTE["gold"], 13, 11, 3, 1)
+    _rect(surface, PALETTE["boot"], 14, 12, 1, 2)
+    _rect(surface, (149, 57, 47), 1, 9, 2, 4)
+    _rect(surface, PALETTE["gold"], 1, 10, 2, 1)
     return surface
 
 
@@ -167,6 +175,15 @@ def _flower(color):
     return surface
 
 
+def _torch():
+    surface = _canvas()
+    _rect(surface, PALETTE["boot"], 7, 7, 2, 7)
+    _rect(surface, PALETTE["gold"], 6, 5, 4, 3)
+    _rect(surface, (226, 111, 54), 7, 3, 2, 4)
+    _rect(surface, (248, 217, 118), 7, 4, 1, 2)
+    return surface
+
+
 def sprite(name, size=(32, 32)):
     """Return a cached pixel sprite, enlarged with nearest-neighbor sampling."""
     if name not in _BASE:
@@ -183,6 +200,7 @@ def sprite(name, size=(32, 32)):
             "stone": _stone,
             "flower_yellow": lambda: _flower(PALETTE["gold"]),
             "flower_red": lambda: _flower((221, 101, 94)),
+            "torch": _torch,
         }
         _BASE[name] = builders[name]()
     key = (name, tuple(size)) if size else (name, None)
