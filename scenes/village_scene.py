@@ -27,6 +27,9 @@ class VillageScene(FieldScene):
         self.walls.update((x, y) for x in range(16, 23) for y in range(2, 6))
         self.walls.discard((4, 5))
         self.walls.discard((19, 5))
+        self.position_recovered = self._restore_player_position((12, 13)) or self.position_recovered
+        if self.position_recovered:
+            self.message = "저장 위치를 마을 입구로 복구했습니다."
 
     def _interact(self):
         position = (self.player["x"], self.player["y"])

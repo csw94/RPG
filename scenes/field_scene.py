@@ -44,6 +44,10 @@ class FieldScene(BaseScene):
         self.walls.update({(8, y) for y in range(2, 11) if y != 6})
         self.walls.update({(x, 10) for x in range(8, 18) if x != 13})
         self.chests = {(5, 4): "potion", (18, 6): "gold", (20, 12): "potion"}
+        safe_spawns = {"field": (2, 2), "village": (12, 13), "dungeon": (3, 14)}
+        self.position_recovered = self._restore_player_position(safe_spawns.get(self.world, (2, 2)))
+        if self.position_recovered:
+            self.message = "저장 위치를 안전한 곳으로 복구했습니다."
 
     def serialize(self):
         opened_by_world = {
@@ -59,7 +63,14 @@ class FieldScene(BaseScene):
                 "opened_by_world": opened_by_world}
 
     def _blocked(self, x, y):
-        return (x, y) in self.walls
+        return not (0 <= x < self.COLS and 0 <= y < self.ROWS) or (x, y) in self.walls
+
+    def _restore_player_position(self, fallback):
+        x, y = self.player["x"], self.player["y"]
+        if self._blocked(x, y):
+            self.player.update(x=fallback[0], y=fallback[1])
+            return True
+        return False
 
     def handle_events(self, events):
         for event in events:

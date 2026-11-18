@@ -26,6 +26,9 @@ class DungeonScene(FieldScene):
         self.walls.update((x, 5) for x in range(7, 22) if x != 12)
         self.walls.update((15, y) for y in range(5, 14) if y != 10)
         self.walls.update((x, 10) for x in range(15, 22) if x != 18)
+        self.position_recovered = self._restore_player_position((3, 14)) or self.position_recovered
+        if self.position_recovered:
+            self.message = "저장 위치를 던전 입구로 복구했습니다."
 
     def _interact(self):
         position = (self.player["x"], self.player["y"])
