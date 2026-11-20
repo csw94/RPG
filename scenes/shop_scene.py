@@ -9,7 +9,7 @@ class ShopScene(BaseScene):
     def __init__(self, game):
         super().__init__(game)
         self.selected = 0
-        self.message = "금화를 사용해 장비를 구입하거나 착용하세요."
+        self.message = "\uace8\ub4dc\ub85c \uc7a5\ube44\ub97c \uad6c\ub9e4\ud558\uac70\ub098 \uc18c\uc9c0\ud488\uc744 \ucc59\uae30\uc138\uc694."
 
     def _rows(self):
         return [pygame.Rect(118, 158 + index * 62, 564, 48) for index in range(len(SHOP_ITEMS))]
@@ -36,7 +36,7 @@ class ShopScene(BaseScene):
 
     def _close(self):
         self.game.save_game()
-        self.game.scene_name = "village"
+        self.game.scene_name = self.game.field.world
         self.game.scene = self.game.field
 
     def _purchase(self):
@@ -44,12 +44,16 @@ class ShopScene(BaseScene):
         info = item_info(item)
         player = self.game.field
         if item["kind"] == "potion":
+            inventory = "high_potions" if item["id"] == "high_potion" else "potions"
+            if getattr(player, inventory) >= 10:
+                self.message = "\ud3ec\uc158\uc740 \uc885\ub958\ubcc4\ub85c 10\uac1c\uae4c\uc9c0 \uc18c\uc9c0\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4."
+                return
             if player.gold < info["price"]:
-                self.message = "금화가 부족합니다."
+                self.message = "\uace8\ub4dc\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4."
                 return
             player.gold -= info["price"]
-            player.potions += 1
-            self.message = "회복 포션을 가방에 넣었습니다."
+            setattr(player, inventory, getattr(player, inventory) + 1)
+            self.message = f"{info['name']}\uc744(\ub97c) \uac00\ubc29\uc5d0 \ub123\uc5c8\uc2b5\ub2c8\ub2e4."
             self.game.save_game()
             return
 
@@ -58,12 +62,17 @@ class ShopScene(BaseScene):
         active_attribute = "weapon" if kind == "weapon" else "armor"
         if item["id"] not in owned:
             if player.gold < info["price"]:
-                self.message = "금화가 부족합니다. 모험을 더 하고 오세요."
+                self.message = "\uace8\ub4dc\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4. \ud544\ub4dc\uc5d0\uc11c \ubaa8\ud5d8\ud558\uba70 \ubc8c\uc5b4 \ubcf4\uc138\uc694."
                 return
             player.gold -= info["price"]
             owned.append(item["id"])
+        if kind == "armor":
+            old = ARMORS.get(player.armor, ARMORS["traveler_clothes"])
+            health_delta = info.get("health", 0) - old.get("health", 0)
+            player.max_hp += health_delta
+            player.hp = min(player.max_hp, player.hp + max(0, health_delta))
         setattr(player, active_attribute, item["id"])
-        self.message = f"{info['name']}을(를) 착용했습니다."
+        self.message = f"{info['name']}\uc744(\ub97c) \uc7a5\ucc29\ud588\uc2b5\ub2c8\ub2e4."
         self.game.save_game()
 
     def update(self, dt):
@@ -80,30 +89,36 @@ class ShopScene(BaseScene):
         player = self.game.field
         info = item_info(item)
         if item["kind"] == "weapon":
-            detail = f"공격 +{info['attack']}"
+            detail = f"ATK +{info['attack']}"
             owned = item["id"] in player.owned_weapons
             active = player.weapon == item["id"]
+            quantity = None
         elif item["kind"] == "armor":
-            detail = f"방어 +{info['defense']}"
+            detail = f"DEF +{info['defense']}" + (f", HP +{info['health']}" if info.get("health") else "")
             owned = item["id"] in player.owned_armors
             active = player.armor == item["id"]
+            quantity = None
         else:
-            detail = "HP 18 회복"
-            owned = False
+            detail = f"HP {info['heal']} \ud68c\ubcf5"
+            quantity = player.high_potions if item["id"] == "high_potion" else player.potions
+            owned = quantity > 0
             active = False
-        price = "보유 중" if active else ("착용" if owned else f"{info['price']} G")
-        return f"{info['name']}   ·   {detail}", price
+        if item["kind"] == "potion":
+            price = f"\ubcf4\uc720 {quantity}/10 \u00b7 {info['price']} G"
+        else:
+            price = "\uc7a5\ucc29 \uc911" if active else ("\ubcf4\uc720" if owned else f"{info['price']} G")
+        return f"{info['name']}   \u00b7   {detail}", price
 
     def draw(self, surface):
         surface.fill((32, 42, 34))
         pygame.draw.rect(surface, (73, 54, 39), (58, 28, 684, 544))
         pygame.draw.rect(surface, self.game.colors["gold"], (58, 28, 684, 544), 4)
         pygame.draw.rect(surface, self.game.colors["cream"], (67, 37, 666, 526), 1)
-        self.text(surface, "마을 대장간", (400, 75), 32, self.game.colors["gold"], True)
-        self.text(surface, f"보유 금화 {self.game.field.gold} G", (400, 112), 19, self.game.colors["cream"], True)
+        self.text(surface, "\uc624\ud06c\ubc38\ub9ac \uc0c1\uc810", (400, 75), 32, self.game.colors["gold"], True)
+        self.text(surface, f"\ubcf4\uc720 \uace8\ub4dc {self.game.field.gold} G", (400, 112), 19, self.game.colors["cream"], True)
         weapon = WEAPONS.get(self.game.field.weapon, WEAPONS["rusty_sword"])
         armor = ARMORS.get(self.game.field.armor, ARMORS["traveler_clothes"])
-        self.text(surface, f"착용 중: {weapon['name']} · {armor['name']}", (400, 137), 16,
+        self.text(surface, f"\uc7a5\ucc29 \uc911: {weapon['name']} \u00b7 {armor['name']}", (400, 137), 16,
                   self.game.colors["muted"], True)
         for index, (item, rect) in enumerate(zip(SHOP_ITEMS, self._rows())):
             self._frame(surface, rect, self.game.colors["panel"], index == self.selected)
@@ -112,6 +127,6 @@ class ShopScene(BaseScene):
             price_image = self.game.font(16).render(price, True, self.game.colors["gold"])
             surface.blit(price_image, price_image.get_rect(midright=(rect.right - 14, rect.centery)))
         self.text(surface, self.message, (400, 486), 16, self.game.colors["cream"], True)
-        self.button(surface, pygame.Rect(330, 512, 140, 42), "마을로", False, 18)
-        self.text(surface, "↑/↓ 선택 · Enter 구매/착용 · ESC 돌아가기", (400, 562), 13,
+        self.button(surface, pygame.Rect(330, 512, 140, 42), "\ub9c8\uc744\ub85c", False, 18)
+        self.text(surface, "\u2191\u2193 \uc120\ud0dd \u00b7 Enter \uad6c\ub9e4/\uc7a5\ucc29 \u00b7 ESC \ub3cc\uc544\uac00\uae30", (400, 562), 13,
                   self.game.colors["muted"], True)

@@ -6,7 +6,7 @@ Pygame CE로 만든 한글 2D 탑뷰 RPG입니다. 마을과 필드를 탐험하
 ## Windows에서 다운로드 및 실행
 
 1. [최신 릴리즈 페이지](https://github.com/csw94/RPG/releases/latest)를 엽니다.
-2. 릴리즈의 Assets에서 **ChroniclesOfPixel.exe**를 다운로드합니다.
+2. 릴리즈의 Assets에서 **ChroniclesOfPixel-OakValley.exe**를 다운로드합니다.
 3. 다운로드한 EXE 파일을 더블 클릭해 실행합니다. Python 설치는 필요하지 않습니다.
 
 세이브 데이터는 Windows 사용자 앱 데이터 폴더에 저장됩니다. EXE에 한글 폰트가

@@ -51,7 +51,7 @@ def _rect(surface, color, x, y, width, height=1):
     pygame.draw.rect(surface, color, pygame.Rect(x, y, width, height))
 
 
-def _player(weapon="rusty_sword", armor="traveler_clothes"):
+def _player(weapon="rusty_sword", armor="traveler_clothes", direction="down", frame=0):
     """A taller, chibi-style adventurer with layered hair, tunic, and gear."""
     surface = _canvas((16, 24))
 
@@ -114,7 +114,33 @@ def _player(weapon="rusty_sword", armor="traveler_clothes"):
         _rect(surface, (177, 188, 182), 5, 13, 2, 1)
         _rect(surface, (177, 188, 182), 9, 13, 2, 1)
         _rect(surface, PALETTE["gold"], 7, 16, 2, 2)
-    return surface
+    if frame % 2:
+        surface.fill((0, 0, 0, 0), pygame.Rect(4, 19, 10, 5))
+        _rect(surface, (92, 94, 78), 5, 18, 6, 2)
+        _rect(surface, (67, 69, 63), 4, 20, 2, 2)
+        _rect(surface, (67, 69, 63), 10, 19, 2, 2)
+        _rect(surface, (119, 83, 57), 2, 22, 5, 2)
+        _rect(surface, (119, 83, 57), 10, 21, 4, 2)
+        _rect(surface, (177, 125, 72), 2, 22, 5, 1)
+        _rect(surface, (177, 125, 72), 10, 21, 4, 1)
+    if direction == "up":
+        _rect(surface, PALETTE["hair"], 3, 5, 10, 7)
+        _rect(surface, PALETTE["hair_light"], 4, 5, 3, 1)
+        _rect(surface, PALETTE["hair"], 2, 8, 2, 3)
+        _rect(surface, PALETTE["hair"], 12, 8, 2, 3)
+    elif direction in ("left", "right"):
+        surface.fill((0, 0, 0, 0), pygame.Rect(2, 2, 13, 10))
+        _rect(surface, PALETTE["hair"], 4, 3, 8, 5)
+        _rect(surface, PALETTE["hair"], 3, 6, 5, 6)
+        _rect(surface, PALETTE["hair_light"], 5, 4, 4, 1)
+        _rect(surface, PALETTE["skin"], 8, 7, 5, 5)
+        _rect(surface, PALETTE["skin_shadow"], 7, 8, 2, 3)
+        _rect(surface, PALETTE["hair"], 9, 6, 4, 2)
+        _rect(surface, PALETTE["ink"], 11, 9, 1, 2)
+        _rect(surface, PALETTE["skin_shadow"], 13, 9, 1, 2)
+        _rect(surface, PALETTE["skin_shadow"], 9, 11, 3, 1)
+        if direction == "left":
+            surface = pygame.transform.flip(surface, True, False)
     return surface
 
 
@@ -159,13 +185,215 @@ def _grass(variant):
     surface.fill(base)
     rng = random.Random(variant + 431)
     accents = (PALETTE["grass_dark"], PALETTE["grass_light"], PALETTE["grass_gold"])
-    for _ in range(5):
+    for _ in range(28):
         x, y = rng.randrange(16), rng.randrange(16)
         surface.set_at((x, y), accents[rng.randrange(len(accents))])
     # Short, two pixel blades read as tufts instead of smooth noise.
     for x, y in ((2, 3), (11, 12), (6, 8)):
         if (x + y + variant) % 2 == 0:
             _rect(surface, PALETTE["grass_light"], x, y, 1, 2)
+    return surface
+
+
+def _path(variant=0):
+    surface = _canvas()
+    surface.fill((132, 91, 57))
+    rng = random.Random(variant + 944)
+    for _ in range(34):
+        x, y = rng.randrange(16), rng.randrange(16)
+        color = rng.choice(((154, 109, 68), (111, 75, 51), (174, 128, 80), (126, 84, 55)))
+        _rect(surface, color, x, y, rng.choice((1, 1, 2)), 1)
+    _rect(surface, (100, 69, 48), 0, 15, 16, 1)
+    return surface
+
+
+def _water(variant=0):
+    surface = _canvas()
+    surface.fill((48, 111, 132))
+    rng = random.Random(variant + 325)
+    for _ in range(13):
+        x, y = rng.randrange(16), rng.randrange(16)
+        _rect(surface, rng.choice(((58, 134, 148), (76, 150, 157), (37, 96, 125))), x, y, rng.choice((1, 2, 3)), 1)
+    for x, y in ((2, 3), (9, 8), (5, 13)):
+        _rect(surface, (129, 187, 178), x, y, 2, 1)
+    return surface
+
+
+def _terrain_overlay(mask, water=False, variant=0):
+    """Transparent, connected pixel patch for organic trail and shoreline edges."""
+    surface = _canvas()
+    if water:
+        fill = (48, 111, 132)
+        accents = ((58, 134, 148), (76, 150, 157), (37, 96, 125))
+    else:
+        fill = (132, 91, 57)
+        accents = ((154, 109, 68), (111, 75, 51), (174, 128, 80))
+    pygame.draw.ellipse(surface, fill, (0, 0, 16, 16))
+    if mask & 1:
+        _rect(surface, fill, 4, 0, 8, 9)
+    if mask & 2:
+        _rect(surface, fill, 7, 4, 9, 8)
+    if mask & 4:
+        _rect(surface, fill, 4, 7, 8, 9)
+    if mask & 8:
+        _rect(surface, fill, 0, 4, 9, 8)
+    if mask & 16:
+        pygame.draw.polygon(surface, fill, ((8, 0), (16, 0), (16, 8)))
+    if mask & 32:
+        pygame.draw.polygon(surface, fill, ((8, 16), (16, 8), (16, 16)))
+    if mask & 64:
+        pygame.draw.polygon(surface, fill, ((0, 8), (8, 16), (0, 16)))
+    if mask & 128:
+        pygame.draw.polygon(surface, fill, ((0, 0), (8, 0), (0, 8)))
+    rng = random.Random(mask * 101 + variant + (550 if water else 0))
+    for _ in range(9):
+        x, y = rng.randrange(1, 15), rng.randrange(1, 15)
+        if surface.get_at((x, y)).a:
+            _rect(surface, rng.choice(accents), x, y, rng.choice((1, 2)), 1)
+    if water:
+        _rect(surface, (139, 190, 176), 5, 5, 2, 1)
+        _rect(surface, (119, 176, 166), 10, 10, 2, 1)
+    return surface
+
+
+def _tree():
+    """Layered broadleaf tree, with a transparent shadow and pixel highlights."""
+    surface = _canvas((24, 32))
+    _rect(surface, (36, 67, 41, 100), 3, 26, 18, 4)
+    _rect(surface, (96, 66, 43), 10, 18, 5, 12)
+    _rect(surface, (145, 97, 52), 11, 20, 2, 7)
+    for x, y, w, h, color in (
+        (4, 7, 16, 12, (31, 87, 49)), (2, 10, 20, 11, (43, 113, 58)),
+        (5, 4, 14, 14, (56, 136, 66)), (7, 2, 10, 7, (82, 158, 74)),
+        (3, 13, 7, 6, (37, 101, 53)), (14, 12, 7, 7, (34, 99, 51)),
+    ):
+        _rect(surface, color, x, y, w, h)
+    for x, y in ((7, 4), (10, 7), (15, 5), (5, 11), (12, 12), (17, 10), (8, 15)):
+        _rect(surface, (112, 177, 83), x, y, 2, 2)
+    for x, y in ((10, 9), (15, 13), (5, 14)):
+        _rect(surface, (220, 192, 94), x, y, 1, 1)
+    return surface
+
+
+def _rock():
+    surface = _canvas()
+    points = [(2, 12), (3, 7), (6, 5), (7, 2), (12, 3), (14, 7), (14, 12), (11, 14), (4, 14)]
+    pygame.draw.polygon(surface, (81, 91, 92), points)
+    _rect(surface, (140, 150, 139), 6, 5, 5, 2)
+    _rect(surface, (104, 119, 117), 4, 8, 8, 2)
+    _rect(surface, (57, 69, 74), 4, 12, 8, 2)
+    return surface
+
+
+def _portal(kind="dungeon", frame=0):
+    """Small overgrown stone gateway with a distinct warm or enchanted opening."""
+    surface = _canvas((24, 32))
+    _rect(surface, (30, 48, 38, 110), 1, 28, 22, 3)
+    # Threshold stones and the dark doorway sit behind the arch blocks.
+    _rect(surface, (40, 48, 48), 7, 10, 10, 18)
+    if kind == "town":
+        glow = (133, 96, 52)
+        glow_light = (235, 190, 99)
+        stone = (112, 112, 91)
+    else:
+        glow = (44, 104, 119)
+        glow_light = (99, 211, 194)
+        stone = (96, 110, 107)
+    _rect(surface, glow, 9, 15, 6, 13)
+    _rect(surface, glow_light, 9 + frame % 2, 15, 1, 9)
+    _rect(surface, (142, 146, 126), 3, 27, 18, 2)
+    _rect(surface, (110, 115, 106), 2, 23, 5, 5)
+    _rect(surface, stone, 3, 11, 4, 15)
+    _rect(surface, (136, 146, 131), 3, 12, 2, 10)
+    _rect(surface, stone, 17, 11, 4, 15)
+    _rect(surface, (65, 80, 76), 19, 13, 2, 10)
+    _rect(surface, stone, 5, 7, 14, 5)
+    _rect(surface, (137, 145, 129), 7, 5, 10, 4)
+    _rect(surface, (152, 157, 133), 9, 3, 6, 3)
+    _rect(surface, (42, 79, 48), 2, 15, 2, 8)
+    _rect(surface, (54, 101, 56), 19, 17, 2, 7)
+    _rect(surface, (104, 161, 76), 2, 16, 2, 2)
+    _rect(surface, (115, 168, 82), 19, 19, 2, 2)
+    _rect(surface, glow_light, 10 + frame % 2, 10, 2, 1)
+    return surface
+
+
+def _chief():
+    surface = _canvas()
+    _rect(surface, (225, 217, 189), 4, 2, 8, 4)
+    _rect(surface, (237, 220, 177), 5, 5, 6, 5)
+    _rect(surface, (250, 235, 201), 6, 5, 4, 2)
+    _rect(surface, PALETTE["ink"], 6, 7, 1, 1)
+    _rect(surface, PALETTE["ink"], 9, 7, 1, 1)
+    _rect(surface, (235, 234, 218), 6, 9, 4, 3)
+    _rect(surface, (61, 76, 108), 3, 11, 10, 4)
+    _rect(surface, (89, 109, 140), 5, 11, 6, 4)
+    _rect(surface, PALETTE["gold"], 7, 11, 2, 4)
+    _rect(surface, PALETTE["boot"], 4, 15, 3, 1)
+    _rect(surface, PALETTE["boot"], 9, 15, 3, 1)
+    return surface
+
+
+def _fountain():
+    surface = _canvas((16, 24))
+    _rect(surface, (48, 62, 70), 2, 15, 12, 8)
+    _rect(surface, (135, 143, 134), 2, 15, 12, 2)
+    _rect(surface, (73, 130, 152), 4, 17, 8, 3)
+    _rect(surface, (105, 190, 193), 5, 17, 5, 1)
+    _rect(surface, (153, 165, 146), 6, 12, 4, 4)
+    _rect(surface, (113, 140, 139), 7, 9, 2, 4)
+    _rect(surface, (83, 181, 193), 7, 6, 2, 4)
+    _rect(surface, (244, 207, 107), 7, 2, 2, 4)
+    _rect(surface, (255, 245, 190), 7, 1, 2, 2)
+    _rect(surface, (232, 195, 92), 4, 7, 2, 2)
+    _rect(surface, (232, 195, 92), 10, 7, 2, 2)
+    return surface
+
+
+def _altar(kind):
+    surface = _canvas()
+    colors = {
+        "wind": ((119, 150, 157), (179, 226, 214)),
+        "earth": ((123, 114, 91), (212, 184, 122)),
+        "fire": ((137, 76, 54), (251, 163, 68)),
+    }
+    stone, seal = colors[kind]
+    _rect(surface, (51, 68, 57, 120), 2, 13, 12, 2)
+    _rect(surface, stone, 3, 6, 10, 8)
+    _rect(surface, (174, 159, 123), 4, 5, 8, 2)
+    _rect(surface, stone, 6, 3, 4, 4)
+    _rect(surface, seal, 7, 6, 2, 5)
+    _rect(surface, (242, 225, 167), 7, 7, 1, 2)
+    _rect(surface, seal, 4, 10, 2, 1)
+    _rect(surface, seal, 10, 10, 2, 1)
+    return surface
+
+
+def _dark_knight():
+    surface = _canvas((16, 24))
+    _rect(surface, (40, 36, 48), 2, 5, 12, 14)
+    _rect(surface, (77, 67, 76), 4, 3, 8, 6)
+    _rect(surface, (28, 30, 39), 5, 5, 6, 4)
+    _rect(surface, (221, 96, 75), 6, 7, 2, 1)
+    _rect(surface, (221, 96, 75), 9, 7, 2, 1)
+    _rect(surface, (103, 32, 41), 1, 9, 4, 11)
+    _rect(surface, (72, 28, 42), 11, 10, 4, 10)
+    _rect(surface, (109, 116, 119), 5, 10, 6, 7)
+    _rect(surface, (65, 74, 83), 4, 11, 2, 5)
+    _rect(surface, (65, 74, 83), 10, 11, 2, 5)
+    _rect(surface, (167, 52, 45), 7, 11, 2, 4)
+    _rect(surface, (106, 119, 128), 2, 12, 2, 5)
+    _rect(surface, (106, 119, 128), 12, 12, 2, 5)
+    _rect(surface, (184, 191, 184), 3, 12, 1, 4)
+    _rect(surface, (184, 191, 184), 12, 11, 1, 5)
+    _rect(surface, (62, 67, 72), 5, 18, 2, 4)
+    _rect(surface, (62, 67, 72), 9, 18, 2, 4)
+    _rect(surface, PALETTE["boot"], 4, 22, 4, 2)
+    _rect(surface, PALETTE["boot"], 9, 22, 4, 2)
+    _rect(surface, (174, 189, 188), 13, 13, 1, 7)
+    _rect(surface, (224, 224, 201), 13, 10, 1, 4)
+    _rect(surface, (167, 52, 45), 1, 4, 2, 5)
+    _rect(surface, (167, 52, 45), 13, 4, 2, 5)
     return surface
 
 
@@ -292,16 +520,37 @@ def _skeleton():
 
 def sprite(name, size=(32, 32)):
     """Return a cached pixel sprite, enlarged with nearest-neighbor sampling."""
+    if name not in _BASE and name.startswith(("trail_", "water_edge_")):
+        parts = name.split("_")
+        mask, variant = int(parts[-2]), int(parts[-1])
+        _BASE[name] = _terrain_overlay(mask, name.startswith("water_edge_"), variant)
+    elif name not in _BASE and name.startswith("grass_"):
+        _BASE[name] = _grass(int(name.rsplit("_", 1)[1]))
     if name not in _BASE:
         builders = {
             "player": _player,
             "slime": _slime,
             "chest": lambda: _chest(False),
             "chest_open": lambda: _chest(True),
-            "grass_0": lambda: _grass(0),
-            "grass_1": lambda: _grass(1),
-            "grass_2": lambda: _grass(2),
-            "grass_3": lambda: _grass(3),
+            "path": lambda: _path(0),
+            "path_0": lambda: _path(0),
+            "path_1": lambda: _path(1),
+            "path_2": lambda: _path(2),
+            "water": lambda: _water(0),
+            "water_0": lambda: _water(0),
+            "water_1": lambda: _water(1),
+            "tree": _tree,
+            "rock": _rock,
+            "portal_town": lambda: _portal("town"),
+            "portal_dungeon": lambda: _portal("dungeon"),
+            "portal_dungeon_0": lambda: _portal("dungeon", 0),
+            "portal_dungeon_1": lambda: _portal("dungeon", 1),
+            "chief": _chief,
+            "star_fountain": _fountain,
+            "altar_wind": lambda: _altar("wind"),
+            "altar_earth": lambda: _altar("earth"),
+            "altar_fire": lambda: _altar("fire"),
+            "dark_knight": _dark_knight,
             "dirt": _dirt,
             "stone": _stone,
             "flower_yellow": lambda: _flower(PALETTE["gold"]),
@@ -324,9 +573,9 @@ def sprite(name, size=(32, 32)):
     return _SCALED[key]
 
 
-def hero_sprite(weapon="rusty_sword", armor="traveler_clothes", size=(32, 32)):
+def hero_sprite(weapon="rusty_sword", armor="traveler_clothes", size=(32, 32), direction="down", frame=0):
     """Return the player sprite with the currently equipped gear visible."""
-    key = (weapon, armor, tuple(size))
+    key = (weapon, armor, tuple(size), direction, frame % 2)
     if key not in _HERO_SCALED:
-        _HERO_SCALED[key] = pygame.transform.scale(_player(weapon, armor), size)
+        _HERO_SCALED[key] = pygame.transform.scale(_player(weapon, armor, direction, frame), size)
     return _HERO_SCALED[key]

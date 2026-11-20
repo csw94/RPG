@@ -6,6 +6,7 @@ from db.save_manager import SaveManager
 from scenes.battle_scene import BattleScene
 from scenes.dungeon_scene import DungeonScene
 from scenes.field_scene import FieldScene
+from scenes.house_scene import HouseInteriorScene
 from scenes.shop_scene import ShopScene
 from scenes.title_scene import TitleScene
 from scenes.village_scene import VillageScene
@@ -46,7 +47,17 @@ class Game:
     def new_game(self, slot):
         self.notice = ""
         self.active_slot = slot
-        state = {"world": "village", "x": 12, "y": 13}
+        state = {
+            "world": "village", "x": 12, "y": 13,
+            "level": 1, "hp": 100, "max_hp": 100, "atk": 15, "defense": 5,
+            "mp": 10, "max_mp": 10, "gold": 0, "potions": 0, "high_potions": 0,
+            "weapon": "rusty_sword", "armor": "traveler_clothes",
+            "owned_weapons": ["rusty_sword"], "owned_armors": ["traveler_clothes"],
+            "quest_flags": {
+                "prologue_done": 0, "shrine_wind": 0, "shrine_earth": 0,
+                "shrine_fire": 0, "star_sword_awakened": 0, "final_boss": 0,
+            },
+        }
         self.field = self._create_world(state)
         self.scene_name, self.scene = self.field.world, self.field
         self.save_game()
@@ -60,13 +71,17 @@ class Game:
             self.scene_name, self.scene = self.field.world, self.field
 
     def _create_world(self, state):
+        if state.get("world") in ("village_house_1", "village_house_2"):
+            return HouseInteriorScene(self, state)
+        if DungeonScene.is_dungeon_map(state.get("world", state.get("map_id", ""))):
+            return DungeonScene(self, state)
         worlds = {"field": FieldScene, "village": VillageScene, "dungeon": DungeonScene}
         world_type = worlds.get(state.get("world", "field"), FieldScene)
         return world_type(self, state)
 
     def enter_world(self, world, position):
         state = self.field.serialize()
-        state.update(world=world, x=position[0], y=position[1])
+        state.update(world=world, map_id=world, x=position[0], y=position[1])
         self.field = self._create_world(state)
         self.scene_name, self.scene = self.field.world, self.field
         self.save_game()
@@ -85,7 +100,15 @@ class Game:
 
     def finish_battle(self):
         self.save_game()
+        scene_types = {"field": FieldScene, "village": VillageScene, "dungeon": DungeonScene}
+        expected = scene_types.get(self.field.world, FieldScene)
+        if not isinstance(self.field, expected):
+            self.field = self._create_world(self.field.serialize())
         self.scene_name, self.scene = self.field.world, self.field
+        if self.field.pending_dialogue:
+            lines = self.field.pending_dialogue
+            self.field.pending_dialogue = None
+            self.field.show_dialogue(lines)
 
     def run(self):
         while self.running:
