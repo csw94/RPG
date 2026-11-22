@@ -358,6 +358,41 @@ def _old_knight():
     return surface
 
 
+def _merchant():
+    """Wandering merchant Toby: wide travel hat, green scarf, an overstuffed pack and a walking staff."""
+    surface = _canvas()
+    # Backpack bulging out behind both shoulders, with a bedroll on top.
+    _rect(surface, (112, 74, 46), 1, 6, 14, 7)
+    _rect(surface, (146, 100, 60), 2, 7, 12, 5)
+    _rect(surface, (176, 160, 120), 2, 4, 12, 2)
+    _rect(surface, (138, 122, 88), 2, 5, 12, 1)
+    _rect(surface, (204, 72, 60), 2, 4, 1, 2)
+    _rect(surface, (204, 72, 60), 13, 4, 1, 2)
+    # Wide-brimmed hat with a feather.
+    _rect(surface, (98, 64, 40), 3, 2, 10, 1)
+    _rect(surface, (122, 82, 50), 5, 0, 6, 2)
+    _rect(surface, (176, 58, 50), 5, 1, 6, 1)
+    _rect(surface, (238, 220, 150), 11, 0, 2, 1)
+    # Face and grin.
+    _rect(surface, PALETTE["skin"], 5, 3, 6, 4)
+    _rect(surface, PALETTE["ink"], 6, 4, 1, 1)
+    _rect(surface, PALETTE["ink"], 9, 4, 1, 1)
+    _rect(surface, PALETTE["skin_shadow"], 7, 6, 2, 1)
+    # Green scarf, travel coat, belt pouch and walking staff.
+    _rect(surface, (70, 140, 86), 4, 7, 8, 2)
+    _rect(surface, (108, 92, 64), 4, 9, 8, 5)
+    _rect(surface, (138, 118, 82), 5, 9, 2, 4)
+    _rect(surface, (64, 44, 34), 4, 12, 8, 1)
+    _rect(surface, PALETTE["gold"], 9, 12, 2, 2)
+    _rect(surface, (120, 84, 50), 14, 3, 1, 12)
+    _rect(surface, (164, 120, 70), 14, 2, 1, 1)
+    _rect(surface, PALETTE["pants"], 5, 14, 2, 1)
+    _rect(surface, PALETTE["pants"], 9, 14, 2, 1)
+    _rect(surface, PALETTE["boot"], 4, 15, 3, 1)
+    _rect(surface, PALETTE["boot"], 9, 15, 3, 1)
+    return surface
+
+
 def _fountain():
     surface = _canvas((16, 24))
     _rect(surface, (48, 62, 70), 2, 15, 12, 8)
@@ -571,6 +606,7 @@ def sprite(name, size=(32, 32)):
             "portal_dungeon_1": lambda: _portal("dungeon", 1),
             "chief": _chief,
             "old_knight": _old_knight,
+            "merchant": _merchant,
             "star_fountain": _fountain,
             "altar_wind": lambda: _altar("wind"),
             "altar_earth": lambda: _altar("earth"),

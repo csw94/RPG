@@ -635,7 +635,7 @@ class FieldScene(BaseScene):
             elif kind == "moon_herb":
                 surface.blit(sprite("flower_yellow", (TILE_SIZE, TILE_SIZE)), (sx, sy))
             elif kind == "toby":
-                surface.blit(sprite("villager", (TILE_SIZE, TILE_SIZE)), (sx, sy))
+                surface.blit(sprite("merchant", (TILE_SIZE, TILE_SIZE)), (sx, sy))
             else:
                 portal_name = "portal_town" if kind == "portal_town" else f"portal_dungeon_{int(self.portal_clock * 3) % 2}"
                 surface.blit(sprite(portal_name, (48, 64)), (sx - 8, sy - 32))

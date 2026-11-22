@@ -39,7 +39,7 @@ class EpilogueScene:
         "촌장 발렌": ((10, 12), "chief"),
         "약초상 마르타": ((9, 13), "villager"),
         "노기사 가렌": ((14, 12), "old_knight"),
-        "떠돌이 상인 토비": ((15, 13), "villager"),
+        "떠돌이 상인 토비": ((15, 13), "merchant"),
     }
     SPEAKER_SPOTS = {"흑기사 말포스": (12, 9), "잡화상 로건": (16, 10)}
     CHEER_FROM = 3
