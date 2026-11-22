@@ -7,6 +7,8 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
+from gameplay.world_data import MAP_GRAPH
+
 
 def _default_save_path() -> Path:
     if os.name == "nt":
@@ -106,21 +108,7 @@ class StoryProgressionManager:
         "star_sword_awakened", "final_boss",
     )
     SHRINES = ("shrine_wind", "shrine_earth", "shrine_fire")
-    MAP_GRAPH = {
-        "village_square": ("village_chief_house", "village_house_1", "village_house_2", "field_east", "field_west", "field_south"),
-        "village_chief_house": ("village_square",),
-        "village_house_1": ("village_square",),
-        "village_house_2": ("village_square",),
-        "field_east": ("village_square", "shrine_wind_1f"),
-        "shrine_wind_1f": ("field_east", "shrine_wind_2f"),
-        "shrine_wind_2f": ("shrine_wind_1f",),
-        "field_west": ("village_square", "shrine_earth_1f"),
-        "shrine_earth_1f": ("field_west", "shrine_earth_2f"),
-        "shrine_earth_2f": ("shrine_earth_1f",),
-        "field_south": ("village_square", "shrine_fire_1f"),
-        "shrine_fire_1f": ("field_south", "shrine_fire_2f"),
-        "shrine_fire_2f": ("shrine_fire_1f",),
-    }
+    MAP_GRAPH = MAP_GRAPH
     SUB_QUEST_TARGETS = {"sq_moon_herb": 3, "sq_old_sword": 1, "sq_goblin_hunt": 5}
     MONSTERS = {
         "slime": (35, 10, 2),

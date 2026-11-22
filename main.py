@@ -3,11 +3,13 @@
 import pygame
 
 from db.save_manager import SaveManager
+from gameplay.world_data import MAP_GRAPH
 from scenes.battle_scene import BattleScene
 from scenes.dungeon_scene import DungeonScene
 from scenes.field_scene import FieldScene
 from scenes.house_scene import HouseInteriorScene
 from scenes.shop_scene import ShopScene
+from scenes.shrine_clearing_scene import ShrineClearingScene
 from scenes.title_scene import TitleScene
 from scenes.village_scene import VillageScene
 from settings import COLORS, FPS, HEIGHT, TITLE, WIDTH
@@ -71,8 +73,14 @@ class Game:
             self.scene_name, self.scene = self.field.world, self.field
 
     def _create_world(self, state):
-        if state.get("world") in ("village_house_1", "village_house_2"):
+        state = dict(state)
+        if state.get("world") == "field":
+            # Legacy saves used a single combined field; resume them in the eastern route.
+            state.update(world="field_east", x=2, y=12)
+        if state.get("world") in ("village_chief_house", "village_house_1", "village_house_2"):
             return HouseInteriorScene(self, state)
+        if state.get("world") == "village_north_shrine":
+            return ShrineClearingScene(self, state)
         if DungeonScene.is_dungeon_map(state.get("world", state.get("map_id", ""))):
             return DungeonScene(self, state)
         worlds = {"field": FieldScene, "village": VillageScene, "dungeon": DungeonScene}
@@ -80,6 +88,10 @@ class Game:
         return world_type(self, state)
 
     def enter_world(self, world, position):
+        current_map = "village_square" if self.field.world == "village" else self.field.world
+        target_map = "village_square" if world == "village" else world
+        if target_map not in MAP_GRAPH.get(current_map, ()):
+            raise ValueError(f"map {current_map!r} has no exit to {target_map!r}")
         state = self.field.serialize()
         state.update(world=world, map_id=world, x=position[0], y=position[1])
         self.field = self._create_world(state)

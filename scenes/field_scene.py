@@ -9,6 +9,7 @@ from scenes.base_scene import BaseScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils.pixel_art import hero_sprite, sprite
 from gameplay.equipment import ARMORS, WEAPONS
+from gameplay.world_data import FIELD_ROUTES
 
 
 class FieldScene(BaseScene):
@@ -23,6 +24,8 @@ class FieldScene(BaseScene):
         super().__init__(game)
         state = state or {}
         self.world = state.get("world", "field")
+        self.route_data = FIELD_ROUTES.get(self.world)
+        self.toby_position = self.route_data.get("toby") if self.route_data else ((7, 12) if self.world == "field" else None)
         self.player = {"x": float(state.get("x", 2)), "y": float(state.get("y", 2))}
         self.hp = int(state.get("hp", 100))
         self.max_hp = int(state.get("max_hp", 100))
@@ -71,6 +74,7 @@ class FieldScene(BaseScene):
         self.trees = set()
         self.rocks = set()
         self.water = set()
+        self.lava = set()
         self.bridge = set()
         self.path = set()
         self.solid_npcs = set()
@@ -82,11 +86,16 @@ class FieldScene(BaseScene):
         self.herb_positions = set()
         self.walls = set()
         self._build_map()
-        if self.world == "field":
-            self.herb_positions = {(25, 8), (28, 5), (26, 10)}
-            self.solid_npcs.add((7, 12))  # Toby stands beside the western road.
-            self.walls.discard((7, 12))
+        if self.route_data:
+            self.encounter_rate = self.route_data["encounter_rate"]
+            self.enemy_pool = self.route_data["enemy_pool"]
+            self.herb_positions = set(self.route_data["herbs"])
+            self.message = f"{self.route_data['name']} · 제단 입구를 찾아보세요."
+            if self.toby_position:
+                self.solid_npcs.add(self.toby_position)
+                self.walls.discard(self.toby_position)
         safe_spawns = {"field": (2, 2), "village": (12, 13), "dungeon": (3, 14)}
+        safe_spawns.update({map_id: data["village_spawn"] for map_id, data in FIELD_ROUTES.items()})
         self.position_recovered = self._restore_player_position(safe_spawns.get(self.world, (2, 2)))
         if self.position_recovered:
             self.message = "\uc800\uc7a5\ub41c \uc704\uce58\uac00 \ub9c9\ud600 \uc788\uc5b4 \uc548\uc804\ud55c \uc7a5\uc18c\ub85c \uc774\ub3d9\ud588\uc2b5\ub2c8\ub2e4."
@@ -96,6 +105,9 @@ class FieldScene(BaseScene):
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)
             if x == 0 or y == 0 or x == self.COLS - 1 or y == self.ROWS - 1
         }
+        if self.route_data:
+            self._build_route_map()
+            return
         if self.world != "field":
             return
 
@@ -152,6 +164,39 @@ class FieldScene(BaseScene):
         self.walls.update(self.water)
         self.walls.difference_update(self.bridge)
         self.chests = {(5, 4): "potion", (18, 6): "gold", (20, 12): "potion", (30, 20): "high_potion"}
+
+    def _build_route_map(self):
+        data = self.route_data
+        self._add_path(data["path"], 1.05)
+        landmarks = {data["village_portal"], data["dungeon_portal"], *data["herbs"], *data["chests"]}
+        if data.get("toby"):
+            landmarks.add(data["toby"])
+        rng = random.Random({"field_east": 1103, "field_west": 2207, "field_south": 3301}[self.world])
+        if data["theme"] == "forest":
+            for gx, gy, gw, gh in data["groves"]:
+                for ty in range(gy, min(gy + gh, self.ROWS - 1)):
+                    for tx in range(gx, min(gx + gw, self.COLS - 1)):
+                        if (tx, ty) not in self.path and (tx, ty) not in landmarks and rng.random() < 0.42:
+                            self.trees.add((tx, ty))
+            self.water = {(7, 4), (8, 4), (9, 4), (9, 5), (10, 5), (10, 6),
+                          (29, 14), (30, 14), (31, 14), (31, 15), (32, 15)} - self.path
+        elif data["theme"] == "canyon":
+            self.rocks = {(8, y) for y in range(2, 8)} | {(15, y) for y in range(13, 21)}
+            self.rocks |= {(x, 3) for x in range(10, 18)} | {(x, 19) for x in range(24, 33)}
+            self.rocks -= self.path | landmarks
+        else:
+            self.lava = {(x, y) for x in range(5, 10) for y in range(7, 11)}
+            self.lava |= {(x, y) for x in range(24, 30) for y in range(12, 16)}
+            self.lava |= {(17, 3), (18, 3), (18, 4), (19, 4)}
+            self.lava -= self.path | landmarks
+            self.rocks = {(x, 5) for x in range(5, 10)} | {(x, 18) for x in range(30, 37)}
+            self.rocks -= self.path | landmarks
+        self.walls.update(self.trees)
+        self.walls.update(self.rocks)
+        self.walls.update(self.water)
+        self.walls.update(self.lava)
+        self.chests = dict(data["chests"])
+        self.herb_positions = set(data["herbs"])
 
     def _add_path(self, points, radius):
         for start, end in zip(points, points[1:]):
@@ -395,7 +440,7 @@ class FieldScene(BaseScene):
 
     def _interact(self):
         px, py = self.player["x"], self.player["y"]
-        if self.world == "field" and self._interact_sidequest_npc("sq_goblin_hunt", (7, 12)):
+        if self.toby_position and self._interact_sidequest_npc("sq_goblin_hunt", self.toby_position):
             return
         nearest = min(self.chests, key=lambda p: (p[0] - px) ** 2 + (p[1] - py) ** 2, default=None)
         if nearest and (nearest[0] - px) ** 2 + (nearest[1] - py) ** 2 <= 1.15 and nearest not in self.opened:
@@ -409,7 +454,11 @@ class FieldScene(BaseScene):
                 dungeon_entries = {"shrine_wind": (3, 14), "shrine_earth": (12, 13),
                                    "shrine_fire": (21, 14)}
                 self.game.enter_world(f"{altar}_1f", dungeon_entries[altar])
-        elif self.world == "field" and any(
+        elif self.route_data and self._near_point(self.route_data["dungeon_portal"], px, py, 1.25):
+            self.game.enter_world(f"{self.route_data['shrine']}_1f", self.route_data["dungeon_spawn"])
+        elif self.route_data and self._near_point(self.route_data["village_portal"], px, py, 1.25):
+            self.game.enter_world("village", self.route_data["return_village"])
+        elif self.herb_positions and any(
                 point not in self.collected_herbs and (point[0] - px) ** 2 + (point[1] - py) ** 2 <= 1.2
                 for point in self.herb_positions):
             herb = min((point for point in self.herb_positions if point not in self.collected_herbs),
@@ -426,6 +475,10 @@ class FieldScene(BaseScene):
             self.game.enter_world("village", (12, 14))
         else:
             self.message = "\uc8fc\ubcc0\uc5d0\ub294 \uc0c1\ud638\uc791\uc6a9\ud560 \ub300\uc0c1\uc774 \uc5c6\uc2b5\ub2c8\ub2e4."
+
+    @staticmethod
+    def _near_point(point, x, y, radius):
+        return (point[0] - x) ** 2 + (point[1] - y) ** 2 <= radius ** 2
 
     def _open_chest(self, position):
         self.opened.add(position)
@@ -476,8 +529,19 @@ class FieldScene(BaseScene):
             for tx in range(start_x, end_x):
                 position = (tx, ty)
                 rect = pygame.Rect(round(tx * TILE_SIZE - camera_x), round(ty * TILE_SIZE - camera_y), TILE_SIZE, TILE_SIZE)
-                surface.blit(sprite(f"grass_{(tx * 17 + ty * 23) % 16}", (TILE_SIZE, TILE_SIZE)), rect)
-                if position in self.water:
+                if self.route_data and self.route_data["theme"] == "canyon":
+                    surface.blit(sprite("dirt", (TILE_SIZE, TILE_SIZE)), rect)
+                elif self.route_data and self.route_data["theme"] == "volcanic":
+                    surface.blit(sprite(f"dungeon_floor_{(tx + ty) % 2}", (TILE_SIZE, TILE_SIZE)), rect)
+                else:
+                    surface.blit(sprite(f"grass_{(tx * 17 + ty * 23) % 16}", (TILE_SIZE, TILE_SIZE)), rect)
+                if position in self.lava:
+                    pygame.draw.rect(surface, (119, 39, 31), rect)
+                    pygame.draw.line(surface, (238, 101, 42), (rect.left + 2, rect.centery),
+                                     (rect.right - 2, rect.centery + ((tx + ty) % 3) - 1), 3)
+                    pygame.draw.line(surface, (247, 173, 54), (rect.left + 8, rect.top + 8),
+                                     (rect.left + 20, rect.top + 8), 2)
+                elif position in self.water:
                     mask = ((1 if (tx, ty - 1) in self.water else 0)
                             | (2 if (tx + 1, ty) in self.water else 0)
                             | (4 if (tx, ty + 1) in self.water else 0)
@@ -542,10 +606,15 @@ class FieldScene(BaseScene):
         visible_objects.extend((x, y, "chest") for x, y in self.chests)
         visible_objects.extend((x, y, "moon_herb") for x, y in self.herb_positions
                                if (x, y) not in self.collected_herbs)
-        if self.world == "field":
-            visible_objects.append((7, 12, "toby"))
+        if self.toby_position:
+            visible_objects.append((*self.toby_position, "toby"))
         visible_objects.extend((x, y, key) for key, (x, y) in self.altar_positions.items())
         visible_objects.extend(((12, 1, "portal_town"),) if self.world == "field" else ())
+        if self.route_data:
+            visible_objects.extend((
+                (*self.route_data["village_portal"], "portal_town"),
+                (*self.route_data["dungeon_portal"], "portal_dungeon"),
+            ))
         for x, y, kind in sorted(visible_objects, key=lambda obj: (obj[1], obj[0])):
             if not (start_x <= x < end_x and start_y <= y < end_y):
                 continue

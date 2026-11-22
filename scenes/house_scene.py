@@ -14,7 +14,7 @@ class HouseInteriorScene(FieldScene):
     def __init__(self, game, state=None):
         state = dict(state or {})
         self.house_id = state.get("world", "village_house_1")
-        if self.house_id not in ("village_house_1", "village_house_2"):
+        if self.house_id not in ("village_chief_house", "village_house_1", "village_house_2"):
             self.house_id = "village_house_1"
         state["world"] = self.house_id
         super().__init__(game, state)
@@ -22,7 +22,10 @@ class HouseInteriorScene(FieldScene):
         self.encounter_rate = 0
         self.player.update(x=float(state.get("x", 12)), y=float(state.get("y", 12)))
         self.message = "SPACE로 주민과 대화하거나 문으로 나가세요."
-        self.npcs = ((7, 6), (17, 6)) if self.house_id == "village_house_1" else ((12, 6),)
+        if self.house_id == "village_house_1":
+            self.npcs = ((7, 6), (17, 6))
+        else:
+            self.npcs = ((12, 6),)
         self.solid_npcs = set(self.npcs)
         self.walls = {
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)
@@ -37,7 +40,7 @@ class HouseInteriorScene(FieldScene):
             self.walls.update({(x, y) for x in range(19, 23) for y in range(2, 4)})
             self.walls.update({(x, 8) for x in range(3, 8)})
             self.walls.update({(12, y) for y in range(2, 7) if y != 5})
-        else:
+        elif self.house_id == "village_house_2":
             self.walls.update({(x, y) for x in range(2, 6) for y in range(2, 4)})
             self.walls.update({(x, 7) for x in range(4, 9)})
             self.walls.update({(x, y) for x in range(19, 23) for y in range(2, 4)})
@@ -69,7 +72,9 @@ class HouseInteriorScene(FieldScene):
                     self.message = "진행 상황을 저장했습니다."
 
     def _outside_door(self):
-        return (4, 8) if self.house_id == "village_house_1" else (19, 8)
+        if self.house_id == "village_chief_house":
+            return (12, 7)
+        return (5, 8) if self.house_id == "village_house_1" else (19, 8)
 
     def _interact(self):
         x, y = self.player["x"], self.player["y"]
@@ -84,11 +89,34 @@ class HouseInteriorScene(FieldScene):
                 self._offer_sidequest("sq_old_sword")
             else:
                 self.message = "침대와 약초 서랍이 놓인 작은 오두막입니다."
+        elif self.house_id == "village_chief_house" and (x - self.npcs[0][0]) ** 2 + (y - self.npcs[0][1]) ** 2 <= 1.5:
+            self._interact_chief()
         elif (x - self.npcs[0][0]) ** 2 + (y - self.npcs[0][1]) ** 2 <= 1.5:
             self.show_dialogue(["어서 오세요. 대장장이 로건입니다.",
                                 "장비를 살펴보고 필요한 물건을 골라보세요."], action="open_shop")
         else:
             self.message = "화덕과 모루가 놓인 대장간입니다."
+
+    def _interact_chief(self):
+        cleared = sum(self.quest_flags[key] for key in ("shrine_wind", "shrine_earth", "shrine_fire"))
+        if not self.quest_flags["prologue_done"]:
+            self.quest_flags["prologue_done"] = 1
+            if "rusty_sword" not in self.owned_weapons:
+                self.owned_weapons.append("rusty_sword")
+            self.weapon = "rusty_sword"
+            self.potions = min(10, self.potions + 2)
+            self.show_dialogue([
+                "별빛 분수의 결계가 약해지고 마을 외곽에 마물들이 나타났네.",
+                "동·서·남 세 제단의 봉인석을 정화해 마을을 지켜주게.",
+                "녹슨 철검과 회복약 두 개를 주겠네. 출발 전에 준비하게.",
+            ])
+            self.game.save_game()
+        elif cleared == 3:
+            self.show_dialogue(["세 개의 인장을 모두 모았구나. 광장의 별빛 분수에 바치게."])
+        elif cleared:
+            self.show_dialogue(["정화한 제단의 빛이 돌아오고 있네. 나머지 길도 조심해서 다녀오게."])
+        else:
+            self.show_dialogue(["세 제단을 원하는 순서로 공략해도 좋네. 마을 사람들의 부탁도 살펴보게."])
 
     def _advance_dialogue(self):
         if self.dialogue_lines:
@@ -179,10 +207,14 @@ class HouseInteriorScene(FieldScene):
             self._draw_quest_cottage(surface)
             title = "약초상의 오두막"
             sprites = ("villager", "chief")
-        else:
+        elif self.house_id == "village_house_2":
             self._draw_blacksmith(surface)
             title = "로건의 대장간"
             sprites = ("shopkeeper",)
+        else:
+            self._draw_chief_office(surface)
+            title = "촌장 발렌의 집"
+            sprites = ("chief",)
         for position, sprite_name in zip(self.npcs, sprites):
             surface.blit(sprite(sprite_name, (TILE_SIZE, TILE_SIZE)),
                          (position[0] * TILE_SIZE, position[1] * TILE_SIZE))
@@ -200,3 +232,23 @@ class HouseInteriorScene(FieldScene):
         self.text(surface, self.message, (20, 558), 16, self.game.colors["muted"])
         self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)
         self._draw_dialogue(surface)
+
+    @staticmethod
+    def _draw_chief_office(surface):
+        # A map desk, village records, a formal rug, and the chief's chair.
+        pygame.draw.rect(surface, (58, 43, 36), (2 * TILE_SIZE, 2 * TILE_SIZE, 5 * TILE_SIZE, 3 * TILE_SIZE))
+        pygame.draw.rect(surface, (119, 80, 53), (2 * TILE_SIZE + 5, 2 * TILE_SIZE + 5,
+                                                   5 * TILE_SIZE - 10, 3 * TILE_SIZE - 10))
+        for index, color in enumerate(((98, 132, 91), (93, 125, 154), (193, 157, 92))):
+            pygame.draw.rect(surface, color, (3 * TILE_SIZE + index * 30, 3 * TILE_SIZE, 25, 25))
+            pygame.draw.line(surface, (67, 56, 43), (3 * TILE_SIZE + index * 30, 3 * TILE_SIZE + 12),
+                             (3 * TILE_SIZE + index * 30 + 25, 3 * TILE_SIZE + 12), 2)
+        pygame.draw.rect(surface, (129, 41, 37), (8 * TILE_SIZE, 8 * TILE_SIZE, 9 * TILE_SIZE, 4 * TILE_SIZE))
+        pygame.draw.rect(surface, (209, 175, 111), (8 * TILE_SIZE, 8 * TILE_SIZE, 9 * TILE_SIZE, 4 * TILE_SIZE), 3)
+        pygame.draw.rect(surface, (76, 52, 40), (9 * TILE_SIZE, 4 * TILE_SIZE, 7 * TILE_SIZE, 2 * TILE_SIZE))
+        pygame.draw.rect(surface, (164, 119, 74), (9 * TILE_SIZE + 4, 4 * TILE_SIZE + 4,
+                                                     7 * TILE_SIZE - 8, 2 * TILE_SIZE - 8))
+        pygame.draw.rect(surface, (79, 54, 42), (10 * TILE_SIZE, 2 * TILE_SIZE, 5 * TILE_SIZE, 2 * TILE_SIZE))
+        for index in range(5):
+            pygame.draw.rect(surface, (190 - index * 12, 156 - index * 10, 104 - index * 6),
+                             (10 * TILE_SIZE + index * 28, 2 * TILE_SIZE + 4, 22, 25))

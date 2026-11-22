@@ -3,6 +3,7 @@
 import pygame
 
 from gameplay.enemies import ENEMIES
+from gameplay.world_data import FIELD_ROUTES
 from scenes.field_scene import FieldScene
 from settings import TILE_SIZE
 from utils.pixel_art import hero_sprite, sprite
@@ -11,16 +12,19 @@ from utils.pixel_art import hero_sprite, sprite
 SHRINE_DUNGEONS = {
     "shrine_wind": {
         "boss": "shrine_wind", "name": "바람의 제단", "chest": "potion",
+        "field": "field_east",
         "chest_pos": (4, 3), "stairs": (22, 2), "boss_pos": (12, 7), "exit": (2, 14),
         "style": "wind",
     },
     "shrine_earth": {
         "boss": "shrine_earth", "name": "대지의 폐광", "chest": "broken_sword",
+        "field": "field_west",
         "chest_pos": (20, 12), "stairs": (22, 13), "boss_pos": (12, 3), "exit": (12, 14),
         "style": "earth",
     },
     "shrine_fire": {
         "boss": "shrine_fire", "name": "불꽃의 신전", "chest": "high_potion",
+        "field": "field_south",
         "chest_pos": (12, 12), "stairs": (12, 2), "boss_pos": (12, 7), "exit": (22, 14),
         "style": "fire",
     },
@@ -48,6 +52,8 @@ class DungeonScene(FieldScene):
         shrine = SHRINE_DUNGEONS[self.shrine_key]
         self.boss_id = shrine["boss"]
         self.dungeon_name = shrine["name"]
+        self.field_id = shrine["field"]
+        self.route_data = FIELD_ROUTES[self.field_id]
         self.EXIT = shrine["exit"]
         self.STAIRS = shrine["stairs"]
         self.boss_position = shrine["boss_pos"]
@@ -130,8 +136,7 @@ class DungeonScene(FieldScene):
                 self.game.start_battle(self.boss_id)
         elif near(self.EXIT):
             if self.floor == 1:
-                field_pos = {"shrine_wind": (30, 5), "shrine_earth": (4, 16), "shrine_fire": (22, 20)}[self.shrine_key]
-                self.game.enter_world("field", field_pos)
+                self.game.enter_world(self.field_id, self.route_data["return_dungeon"])
             else:
                 self.game.enter_world(f"{self.shrine_key}_1f", self._stair_spawn())
         elif near(self.STAIRS):
