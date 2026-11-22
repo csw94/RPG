@@ -3,7 +3,7 @@
 WIDTH = 800
 HEIGHT = 600
 FPS = 60
-TITLE = "Chronicles of Pixel"
+TITLE = "별빛 결계의 수호자 - Chronicles of Pixel"
 TILE_SIZE = 32
 
 COLORS = {

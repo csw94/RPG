@@ -135,8 +135,8 @@ class TitleScene(BaseScene):
     def _draw_menu(self, surface):
         header = pygame.Rect(132, 38, 536, 126)
         self._frame(surface, header, self.game.colors["panel"], True)
-        self.text(surface, "CHRONICLES OF PIXEL", (400, 86), 38, self.game.colors["gold"], True)
-        self.text(surface, "왕국의 연대기 · 잊힌 성채의 전설", (400, 127), 19, self.game.colors["cream"], True)
+        self.text(surface, "별빛 결계의 수호자", (400, 84), 40, self.game.colors["gold"], True)
+        self.text(surface, "CHRONICLES OF PIXEL", (400, 129), 17, self.game.colors["cream"], True)
         self._draw_crest(surface, (400, 221))
         surface.blit(sprite("player", (64, 96)), (368, 174))
         for index, (label, rect) in enumerate(zip(self.OPTIONS, self._menu_buttons())):
