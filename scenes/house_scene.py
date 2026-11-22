@@ -1,4 +1,4 @@
-"""Interiors for the herb cottage and Logan's blacksmith shop."""
+"""Interiors for Marta's herb cottage, Garen's quarters and the chief's house."""
 
 import pygame
 
@@ -22,10 +22,8 @@ class HouseInteriorScene(FieldScene):
         self.encounter_rate = 0
         self.player.update(x=float(state.get("x", 12)), y=float(state.get("y", 12)))
         self.message = "SPACE로 주민과 대화하거나 문으로 나가세요."
-        if self.house_id == "village_house_1":
-            self.npcs = ((7, 6), (17, 6))
-        else:
-            self.npcs = ((12, 6),)
+        # Marta keeps the herb cottage; Garen lives alone in house 2; Valen in the chief's house.
+        self.npcs = ((7, 6),) if self.house_id == "village_house_1" else ((12, 6),)
         self.solid_npcs = set(self.npcs)
         self.walls = {
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)
@@ -41,10 +39,11 @@ class HouseInteriorScene(FieldScene):
             self.walls.update({(x, 8) for x in range(3, 8)})
             self.walls.update({(12, y) for y in range(2, 7) if y != 5})
         elif self.house_id == "village_house_2":
-            self.walls.update({(x, y) for x in range(2, 6) for y in range(2, 4)})
-            self.walls.update({(x, 7) for x in range(4, 9)})
-            self.walls.update({(x, y) for x in range(19, 23) for y in range(2, 4)})
-            self.walls.update({(x, y) for x in range(17, 22) for y in range(9, 11)})
+            self.walls.update({(x, y) for x in range(2, 6) for y in range(2, 5)})      # bed
+            self.walls.update({(x, y) for x in range(9, 16) for y in range(2, 4)})     # hearth
+            self.walls.update({(x, y) for x in range(19, 23) for y in range(2, 4)})    # weapon rack
+            self.walls.update({(3, 9), (3, 10), (21, 9), (21, 10)})                    # armor stands
+            self.walls.update({(x, y) for x in range(17, 20) for y in range(11, 13)})  # map table
         self.walls.difference_update({(12, 13), *self.npcs})
 
     def serialize(self):
@@ -82,24 +81,37 @@ class HouseInteriorScene(FieldScene):
             self.game.save_game()
             self.game.enter_world("village", self._outside_door())
             return
+        near_npc = (x - self.npcs[0][0]) ** 2 + (y - self.npcs[0][1]) ** 2 <= 1.5
         if self.house_id == "village_house_1":
-            if (x - self.npcs[0][0]) ** 2 + (y - self.npcs[0][1]) ** 2 <= 1.5:
+            if near_npc:
                 self._offer_sidequest("sq_moon_herb")
-            elif (x - self.npcs[1][0]) ** 2 + (y - self.npcs[1][1]) ** 2 <= 1.5:
-                self._offer_sidequest("sq_old_sword")
             else:
                 self.message = "침대와 약초 서랍이 놓인 작은 오두막입니다."
-        elif self.house_id == "village_chief_house" and (x - self.npcs[0][0]) ** 2 + (y - self.npcs[0][1]) ** 2 <= 1.5:
+        elif self.house_id == "village_house_2":
+            if near_npc:
+                self._interact_garen()
+            else:
+                self.message = "낡은 갑옷과 왕국 깃발이 걸린 노기사의 거처입니다."
+        elif near_npc:
             self._interact_chief()
-        elif (x - self.npcs[0][0]) ** 2 + (y - self.npcs[0][1]) ** 2 <= 1.5:
-            self.show_dialogue(["어서 오세요. 대장장이 로건입니다.",
-                                "장비를 살펴보고 필요한 물건을 골라보세요."], action="open_shop")
         else:
-            self.message = "화덕과 모루가 놓인 대장간입니다."
+            self.message = "마을 지도와 기록이 쌓인 촌장의 집무실입니다."
+
+    def _interact_garen(self):
+        quest = self.sub_quests["sq_old_sword"]
+        if self.quest_flags["final_boss"] and quest["status"] == "COMPLETED":
+            self.show_dialogue(["내 휘장을 단 기사가 마을을 구했군. 이보다 자랑스러울 수 없네."])
+        elif self.quest_flags["final_boss"]:
+            self.show_dialogue(["훌륭한 검술이었네, 수호 기사여. 젊은 날의 나를 보는 것 같군."])
+        else:
+            self._offer_sidequest("sq_old_sword")
 
     def _interact_chief(self):
         cleared = sum(self.quest_flags[key] for key in ("shrine_wind", "shrine_earth", "shrine_fire"))
-        if not self.quest_flags["prologue_done"]:
+        if self.quest_flags["final_boss"]:
+            self.show_dialogue(["오크밸리의 수호 기사여, 그대 덕분에 별빛 결계가 다시 빛나고 있네.",
+                                "언제든 마을에 들러 쉬어 가게."])
+        elif not self.quest_flags["prologue_done"]:
             self.quest_flags["prologue_done"] = 1
             if "rusty_sword" not in self.owned_weapons:
                 self.owned_weapons.append("rusty_sword")
@@ -177,28 +189,54 @@ class HouseInteriorScene(FieldScene):
         pygame.draw.rect(surface, (157, 111, 67), (9 * TILE_SIZE + 4, 5 * TILE_SIZE + 4, 5 * TILE_SIZE - 8, 2 * TILE_SIZE - 8))
         pygame.draw.rect(surface, (75, 48, 38), (11 * TILE_SIZE, 12 * TILE_SIZE, 3 * TILE_SIZE, TILE_SIZE))
 
-    def _draw_blacksmith(self, surface):
-        # Hot forge, anvil, weapon rack, counter, and a small shop rug.
-        pygame.draw.rect(surface, (61, 43, 37), (2 * TILE_SIZE, 2 * TILE_SIZE, 5 * TILE_SIZE, 5 * TILE_SIZE))
-        pygame.draw.rect(surface, (109, 75, 56), (2 * TILE_SIZE + 6, 2 * TILE_SIZE + 6, 5 * TILE_SIZE - 12, 5 * TILE_SIZE - 12))
-        pygame.draw.rect(surface, (39, 33, 32), (3 * TILE_SIZE, 3 * TILE_SIZE, 3 * TILE_SIZE, 3 * TILE_SIZE))
-        pygame.draw.rect(surface, (203, 90, 42), (3 * TILE_SIZE + 8, 4 * TILE_SIZE, 3 * TILE_SIZE - 16, 2 * TILE_SIZE))
-        pygame.draw.circle(surface, (244, 175, 63), (4 * TILE_SIZE + 16, 5 * TILE_SIZE), 10)
-        # Anvil silhouette.
-        pygame.draw.rect(surface, (59, 65, 69), (8 * TILE_SIZE, 8 * TILE_SIZE, 4 * TILE_SIZE, 13))
-        pygame.draw.polygon(surface, (105, 115, 119), [(7 * TILE_SIZE + 8, 8 * TILE_SIZE),
-                         (12 * TILE_SIZE + 8, 8 * TILE_SIZE), (11 * TILE_SIZE + 8, 8 * TILE_SIZE + 11),
-                         (8 * TILE_SIZE, 8 * TILE_SIZE + 11)])
-        pygame.draw.rect(surface, (67, 46, 37), (8 * TILE_SIZE + 10, 8 * TILE_SIZE + 13, 3 * TILE_SIZE, 2 * TILE_SIZE))
-        # Wall mounted tools and the sales counter.
-        pygame.draw.rect(surface, (55, 39, 33), (17 * TILE_SIZE, 2 * TILE_SIZE, 5 * TILE_SIZE, 5 * TILE_SIZE))
+    def _draw_knight_quarters(self, surface):
+        # A soldier's bed, stone hearth under the kingdom banner, a weapon rack,
+        # two old armor stands and the table where Garen keeps his maps.
+        t = TILE_SIZE
+        pygame.draw.rect(surface, (54, 42, 37), (2 * t - 3, 2 * t - 3, 4 * t + 6, 3 * t + 6))
+        pygame.draw.rect(surface, (109, 78, 55), (2 * t, 2 * t, 4 * t, 3 * t))
+        pygame.draw.rect(surface, (196, 194, 176), (2 * t + 6, 2 * t + 5, 4 * t - 12, 20))
+        pygame.draw.rect(surface, (122, 46, 44), (2 * t + 6, 2 * t + 28, 4 * t - 12, 3 * t - 34))
+        pygame.draw.line(surface, (210, 170, 92), (2 * t + 6, 2 * t + 40), (6 * t - 6, 2 * t + 40), 2)
+
+        pygame.draw.rect(surface, (78, 76, 78), (9 * t, t + 12, 7 * t, 2 * t + 20))
+        for row in range(3):
+            for col in range(7):
+                pygame.draw.rect(surface, (118, 115, 112) if (row + col) % 2 else (102, 99, 98),
+                                 (9 * t + 4 + col * t - (row % 2) * 10, t + 16 + row * 18, t - 6, 14))
+        pygame.draw.rect(surface, (36, 28, 27), (11 * t, 2 * t + 8, 3 * t, t + 16))
+        pygame.draw.polygon(surface, (219, 104, 44), [(11 * t + 14, 3 * t + 24), (12 * t + 16, 2 * t + 14),
+                                                      (13 * t + 18, 3 * t + 24)])
+        pygame.draw.polygon(surface, (248, 186, 72), [(12 * t, 3 * t + 24), (12 * t + 16, 2 * t + 28),
+                                                      (13 * t, 3 * t + 24)])
+        banner = pygame.Rect(12 * t + 2, t - 22, t - 4, 40)
+        pygame.draw.rect(surface, (39, 66, 124), banner)
+        pygame.draw.polygon(surface, (39, 66, 124), [banner.bottomleft, (banner.centerx, banner.bottom + 8),
+                                                     banner.bottomright])
+        pygame.draw.circle(surface, self.game.colors["gold"], (banner.centerx, banner.y + 18), 6, 2)
+
+        pygame.draw.rect(surface, (55, 39, 33), (19 * t, 2 * t, 4 * t, 2 * t))
         for index in range(4):
-            px = 18 * TILE_SIZE + index * 25
-            pygame.draw.line(surface, (194, 179, 147), (px, 2 * TILE_SIZE + 7), (px + 6, 4 * TILE_SIZE), 3)
-            pygame.draw.line(surface, (131, 140, 143), (px - 3, 2 * TILE_SIZE + 7), (px + 9, 2 * TILE_SIZE + 7), 4)
-        pygame.draw.rect(surface, (64, 43, 34), (16 * TILE_SIZE, 10 * TILE_SIZE, 7 * TILE_SIZE, 2 * TILE_SIZE))
-        pygame.draw.rect(surface, (157, 103, 59), (16 * TILE_SIZE + 4, 10 * TILE_SIZE + 4, 7 * TILE_SIZE - 8, 2 * TILE_SIZE - 8))
-        pygame.draw.rect(surface, (142, 46, 40), (9 * TILE_SIZE, 11 * TILE_SIZE, 7 * TILE_SIZE, 2 * TILE_SIZE))
+            px = 19 * t + 14 + index * 30
+            pygame.draw.line(surface, (190, 196, 198), (px, 2 * t + 6), (px, 4 * t - 4), 4)
+            pygame.draw.line(surface, (140, 98, 58), (px - 7, 3 * t + 6), (px + 7, 3 * t + 6), 3)
+            pygame.draw.rect(surface, (120, 78, 46), (px - 2, 3 * t + 8, 4, 12))
+
+        for sx in (3, 21):
+            cx = sx * t + t // 2
+            pygame.draw.line(surface, (78, 56, 42), (cx, 9 * t), (cx, 11 * t), 4)
+            pygame.draw.rect(surface, (64, 58, 52), (cx - 14, 10 * t + 20, 28, 8))
+            pygame.draw.rect(surface, (138, 148, 150), (cx - 12, 9 * t + 2, 24, 26))
+            pygame.draw.rect(surface, (186, 194, 194), (cx - 8, 9 * t + 5, 8, 18))
+            pygame.draw.rect(surface, (120, 128, 132), (cx - 9, 8 * t + 8, 18, 18))
+            pygame.draw.rect(surface, (40, 42, 46), (cx - 6, 8 * t + 15, 12, 3))
+
+        pygame.draw.rect(surface, (39, 66, 124), (7 * t, 6 * t + 16, 11 * t, 4 * t))
+        pygame.draw.rect(surface, (196, 164, 98), (7 * t, 6 * t + 16, 11 * t, 4 * t), 3)
+        pygame.draw.rect(surface, (64, 44, 34), (17 * t, 11 * t, 3 * t, 2 * t))
+        pygame.draw.rect(surface, (150, 104, 62), (17 * t + 4, 11 * t + 4, 3 * t - 8, 2 * t - 8))
+        pygame.draw.rect(surface, (222, 204, 160), (17 * t + 14, 11 * t + 10, 40, 28))
+        pygame.draw.line(surface, (140, 98, 58), (17 * t + 20, 11 * t + 18), (17 * t + 46, 11 * t + 30), 2)
 
     def draw(self, surface):
         surface.fill((38, 31, 29))
@@ -206,11 +244,11 @@ class HouseInteriorScene(FieldScene):
         if self.house_id == "village_house_1":
             self._draw_quest_cottage(surface)
             title = "약초상의 오두막"
-            sprites = ("villager", "chief")
+            sprites = ("villager",)
         elif self.house_id == "village_house_2":
-            self._draw_blacksmith(surface)
-            title = "로건의 대장간"
-            sprites = ("shopkeeper",)
+            self._draw_knight_quarters(surface)
+            title = "노기사 가렌의 거처"
+            sprites = ("old_knight",)
         else:
             self._draw_chief_office(surface)
             title = "촌장 발렌의 집"

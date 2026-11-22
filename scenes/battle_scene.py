@@ -85,10 +85,7 @@ class BattleScene(BaseScene):
         if self.enemy_hp <= 0:
             reward = field.resolve_battle_victory(self.enemy["id"])
             if self.enemy["id"] == "final_boss":
-                field.pending_dialogue = [
-                    "\ud06c\uc73d... \uace0\uc791 \ubcc0\ubc29\uc758 \uacac\uc2b5 \uae30\uc0ac\uc5d0\uac8c \uc774\ub7f0 \ube5b\uc758 \ud798\uc774... \ub9d0\ub3c4 \uc548 \ub3fc...!",
-                    "\ub9d0\ud3ec\uc2a4\ub97c \ubb3c\ub9ac\uce58\uace0 \uc655\uad6d \uae30\uc0ac\ub85c \uc784\uba85\ub418\uc5c8\ub2e4. \uc5d4\ub529 \ud074\ub9ac\uc5b4!",
-                ]
+                field.pending_epilogue = True
             self.message = f"{self.enemy['name']} \uaca9\ud30c! {reward}"
             self.done = True
             self.result_timer = 1.3

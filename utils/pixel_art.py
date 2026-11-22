@@ -334,6 +334,30 @@ def _chief():
     return surface
 
 
+def _old_knight():
+    """Retired knight Garen: grey hair and beard, dented cuirass and a faded red cape."""
+    surface = _canvas()
+    _rect(surface, (122, 36, 38), 3, 8, 10, 7)
+    _rect(surface, (186, 184, 176), 4, 1, 8, 3)
+    _rect(surface, (160, 158, 150), 3, 3, 2, 4)
+    _rect(surface, (160, 158, 150), 11, 3, 2, 4)
+    _rect(surface, PALETTE["skin"], 5, 3, 6, 4)
+    _rect(surface, PALETTE["skin_shadow"], 5, 6, 6, 1)
+    _rect(surface, PALETTE["ink"], 6, 4, 1, 1)
+    _rect(surface, PALETTE["ink"], 9, 4, 1, 1)
+    _rect(surface, (214, 212, 204), 5, 6, 6, 3)
+    _rect(surface, (186, 184, 176), 7, 9, 2, 1)
+    _rect(surface, (128, 138, 142), 4, 9, 8, 5)
+    _rect(surface, (176, 186, 186), 5, 9, 3, 4)
+    _rect(surface, PALETTE["gold"], 7, 11, 2, 1)
+    _rect(surface, (92, 64, 44), 4, 13, 8, 1)
+    _rect(surface, PALETTE["pants"], 5, 14, 2, 1)
+    _rect(surface, PALETTE["pants"], 9, 14, 2, 1)
+    _rect(surface, PALETTE["boot"], 4, 15, 3, 1)
+    _rect(surface, PALETTE["boot"], 9, 15, 3, 1)
+    return surface
+
+
 def _fountain():
     surface = _canvas((16, 24))
     _rect(surface, (48, 62, 70), 2, 15, 12, 8)
@@ -546,6 +570,7 @@ def sprite(name, size=(32, 32)):
             "portal_dungeon_0": lambda: _portal("dungeon", 0),
             "portal_dungeon_1": lambda: _portal("dungeon", 1),
             "chief": _chief,
+            "old_knight": _old_knight,
             "star_fountain": _fountain,
             "altar_wind": lambda: _altar("wind"),
             "altar_earth": lambda: _altar("earth"),

@@ -6,6 +6,7 @@ from db.save_manager import SaveManager
 from gameplay.world_data import MAP_GRAPH
 from scenes.battle_scene import BattleScene
 from scenes.dungeon_scene import DungeonScene
+from scenes.epilogue_scene import EpilogueScene
 from scenes.field_scene import FieldScene
 from scenes.house_scene import HouseInteriorScene
 from scenes.shop_scene import ShopScene
@@ -110,6 +111,10 @@ class Game:
         self.scene_name = "battle"
         self.scene = BattleScene(self, enemy_type)
 
+    def start_epilogue(self):
+        self.scene_name = "epilogue"
+        self.scene = EpilogueScene(self)
+
     def finish_battle(self):
         self.save_game()
         scene_types = {"field": FieldScene, "village": VillageScene, "dungeon": DungeonScene}
@@ -117,7 +122,10 @@ class Game:
         if not isinstance(self.field, expected):
             self.field = self._create_world(self.field.serialize())
         self.scene_name, self.scene = self.field.world, self.field
-        if self.field.pending_dialogue:
+        if self.field.pending_epilogue:
+            self.field.pending_epilogue = False
+            self.start_epilogue()
+        elif self.field.pending_dialogue:
             lines = self.field.pending_dialogue
             self.field.pending_dialogue = None
             self.field.show_dialogue(lines)

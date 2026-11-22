@@ -1,4 +1,4 @@
-"""A safe village hub with a blacksmith, healer, and road to the wilds."""
+"""The Oak Valley plaza: chief's hall, Marta's cottage, Garen's quarters and Logan's stall."""
 
 import pygame
 from scenes.field_scene import FieldScene
@@ -16,7 +16,9 @@ class VillageScene(FieldScene):
     FIELD_GATES = {"field_west": (0, 8), "field_east": (24, 8), "field_south": (12, 15),
                    "village_north_shrine": (12, 0)}
     QUEST_HOUSE_DOOR = (5, 7)
-    BLACKSMITH_DOOR = (19, 7)
+    KNIGHT_HOUSE_DOOR = (19, 7)
+    LOGAN = (16, 10)
+    LOGAN_CRATES = ((15, 10), (17, 10))
 
     def __init__(self, game, state=None):
         state = dict(state or {})
@@ -39,7 +41,8 @@ class VillageScene(FieldScene):
             (21, 11), (22, 11), (20, 12), (22, 13), (19, 14),
             (9, 13), (15, 13),
         }
-        self.solid_npcs = {self.VILLAGER}
+        self.solid_npcs = {self.VILLAGER, self.LOGAN}
+        self.walls.update(self.LOGAN_CRATES)
         self.walls.update(self.trees)
         self.walls.add(self.FOUNTAIN)
         self.walls.difference_update({self.GATE, self.VILLAGER, self.CHIEF, (12, 1), (7, 1)})
@@ -52,8 +55,10 @@ class VillageScene(FieldScene):
         near = lambda target, radius=1.0: (x - target[0]) ** 2 + (y - target[1]) ** 2 <= radius ** 2
         if near(self.QUEST_HOUSE_DOOR):
             self.game.enter_world("village_house_1", (12, 12))
-        elif near(self.BLACKSMITH_DOOR):
+        elif near(self.KNIGHT_HOUSE_DOOR):
             self.game.enter_world("village_house_2", (12, 12))
+        elif near(self.LOGAN, 1.4):
+            self._interact_logan()
         elif any(near(gate) for gate in self.FIELD_GATES.values()):
             route_id, gate = min(self.FIELD_GATES.items(),
                                  key=lambda item: (item[1][0] - x) ** 2 + (item[1][1] - y) ** 2)
@@ -64,9 +69,9 @@ class VillageScene(FieldScene):
         elif near(self.FOUNTAIN, 1.2):
             if self.quest_flags["final_boss"]:
                 self.show_dialogue([
-                    "\ubcc4\ube5b \ubd84\uc218\uac00 \ub2e4\uc2dc \uc548\uc804\ud55c \ube5b\uc744 \ub0b4\ubfdc\ub294\ub2e4.",
-                    "\uadf8\ub300\ub294 \uc655\uad6d\uc758 \uc815\uc2dd \uae30\uc0ac\ub85c \uc784\uba85\ub418\uc5c8\ub2e4. \ubaa8\ud5d8 \uc644\ub8cc!",
-                ])
+                    "별빛 분수가 다시 안전한 빛을 내뿜는다.",
+                    "그날의 축제를 다시 떠올려 본다...",
+                ], action="epilogue")
             elif self.quest_flags["star_sword_awakened"]:
                 self.show_dialogue([
                     "\ud558\ud558\ud558! \uc218\uace0\ud588\ub2e4, \uc560\uc1a1\uc774. \ub124\uac00 \ubaa8\uc544\uc900 \uc138 \uac1c\uc758 \uc778\uc7a5, \ub9c8\uc655\ub2d8\uaed8 \ubc14\uce58\ub3c4\ub85d \ud558\uc9c0!",
@@ -80,9 +85,24 @@ class VillageScene(FieldScene):
             else:
                 self.show_dialogue(["\ubd84\uc218\uc758 \ube5b\uc774 \uc57d\ud574\uc84c\ub2e4. \ub3d9\ucabd\u00b7\uc11c\ucabd\u00b7\ub0a8\ucabd \uc81c\ub2e8\uc758 \uc778\uc7a5\uc744 \ubaa8\ub450 \ubaa8\uc544\uc57c \ud55c\ub2e4."])
         elif near(self.VILLAGER):
-            self.show_dialogue(["\uad11\uc7a5 \uc8fc\ubbfc: \ubd81\ucabd \uc624\uc194\uae38\uc740 \ub3d9\ucabd \uc81c\ub2e8\uc73c\ub85c \uc774\uc5b4\uc838\uc694. \uc11c\ucabd\uacfc \ub0a8\ucabd\uc5d0\ub3c4 \uae38\uc774 \uc788\uc5b4\uc694."])
+            if self.quest_flags["final_boss"]:
+                self.show_dialogue(["광장 주민: 수호 기사님! 아이들이 모두 기사님 흉내를 내며 놀아요."])
+            else:
+                self.show_dialogue(["광장 주민: 동쪽 숲길이 가장 순해요. 서쪽 협곡과 남쪽 화산은 조심하세요."])
         else:
             self.message = "\uc8fc\ubcc0\uc5d0\ub294 \uc0c1\ud638\uc791\uc6a9\ud560 \ub300\uc0c1\uc774 \uc5c6\uc2b5\ub2c8\ub2e4."
+
+    def _interact_logan(self):
+        cleared = sum(self.quest_flags[key] for key in ("shrine_wind", "shrine_earth", "shrine_fire"))
+        if self.quest_flags["final_boss"]:
+            advice = "별빛의 검이라니... 대장장이 평생 이런 검은 처음 보네. 뭐든 골라 보게!"
+        elif self.quest_flags["star_sword_awakened"] or cleared == 3:
+            advice = "흑기사와 싸우기 전에 고급 회복약을 넉넉히 챙기게. 녀석의 암흑 베기는 아프다네."
+        elif cleared:
+            advice = "바위 골렘은 단단하니 좋은 무기를, 화염 리자드맨은 화력이 세니 갑옷을 챙기게."
+        else:
+            advice = "처음이라면 동쪽 숲길부터 가 보게. 슬라임 정도는 녹슨 검으로도 충분하지."
+        self.show_dialogue(["어서 오게! 잡화상 로건일세.", advice], action="open_shop")
 
     @staticmethod
     def _draw_shingles(surface, points, bounds, colors):
@@ -201,13 +221,6 @@ class VillageScene(FieldScene):
         pygame.draw.circle(surface, self.game.colors["gold"], (door_x + door_width - 7, door_y + 27), 2)
         pygame.draw.rect(surface, (191, 163, 111), (door_x - 6, wall_bottom - 5, door_width + 12, 7))
 
-        if shop:
-            sign = pygame.Rect(x + width - 23, wall_top + 9, 32, 28)
-            pygame.draw.rect(surface, (61, 42, 34), sign.inflate(5, 5))
-            pygame.draw.rect(surface, (137, 77, 42), sign)
-            pygame.draw.rect(surface, self.game.colors["gold"], sign, 2)
-            pygame.draw.rect(surface, self.game.colors["gold"], (sign.centerx - 3, sign.centery - 3, 6, 6))
-
     def draw(self, surface):
         # Reuse the common HUD and player state, then paint this map over the field.
         super().draw(surface)
@@ -241,6 +254,7 @@ class VillageScene(FieldScene):
         self._draw_house(surface, 2, 2)
         self._draw_house(surface, 16, 2, shop=True)
         self._draw_chief_house(surface)
+        self._draw_logan_stall(surface)
         fx, fy = self.FOUNTAIN
         surface.blit(sprite("star_fountain", (48, 64)), (fx * TILE_SIZE - 8, fy * TILE_SIZE - 32))
         for gate_id, (gx, gy) in self.FIELD_GATES.items():
@@ -248,7 +262,7 @@ class VillageScene(FieldScene):
             draw_y = 1 if gate_id == "village_north_shrine" else gy
             name = "portal_town"
             surface.blit(sprite(name, (48, 64)), (draw_x * TILE_SIZE - 8, draw_y * TILE_SIZE - 32))
-        for position, sprite_name in ((self.VILLAGER, "villager"),):
+        for position, sprite_name in ((self.VILLAGER, "villager"), (self.LOGAN, "shopkeeper")):
             surface.blit(sprite(sprite_name, (TILE_SIZE, TILE_SIZE)),
                          (position[0] * TILE_SIZE, position[1] * TILE_SIZE))
         px = round(self.player["x"] * TILE_SIZE + TILE_SIZE / 2)
@@ -357,3 +371,32 @@ class VillageScene(FieldScene):
         pygame.draw.line(surface, (46, 40, 38), (lamp_x, ground - 2), (lamp_x, ground - 46), 3)
         pygame.draw.rect(surface, (46, 40, 38), (lamp_x - 6, ground - 56, 12, 12))
         pygame.draw.rect(surface, (247, 205, 112), (lamp_x - 3, ground - 53, 6, 7))
+
+    def _draw_logan_stall(self, surface):
+        """Logan's open-air stall: crates of goods beside him and a striped canopy overhead."""
+        t = TILE_SIZE
+        left, right = 15 * t - 2, 18 * t + 2
+        top = 10 * t - 26
+        for post_x in (left + 4, right - 8):
+            pygame.draw.rect(surface, (74, 50, 36), (post_x, top, 5, t + 30))
+        for cx, cy in self.LOGAN_CRATES:
+            box = pygame.Rect(cx * t + 2, cy * t + 8, t - 4, t - 8)
+            pygame.draw.rect(surface, (64, 42, 32), box.inflate(2, 2))
+            pygame.draw.rect(surface, (152, 102, 60), box)
+            pygame.draw.line(surface, (104, 68, 44), box.topleft, box.bottomright, 2)
+            pygame.draw.line(surface, (104, 68, 44), box.topright, box.bottomleft, 2)
+        sword_x = 17 * t + 8
+        pygame.draw.line(surface, (196, 204, 206), (sword_x, 10 * t - 8), (sword_x + 14, 10 * t + 10), 3)
+        pygame.draw.line(surface, (150, 108, 60), (sword_x - 2, 10 * t + 4), (sword_x + 6, 10 * t - 2), 3)
+        for index, color in enumerate(((206, 62, 62), (74, 120, 214), (206, 62, 62))):
+            pygame.draw.rect(surface, (52, 46, 44), (15 * t + 6 + index * 8, 10 * t + 1, 7, 9))
+            pygame.draw.rect(surface, color, (15 * t + 7 + index * 8, 10 * t + 4, 5, 5))
+        stripes = 8
+        width = (right - left) / stripes
+        for index in range(stripes):
+            x0 = left + index * width
+            color = (196, 64, 52) if index % 2 == 0 else (238, 226, 198)
+            pygame.draw.polygon(surface, color, [(x0 + 4, top - 14), (x0 + width + 4, top - 14),
+                                                 (x0 + width, top + 4), (x0, top + 4)])
+            pygame.draw.circle(surface, color, (round(x0 + width / 2), top + 4), round(width / 2))
+        pygame.draw.line(surface, (62, 36, 30), (left + 4, top - 14), (right + 4, top - 14), 2)

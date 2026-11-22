@@ -17,12 +17,15 @@ class FakeGame:
     def open_shop(self):
         self.shop_opened = True
 
+    def start_epilogue(self):
+        self.epilogue_started = True
+
     def start_battle(self, enemy_id):
         self.last_battle = enemy_id
 
 
 class PlayableSubquestTests(unittest.TestCase):
-    def test_house_doors_lead_to_sidequest_home_and_blacksmith(self):
+    def test_house_doors_lead_to_marta_and_garen_and_logan_runs_the_plaza_stall(self):
         game = FakeGame()
         village = VillageScene(game, {"world": "village", "x": 12, "y": 13})
         village.player.update(x=5, y=7)
@@ -40,10 +43,45 @@ class PlayableSubquestTests(unittest.TestCase):
         self.assertFalse(village._blocked(19, 8))
         village._interact()
         self.assertEqual(game.destination[0], "village_house_2")
-        forge = HouseInteriorScene(game, {"world": "village_house_2"})
-        forge.player.update(x=12, y=6)
-        forge._interact()
-        self.assertEqual(forge.dialogue_action, "open_shop")
+        quarters = HouseInteriorScene(game, {"world": "village_house_2"})
+        self.assertEqual(quarters.npcs, ((12, 6),))
+        quarters.player.update(x=12, y=7)
+        quarters._interact()
+        self.assertEqual(quarters.dialogue_action, "accept_subquest:sq_old_sword")
+        self.assertEqual(cottage.npcs, ((7, 6),))
+
+        village.player.update(x=16, y=11)
+        self.assertFalse(village._blocked(16, 11))
+        village._interact()
+        self.assertEqual(village.dialogue_action, "open_shop")
+        village.dialogue_index = len(village.dialogue_lines) - 1
+        village._advance_dialogue()
+        self.assertTrue(game.shop_opened)
+
+    def test_final_boss_victory_queues_epilogue_and_fountain_replays_it(self):
+        game = FakeGame()
+        village = VillageScene(game, {"world": "village", "x": 12, "y": 13,
+                                      "quest_flags": {"star_sword_awakened": 1}})
+        village.resolve_battle_victory("final_boss")
+        self.assertEqual(village.quest_flags["final_boss"], 1)
+
+        village.player.update(x=12, y=12)
+        village._interact()
+        self.assertEqual(village.dialogue_action, "epilogue")
+        village.dialogue_index = len(village.dialogue_lines) - 1
+        village._advance_dialogue()
+        self.assertTrue(game.epilogue_started)
+
+    def test_epilogue_lines_remember_completed_favours(self):
+        from scenes.epilogue_scene import epilogue_lines
+
+        game = FakeGame()
+        village = VillageScene(game, {"world": "village", "sub_quests": {
+            "sq_old_sword": {"status": "COMPLETED", "progress": 1}}})
+        lines = dict(epilogue_lines(village))
+        self.assertIn("휘장", lines["노기사 가렌"])
+        self.assertNotIn("달빛 약초", lines["약초상 마르타"])
+        self.assertEqual(epilogue_lines(village)[-3][0], "촌장 발렌")
 
     def test_northern_shrine_and_new_central_chief_house_are_accessible(self):
         game = FakeGame()

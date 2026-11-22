@@ -82,6 +82,7 @@ class FieldScene(BaseScene):
         self.dialogue_index = 0
         self.dialogue_action = None
         self.pending_dialogue = None
+        self.pending_epilogue = False
         self.altar_positions = {}
         self.herb_positions = set()
         self.walls = set()
@@ -265,6 +266,8 @@ class FieldScene(BaseScene):
             self.game.open_shop()
         elif action == "final_boss":
             self.game.start_battle("final_boss")
+        elif action == "epilogue":
+            self.game.start_epilogue()
 
     def _offer_sidequest(self, quest_id):
         quest = self.sub_quests[quest_id]
