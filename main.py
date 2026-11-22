@@ -21,6 +21,10 @@ class Game:
     def __init__(self):
         pygame.init()
         pygame.display.set_caption(TITLE)
+        try:
+            pygame.display.set_icon(pygame.image.load(resource_path("assets/icon.png")))
+        except (FileNotFoundError, pygame.error):
+            pass  # The window still opens with the default icon.
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         self.colors = COLORS

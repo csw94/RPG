@@ -75,7 +75,7 @@ python main.py
 ## Windows 단일 실행 파일 빌드
 
 ```powershell
-pyinstaller --onefile --windowed --add-data "assets;assets" --name "ChroniclesOfPixel" main.py
+pyinstaller --onefile --windowed --add-data "assets;assets" --icon "assets/icon.ico" --name "ChroniclesOfPixel" main.py
 ```
 
 주인공은 16×24 픽셀의 치비형 모험가 스프라이트이며, 맵 타일과 상자·몬스터는 16×16

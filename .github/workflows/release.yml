@@ -24,7 +24,7 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Build executable
-        run: pyinstaller --onefile --windowed --add-data "assets;assets" --name "ChroniclesOfPixel" main.py
+        run: pyinstaller --onefile --windowed --add-data "assets;assets" --icon "assets/icon.ico" --name "ChroniclesOfPixel" main.py
 
       - name: Publish GitHub release
         env:
