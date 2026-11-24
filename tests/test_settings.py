@@ -69,7 +69,7 @@ class StoreTests(unittest.TestCase):
     def test_settings_round_trip(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "nested" / "settings.json"
-            values = {"music": 2, "sfx": 9, "display": "fullscreen"}
+            values = {"music": 2, "sfx": 9, "display": "fullscreen", "text_speed": "fast"}
             user_settings.save(values, path)
             self.assertEqual(user_settings.load(path), values)
 

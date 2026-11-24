@@ -19,6 +19,11 @@ from gameplay.world_data import FIELD_ROUTES, SHRINES
 
 
 
+# Dialogue typing speed in characters per second (None = whole line at once).
+TEXT_SPEEDS = {"slow": 18, "normal": 40, "fast": 90, "instant": None}
+ACTION_KEYS = (pygame.K_SPACE, pygame.K_RETURN, pygame.K_z)
+
+
 class FieldScene(BaseScene):
     # The overworld is larger than the view; town and dungeon scenes override these.
     COLS, ROWS = 52, 31
@@ -412,6 +417,35 @@ class FieldScene(BaseScene):
         setattr(self, kind, item_id)
         return True
 
+    # --- typewriter dialogue -----------------------------------------------------------
+    def _text_speed(self):
+        settings = getattr(self.game, "settings", None) or {}
+        return TEXT_SPEEDS.get(settings.get("text_speed", "normal"), TEXT_SPEEDS["normal"])
+
+    def _current_line(self):
+        if not self.dialogue_lines:
+            return ""
+        line = self.dialogue_lines[self.dialogue_index]
+        key = (id(self.dialogue_lines), self.dialogue_index)
+        if key != getattr(self, "_typed_key", None):
+            self._typed_key, self.dialogue_chars = key, 0.0
+        return line
+
+    def visible_dialogue(self):
+        line = self._current_line()
+        return line if self._text_speed() is None else line[:int(self.dialogue_chars)]
+
+    def dialogue_typing(self):
+        line = self._current_line()
+        return self._text_speed() is not None and int(self.dialogue_chars) < len(line)
+
+    def _press_dialogue(self):
+        """Action key during dialogue: finish the line being typed, otherwise go on."""
+        if self.dialogue_typing():
+            self.dialogue_chars = float(len(self._current_line()))
+        else:
+            self._advance_dialogue()
+
     def show_dialogue(self, lines, action=None):
         self.dialogue_lines = list(lines)
         self.dialogue_index = 0
@@ -625,9 +659,9 @@ class FieldScene(BaseScene):
                 if event.key == pygame.K_ESCAPE:
                     self.game.save_game()
                     self.game.change_scene("title")
-                elif event.key == pygame.K_SPACE:
+                elif event.key in ACTION_KEYS:
                     if self.dialogue_lines:
-                        self._advance_dialogue()
+                        self._press_dialogue()
                     else:
                         self._interact()
                 elif event.key in (pygame.K_i, pygame.K_TAB) and not self.dialogue_lines:
@@ -710,6 +744,9 @@ class FieldScene(BaseScene):
 
     def update(self, dt):
         self.portal_clock += dt
+        if self.dialogue_lines and self._text_speed():
+            self._current_line()
+            self.dialogue_chars += self._text_speed() * dt
         self.autosave_flash = max(0.0, self.autosave_flash - dt)
         if self.achievement_toasts:
             self.toast_clock += dt
@@ -839,7 +876,7 @@ class FieldScene(BaseScene):
             return
         box = pygame.Rect(38, 385, 724, 116)
         body = ui.frame(surface, box, "parchment")
-        line = self.dialogue_lines[self.dialogue_index]
+        line = self.visible_dialogue()
         words, rows, current = line.split(), [], ""
         for word in words:
             candidate = f"{current} {word}".strip()
@@ -852,8 +889,9 @@ class FieldScene(BaseScene):
             rows.append(current)
         for index, row in enumerate(rows[:3]):
             surface.blit(self.game.font(18).render(row, True, ui.INK), (body.x + 16, body.y + 12 + index * 25))
-        hint = self.game.font(14).render("SPACE  \ub2e4\uc74c \u25bc", True, ui.WOOD_DARK)
-        surface.blit(hint, (body.right - hint.get_width() - 12, body.bottom - 22))
+        if not self.dialogue_typing():
+            hint = self.game.font(14).render("SPACE  \ub2e4\uc74c \u25bc", True, ui.WOOD_DARK)
+            surface.blit(hint, (body.right - hint.get_width() - 12, body.bottom - 22))
 
 
     def draw(self, surface):

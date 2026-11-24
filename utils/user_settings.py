@@ -5,7 +5,8 @@ import os
 from pathlib import Path
 
 DISPLAY_MODES = ("1x", "1.5x", "2x", "fullscreen")
-DEFAULTS = {"music": 7, "sfx": 7, "display": "1x"}
+TEXT_SPEED_OPTIONS = ("slow", "normal", "fast", "instant")
+DEFAULTS = {"music": 7, "sfx": 7, "display": "1x", "text_speed": "normal"}
 
 
 def default_path():
@@ -27,6 +28,8 @@ def _clean(raw):
             pass
     if raw.get("display") in DISPLAY_MODES:
         settings["display"] = raw["display"]
+    if raw.get("text_speed") in TEXT_SPEED_OPTIONS:
+        settings["text_speed"] = raw["text_speed"]
     return settings
 
 

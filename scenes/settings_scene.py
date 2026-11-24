@@ -8,8 +8,10 @@ from utils import ui
 
 DISPLAY_LABELS = {"1x": "기본 (800×600)", "1.5x": "1.5배 (1200×900)", "2x": "2배 (1600×1200)",
                   "fullscreen": "전체 화면"}
-ROWS = ("music", "sfx", "display", "help", "close")
-ROW_LABELS = {"music": "배경음악", "sfx": "효과음", "display": "화면 크기", "difficulty": "난이도",
+ROWS = ("music", "sfx", "display", "text_speed", "help", "close")
+TEXT_SPEED_LABELS = {"slow": "느림", "normal": "보통", "fast": "빠름", "instant": "즉시"}
+ROW_LABELS = {"music": "배경음악", "sfx": "효과음", "display": "화면 크기", "text_speed": "대화 속도",
+              "difficulty": "난이도",
               "help": "조작법 보기", "close": "닫기"}
 
 
@@ -67,6 +69,11 @@ class SettingsScene(BaseScene):
             current = modes.index(settings["display"]) if settings["display"] in modes else 0
             settings["display"] = modes[(current + step) % len(modes)]
             self.game.apply_display(settings["display"])
+        elif name == "text_speed":
+            from utils.user_settings import TEXT_SPEED_OPTIONS
+            current = TEXT_SPEED_OPTIONS.index(settings.get("text_speed", "normal"))
+            settings["text_speed"] = TEXT_SPEED_OPTIONS[max(0, min(len(TEXT_SPEED_OPTIONS) - 1, current + step))]
+            self.sfx("cursor")
         elif name == "difficulty":
             field = self.game.field
             current = DIFFICULTY_ORDER.index(field.difficulty)
@@ -95,8 +102,8 @@ class SettingsScene(BaseScene):
 
     # --- drawing ----------------------------------------------------------------------
     def _row_rects(self):
-        step = 64 if len(self.rows) <= 5 else 54
-        return [pygame.Rect(170, 154 + index * step, 460, 46) for index in range(len(self.rows))]
+        step, height = (64, 46) if len(self.rows) <= 5 else (50, 42)
+        return [pygame.Rect(170, 154 + index * step, 460, height) for index in range(len(self.rows))]
 
     def draw(self, surface):
         colors, settings = self.game.colors, self.game.settings
@@ -109,10 +116,15 @@ class SettingsScene(BaseScene):
                 self.button(surface, rect.inflate(-160, 0), ROW_LABELS[name], selected, 19)
                 continue
             body = ui.frame(surface, rect, "parchment", selected)
-            surface.blit(self.game.font(18).render(ROW_LABELS[name], True, ui.INK), (body.x + 12, body.y + 9))
-            if name in ("display", "difficulty"):
-                value = (DISPLAY_LABELS.get(settings["display"], settings["display"]) if name == "display"
-                         else DIFFICULTIES[self.game.field.difficulty]["name"])
+            label_image = self.game.font(18).render(ROW_LABELS[name], True, ui.INK)
+            surface.blit(label_image, label_image.get_rect(midleft=(body.x + 12, body.centery)))
+            if name in ("display", "difficulty", "text_speed"):
+                if name == "display":
+                    value = DISPLAY_LABELS.get(settings["display"], settings["display"])
+                elif name == "text_speed":
+                    value = TEXT_SPEED_LABELS[settings.get("text_speed", "normal")]
+                else:
+                    value = DIFFICULTIES[self.game.field.difficulty]["name"]
                 label = self.game.font(17).render(f"<   {value}   >", True, ui.INK)
                 surface.blit(label, label.get_rect(midright=(body.right - 14, body.centery)))
             else:

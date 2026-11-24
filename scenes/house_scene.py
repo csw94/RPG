@@ -120,9 +120,9 @@ class HouseInteriorScene(FieldScene):
                 if event.key == pygame.K_ESCAPE:
                     self.game.save_game()
                     self.game.enter_world("village", self._outside_door())
-                elif event.key == pygame.K_SPACE:
+                elif event.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_z):
                     if self.dialogue_lines:
-                        self._advance_dialogue()
+                        self._press_dialogue()
                     else:
                         self._interact()
                 elif event.key in (pygame.K_i, pygame.K_TAB) and not self.dialogue_lines:
