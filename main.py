@@ -19,6 +19,8 @@ from utils import display, user_settings
 from utils.audio import RATE, Audio, music_for
 from utils.resource import resource_path
 
+AUTOSAVE_SECONDS = 60  # quiet save while exploring
+
 
 class Game:
     def __init__(self):
@@ -51,6 +53,7 @@ class Game:
         self.scene = TitleScene(self)
         self._fonts = {}
         self.audio = Audio()
+        self.autosave_clock = 0.0
         self.audio.set_volumes(self.settings["music"], self.settings["sfx"])
 
     def font(self, size):
@@ -153,6 +156,23 @@ class Game:
             self.window.blit(pygame.transform.scale(self.canvas, self.view.size), self.view.topleft)
         pygame.display.flip()
 
+    def tick_autosave(self, dt):
+        """Save quietly every AUTOSAVE_SECONDS while walking around (not mid-dialogue)."""
+        field = getattr(self, "field", None)
+        if field is None or self.scene is not field or self.scene_name == "title":
+            return
+        self.autosave_clock += dt
+        if self.autosave_clock >= AUTOSAVE_SECONDS and not field.dialogue_lines:
+            self.autosave_clock = 0.0
+            self.save_game()
+            field.autosave_flash = 2.0
+
+    def shutdown(self):
+        """Closing the window keeps the adventure: save first if one is open."""
+        if getattr(self, "field", None) is not None and self.scene_name != "title" and self.active_slot:
+            self.save_game()
+        self.running = False
+
     def count_play_time(self, dt):
         """Play time grows while an adventure is open (not on the title screen)."""
         if getattr(self, "field", None) is not None and self.scene_name != "title":
@@ -202,12 +222,13 @@ class Game:
             events = display.map_events(pygame.event.get(), self.view)
             for event in events:
                 if event.type == pygame.QUIT:
-                    self.running = False
+                    self.shutdown()
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_m:
                     self.audio.toggle_mute()
             self.scene.handle_events(events)
             self.scene.update(dt)
             self.count_play_time(dt)
+            self.tick_autosave(dt)
             enemy = getattr(self.scene, "enemy", None) if self.scene_name == "battle" else None
             track = getattr(self.scene, "music_track", None)
             self.audio.update(track or music_for(self.scene_name, enemy["id"] if enemy else None))

@@ -46,6 +46,7 @@ class FieldScene(BaseScene):
         self.level = int(state.get("level", 1))
         self.xp = int(state.get("xp", 0))
         self.play_time = float(state.get("play_time", 0))
+        self.autosave_flash = 0.0  # seconds left to show the "자동 저장됨" notice
         self.difficulty = state.get("difficulty") if state.get("difficulty") in DIFFICULTIES else "normal"
         # Bestiary: enemy id -> times defeated (0 = met but not yet beaten).
         self.bestiary = {key: int(value) for key, value in (state.get("bestiary") or {}).items() if key in ENEMIES}
@@ -694,6 +695,7 @@ class FieldScene(BaseScene):
 
     def update(self, dt):
         self.portal_clock += dt
+        self.autosave_flash = max(0.0, self.autosave_flash - dt)
         keys = pygame.key.get_pressed()
         dx, dy = self._key_direction(keys)
         moving = bool(dx or dy)
@@ -798,6 +800,11 @@ class FieldScene(BaseScene):
         surface.blit(font(15).render(f"{self.gold}", True, ui.INK), (stats_x + 324, body.y + 6))
         pygame.draw.line(surface, ui.PARCHMENT_SHADE, (body.x + 8, body.y + 36), (body.x + 660, body.y + 36))
         surface.blit(font(16).render(str(self.message), True, ui.INK_SOFT), (body.x + 10, body.y + 42))
+        if self.autosave_flash > 0:
+            note = font(13).render("자동 저장됨", True, ui.INK)
+            pill = note.get_rect(topright=(WIDTH - 12, 10)).inflate(16, 8)
+            ui.frame(surface, pill, "parchment", border=3)
+            surface.blit(note, note.get_rect(center=pill.center))
         hint = font(12).render("I 상태 · O 설정 · M 소리", True, ui.INK_SOFT)
         surface.blit(hint, hint.get_rect(topright=(676, body.y + 46)))
         self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)
