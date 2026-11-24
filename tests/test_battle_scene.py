@@ -39,6 +39,9 @@ class FakeGame:
     def finish_battle(self):
         self.finished += 1
 
+    def retry_battle(self, snapshot, enemy_id):
+        self.retried = (snapshot, enemy_id)
+
     def start_battle(self, enemy_id):
         pass
 
@@ -141,6 +144,52 @@ class BattleSceneTests(unittest.TestCase):
         for _ in range(10):
             scene.update(0.05)
             scene.draw(surface)
+
+
+class DefeatChoiceTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        pygame.display.set_mode((1, 1))
+
+    def lose(self):
+        game = FakeGame()
+        game.field.hp, game.field.potions = 1, 2
+        scene = BattleScene(game, "skeleton", rng=FixedRng())
+        scene.handle_events([key(pygame.K_RETURN)])  # attack, then the skeleton finishes us
+        play_out(scene)
+        self.assertEqual((scene.mode, scene.engine.result), ("done", "lose"))
+        return game, scene
+
+    def test_retry_restarts_the_same_fight_from_the_pre_battle_state(self):
+        game, scene = self.lose()
+        self.assertEqual(scene.defeat_choice, 0)
+        scene.handle_events([key(pygame.K_RETURN)])
+        snapshot, enemy_id = game.retried
+        self.assertEqual(enemy_id, "skeleton")
+        self.assertEqual((snapshot["hp"], snapshot["potions"], snapshot["world"]), (1, 2, "field_east"))
+        self.assertEqual(game.finished, 0)
+
+    def test_choosing_the_village_keeps_the_old_outcome(self):
+        game, scene = self.lose()
+        scene.handle_events([key(pygame.K_DOWN), key(pygame.K_RETURN)])
+        self.assertEqual(game.finished, 1)
+        self.assertFalse(hasattr(game, "retried"))
+        self.assertEqual(game.field.world, "village")
+
+    def test_defeat_screen_draws_both_choices(self):
+        game, scene = self.lose()
+        scene.draw(pygame.Surface((800, 600)))
+        self.assertEqual(len(scene._defeat_buttons()), 2)
+
+    def test_victory_has_no_choice(self):
+        game = FakeGame()
+        game.field.atk = 400
+        scene = BattleScene(game, "slime", rng=FixedRng())
+        scene.handle_events([key(pygame.K_RETURN)])
+        play_out(scene)
+        scene.handle_events([key(pygame.K_DOWN), key(pygame.K_RETURN)])
+        self.assertEqual(game.finished, 1)
 
 
 if __name__ == "__main__":

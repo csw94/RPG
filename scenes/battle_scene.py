@@ -24,6 +24,9 @@ class BattleScene(BaseScene):
 
     def __init__(self, game, enemy_type="slime", rng=None):
         super().__init__(game)
+        # The state right before the fight, so a defeat can be retried from here.
+        self.snapshot = game.field.serialize()
+        self.defeat_choice = 0        # 0 retry, 1 back to the village
         self.engine = BattleEngine(game.field, enemy_type, rng=rng)
         self.enemy = self.engine.enemy
         self.selected = 0
@@ -68,8 +71,11 @@ class BattleScene(BaseScene):
         step = -1 if key in (pygame.K_LEFT, pygame.K_a, pygame.K_UP, pygame.K_w) else \
             1 if key in (pygame.K_RIGHT, pygame.K_d, pygame.K_DOWN, pygame.K_s) else 0
         if self.mode == "done":
-            if confirm:
-                self.game.finish_battle()
+            if self.engine.result == "lose" and step:
+                self.defeat_choice = (self.defeat_choice + step) % 2
+                self.sfx("cursor")
+            elif confirm:
+                self._leave()
         elif self.mode == "playing":
             if confirm:
                 self.event_timer = 0  # skip ahead
@@ -92,7 +98,13 @@ class BattleScene(BaseScene):
 
     def _click(self, pos):
         if self.mode == "done":
-            self.game.finish_battle()
+            if self.engine.result == "lose":
+                for index, rect in enumerate(self._defeat_buttons()):
+                    if rect.collidepoint(pos):
+                        self.defeat_choice = index
+                        self._leave()
+                return
+            self._leave()
         elif self.mode == "skills":
             for index, rect in enumerate(self._skill_buttons()):
                 if rect.collidepoint(pos):
@@ -104,6 +116,13 @@ class BattleScene(BaseScene):
                 if rect.collidepoint(pos):
                     self.selected = index
                     self._choose()
+
+    def _leave(self):
+        if self.engine.result == "lose" and self.defeat_choice == 0:
+            self.sfx("confirm")
+            self.game.retry_battle(self.snapshot, self.enemy["id"])
+        else:
+            self.game.finish_battle()
 
     def _choose(self):
         if self.selected == 1:
@@ -209,6 +228,9 @@ class BattleScene(BaseScene):
     def _buttons(self):
         return [pygame.Rect(104 + (i % 2) * 310, 446 + (i // 2) * 56, 280, 46) for i in range(4)]
 
+    def _defeat_buttons(self):
+        return [pygame.Rect(250 + i * 160, 470, 140, 44) for i in range(2)]
+
     def _skill_buttons(self):
         return [pygame.Rect(36 + (i % 3) * 248, 446 + (i // 3) * 56, 236, 46)
                 for i in range(len(self.skill_list()))]
@@ -253,7 +275,8 @@ class BattleScene(BaseScene):
         field, engine = self.game.field, self.engine
         ui.frame(surface, pygame.Rect(54, 24, 263, 104), "walnut")
         self.text(surface, f"수호자  Lv.{field.level}", (78, 38), 20)
-        self._bar(surface, 78, 70, 215, field.hp, field.max_hp, self.game.colors["red"])
+        shown_hp = 0 if engine.result == "lose" else field.hp  # field HP is already the post-wake value
+        self._bar(surface, 78, 70, 215, shown_hp, field.max_hp, self.game.colors["red"])
         self._bar(surface, 78, 90, 215, field.mp, field.max_mp, self.game.colors["blue"], 8)
         badges = [STATUS_NAMES[s] for s in engine.statuses["hero"]] + (["수호"] if engine.guarding else [])
         self._badges(surface, badges, (78, 104))
@@ -288,6 +311,11 @@ class BattleScene(BaseScene):
                 self.button(surface, rect, label if usable else f"({label})", index == self.skill_index, 20)
             chosen = skills[self.skill_index]
             footer = f"{chosen['desc']}   ·   MP {field.mp}/{field.max_mp}   ·   Esc: 뒤로"
+        elif self.mode == "done" and self.engine.result == "lose":
+            for index, (label, rect) in enumerate(zip(("다시 도전", "마을로 돌아가기"), self._defeat_buttons())):
+                self.button(surface, rect, label, index == self.defeat_choice, 18)
+            footer = ("전투 직전 상태로 같은 적과 다시 싸웁니다." if self.defeat_choice == 0
+                      else "HP 절반으로 오크밸리에서 깨어납니다.")
         elif self.mode == "done":
             footer = "Enter: 계속"
             self.text(surface, footer, (400, 520), 22, self.game.colors["cream"], True)

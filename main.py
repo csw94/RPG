@@ -125,6 +125,12 @@ class Game:
         self.scene_name = "battle"
         self.scene = BattleScene(self, enemy_type)
 
+    def retry_battle(self, snapshot, enemy_type):
+        """After a defeat: restore the pre-battle state and fight the same enemy again."""
+        self.field = self._create_world(snapshot)
+        self.save_game()
+        self.start_battle(enemy_type)
+
     def start_epilogue(self):
         self.scene_name = "epilogue"
         self.scene = EpilogueScene(self)
