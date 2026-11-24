@@ -13,6 +13,14 @@ class ShopScene(BaseScene):
         self.selected = 0
         self.message = "\uace8\ub4dc\ub85c \uc7a5\ube44\ub97c \uad6c\ub9e4\ud558\uac70\ub098 \uc18c\uc9c0\ud488\uc744 \ucc59\uae30\uc138\uc694."
 
+    @staticmethod
+    def panel_rect():
+        return pygame.Rect(52, 20, 696, 560)
+
+    @staticmethod
+    def close_rect():
+        return pygame.Rect(330, 506, 140, 40)
+
     def _rows(self):
         return [pygame.Rect(118, 158 + index * 62, 564, 48) for index in range(len(SHOP_ITEMS))]
 
@@ -33,7 +41,7 @@ class ShopScene(BaseScene):
                         self.selected = index
                         self._purchase()
                         break
-                if pygame.Rect(330, 512, 140, 42).collidepoint(event.pos):
+                if self.close_rect().collidepoint(event.pos):
                     self._close()
 
     def _close(self):
@@ -108,12 +116,12 @@ class ShopScene(BaseScene):
         return f"{info['name']}   \u00b7   {detail}", price
 
     def draw(self, surface):
-        surface.fill((32, 42, 34))
-        pygame.draw.rect(surface, (73, 54, 39), (58, 28, 684, 544))
-        pygame.draw.rect(surface, self.game.colors["gold"], (58, 28, 684, 544), 4)
-        pygame.draw.rect(surface, self.game.colors["cream"], (67, 37, 666, 526), 1)
-        self.text(surface, "\uc624\ud06c\ubc38\ub9ac \uc0c1\uc810", (400, 75), 32, self.game.colors["gold"], True)
-        self.text(surface, f"\ubcf4\uc720 \uace8\ub4dc {self.game.field.gold} G", (400, 112), 19, self.game.colors["cream"], True)
+        ui.plank_strip(surface, (0, 0, surface.get_width(), surface.get_height()))
+        ui.frame(surface, self.panel_rect(), "walnut", border=8)
+        self.text(surface, "\uc624\ud06c\ubc38\ub9ac \uc0c1\uc810", (400, 70), 32, self.game.colors["gold"], True)
+        gold = self.text(surface, f"\ubcf4\uc720 \uace8\ub4dc {self.game.field.gold} G", (410, 108), 19,
+                         self.game.colors["cream"], True)
+        ui.coin(surface, (gold.left - 14, gold.centery))
         weapon = WEAPONS.get(self.game.field.weapon, WEAPONS["rusty_sword"])
         armor = ARMORS.get(self.game.field.armor, ARMORS["traveler_clothes"])
         self.text(surface, f"\uc7a5\ucc29 \uc911: {weapon['name']} \u00b7 {armor['name']}", (400, 137), 16,
@@ -125,6 +133,6 @@ class ShopScene(BaseScene):
             price_image = self.game.font(16).render(price, True, self.game.colors["gold"])
             surface.blit(price_image, price_image.get_rect(midright=(rect.right - 14, rect.centery)))
         self.text(surface, self.message, (400, 486), 16, self.game.colors["cream"], True)
-        self.button(surface, pygame.Rect(330, 512, 140, 42), "\ub9c8\uc744\ub85c", False, 18)
-        self.text(surface, "\u2191\u2193 \uc120\ud0dd \u00b7 Enter \uad6c\ub9e4/\uc7a5\ucc29 \u00b7 ESC \ub3cc\uc544\uac00\uae30", (400, 562), 13,
+        self.button(surface, self.close_rect(), "\ub9c8\uc744\ub85c", False, 18)
+        self.text(surface, "\u2191\u2193 \uc120\ud0dd \u00b7 Enter \uad6c\ub9e4/\uc7a5\ucc29 \u00b7 ESC \ub3cc\uc544\uac00\uae30", (400, 558), 13,
                   self.game.colors["muted"], True)
