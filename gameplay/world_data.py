@@ -45,11 +45,12 @@ FIELD_ROUTES = {
     },
     "field_south": {
         "name": "메마른 화산 기슭", "theme": "volcanic", "shrine": "shrine_fire",
-        "village_portal": (16, 29), "village_spawn": (16, 28), "return_village": (15, 19),
-        "dungeon_portal": (29, 3), "dungeon_spawn": (21, 14), "return_dungeon": (29, 4),
-        "path": ((16, 28), (14, 22), (21, 18), (17, 13), (23, 9), (29, 3)),
+        # Enter at the top (the village is to the north) and head downhill to the temple.
+        "village_portal": (16, 1), "village_spawn": (16, 3), "return_village": (15, 19),
+        "dungeon_portal": (29, 27), "dungeon_spawn": (21, 14), "return_dungeon": (29, 25),
+        "path": ((16, 2), (14, 8), (21, 12), (17, 17), (23, 21), (29, 27)),
         "groves": (), "herbs": (),
-        "chests": {(23, 16): "high_potion", (9, 20): "gold"},
+        "chests": {(23, 14): "high_potion", (9, 10): "gold"},
         "enemy_pool": ("salamander", "magma_slime", "goblin"), "encounter_rate": 0.14,
     },
 }

@@ -67,6 +67,15 @@ class FieldSizeTests(unittest.TestCase):
             x, y = data["village_portal"]
             self.assertTrue(x in (1, FieldScene.COLS - 2) or y in (1, FieldScene.ROWS - 2), world)
 
+    def test_south_field_runs_downhill_from_the_village(self):
+        """The village lies north of the volcano, so you enter at the top and head down."""
+        data = FIELD_ROUTES["field_south"]
+        self.assertEqual(data["village_portal"][1], 1)
+        self.assertGreater(data["dungeon_portal"][1], FieldScene.ROWS - 6)
+        ys = [y for _x, y in data["path"]]
+        self.assertLessEqual(ys[0], data["village_spawn"][1])
+        self.assertGreater(ys[-1], ys[0])
+
 
 class VillageSizeTests(unittest.TestCase):
     def setUp(self):

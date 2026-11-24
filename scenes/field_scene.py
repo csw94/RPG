@@ -198,12 +198,13 @@ class FieldScene(BaseScene):
                 self.rocks |= {p for p in self._blob(cx, cy, rx, ry, seed) if tile_noise(*p, 23) < 0.8}
             self.rocks -= self.path | landmarks
         else:
-            self.lava = (self._blob(9, 11, 3.8, 2.6, 3) | self._blob(34.5, 18, 4.4, 2.6, 4)
-                         | self._blob(23.5, 4.6, 2.2, 1.1, 5) | self._blob(42, 5.5, 2.8, 2.2, 6)
-                         | self._blob(7.5, 24.5, 2.4, 2.1, 7))
+            # Laid out top-down: the village gate is at the top, the fire temple at the bottom.
+            self.lava = (self._blob(9, 19, 3.8, 2.6, 3) | self._blob(34.5, 12, 4.4, 2.6, 4)
+                         | self._blob(23.5, 25.4, 2.2, 1.1, 5) | self._blob(42, 24.5, 2.8, 2.2, 6)
+                         | self._blob(7.5, 5.5, 2.4, 2.1, 7))
             self.lava -= self.path | landmarks
-            self.rocks = {(x, 7) for x in range(6, 13)} | {(x, 23) for x in range(39, 48)}
-            self.rocks |= {(39, 9), (40, 9), (45, 9), (46, 10), (27, 24), (28, 24), (11, 17), (12, 18)}
+            self.rocks = {(x, 23) for x in range(6, 13)} | {(x, 7) for x in range(39, 48)}
+            self.rocks |= {(39, 21), (40, 21), (45, 21), (46, 20), (27, 6), (28, 6), (11, 13), (12, 12)}
             self.rocks -= self.path | landmarks | self.lava
         self.walls.update(self.trees)
         self.walls.update(self.rocks)
