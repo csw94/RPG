@@ -17,7 +17,7 @@ ITEM_NAMES = {"broken_old_sword": "부러진 옛 검", "knights_crest": "기사�
 TOGGLE_KEYS = (pygame.K_i, pygame.K_TAB)
 PAGES = (("record", "기록"), ("map", "지도"))
 HERO_MARK = (255, 200, 40)
-MAP_COLORS = {"ground": (118, 150, 92), "path": (204, 176, 124), "water": (88, 150, 200), "lava": (224, 112, 52),
+MAP_COLORS = {"ground": (118, 150, 92), "path": (204, 176, 124), "water": (88, 150, 200), "lava": (224, 112, 52), "ice": (150, 196, 230), "snow": (226, 232, 240),
               "tree": (58, 104, 64), "rock": (120, 116, 112), "wall": (62, 52, 58), "floor": (150, 138, 128)}
 MARKER_STYLE = {  # colour, label for the legend
     "chest": ((236, 196, 84), "상자"), "herb": ((150, 230, 120), "약초"), "town": ((250, 250, 240), "마을"),
@@ -108,6 +108,8 @@ class StatusScene(BaseScene):
             return MAP_COLORS["lava"]
         if (x, y) in getattr(f, "water", ()):
             return MAP_COLORS["water"]
+        if (x, y) in getattr(f, "ice", ()):
+            return MAP_COLORS["ice"]
         if (x, y) in getattr(f, "trees", ()):
             return MAP_COLORS["tree"]
         if (x, y) in getattr(f, "rocks", ()):
@@ -116,7 +118,9 @@ class StatusScene(BaseScene):
             return MAP_COLORS["wall"]
         if (x, y) in getattr(f, "path", ()):
             return MAP_COLORS["path"]
-        return MAP_COLORS["floor"] if indoor else MAP_COLORS["ground"]
+        if indoor:
+            return MAP_COLORS["floor"]
+        return MAP_COLORS["snow"] if getattr(f, "theme", "") == "snow" else MAP_COLORS["ground"]
 
     def _draw_map(self, surface):
         f, colors = self.field, self.game.colors

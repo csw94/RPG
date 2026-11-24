@@ -88,6 +88,7 @@ class FieldScene(BaseScene):
         self.rocks = set()
         self.water = set()
         self.lava = set()
+        self.ice = set()  # frozen lakes (Frost Highlands)
         self.bridge = set()
         self.path = set()
         self.solid_npcs = set()
@@ -185,7 +186,8 @@ class FieldScene(BaseScene):
         landmarks = {data["village_portal"], data["dungeon_portal"], *data["herbs"], *data["chests"]}
         if data.get("toby"):
             landmarks.add(data["toby"])
-        rng = random.Random({"field_east": 1103, "field_west": 2207, "field_south": 3301}[self.world])
+        rng = random.Random({"field_east": 1103, "field_west": 2207, "field_south": 3301,
+                             "field_north": 4409}[self.world])
         if data["theme"] == "forest":
             self.water = self._blob(11, 6, 3.2, 1.8, 1) | self._blob(40, 19, 3.4, 1.8, 2)
             self.water -= self.path | landmarks
@@ -195,6 +197,20 @@ class FieldScene(BaseScene):
                         if ((tx, ty) not in self.path and (tx, ty) not in landmarks
                                 and (tx, ty) not in self.water and rng.random() < 0.42):
                             self.trees.add((tx, ty))
+        elif data["theme"] == "snow":
+            self.ice = (self._blob(38, 13, 4.2, 2.4, 41) | self._blob(8, 12, 3.0, 2.0, 42)
+                        | self._blob(20, 26, 3.4, 1.6, 43))
+            self.ice -= self.path | landmarks
+            for gx, gy, gw, gh in data["groves"]:
+                for ty in range(gy, min(gy + gh, self.ROWS - 1)):
+                    for tx in range(gx, min(gx + gw, self.COLS - 1)):
+                        if ((tx, ty) not in self.path and (tx, ty) not in landmarks
+                                and (tx, ty) not in self.ice and rng.random() < 0.45):
+                            self.trees.add((tx, ty))
+            for cx, cy, rx, ry, seed in ((30, 6.5, 1.6, 1.1, 44), (46, 24, 1.5, 1.2, 45), (4, 4, 1.4, 1.2, 46),
+                                         (17, 17, 1.3, 1.0, 47)):
+                self.rocks |= {p for p in self._blob(cx, cy, rx, ry, seed) if tile_noise(*p, 48) < 0.75}
+            self.rocks -= self.path | landmarks | self.ice | self.trees
         elif data["theme"] == "canyon":
             ridges = {(10, y) for y in range(3, 10)} | {(20, y) for y in range(17, 27)}
             ridges |= {(x, 4) for x in range(13, 23)} | {(x, 25) for x in range(31, 42)}
@@ -222,6 +238,7 @@ class FieldScene(BaseScene):
         self.walls.update(self.rocks)
         self.walls.update(self.water)
         self.walls.update(self.lava)
+        self.walls.update(self.ice)
         self.chests = dict(data["chests"])
         self.herb_positions = set(data["herbs"])
 
@@ -260,23 +277,25 @@ class FieldScene(BaseScene):
         return self.route_data["theme"] if self.route_data else "forest"
 
     def ground_tile(self, tx, ty):
-        prefix = {"canyon": "canyon", "volcanic": "ash"}.get(self.theme, "grass")
+        prefix = {"canyon": "canyon", "volcanic": "ash", "snow": "snow"}.get(self.theme, "grass")
         return f"{prefix}_{int(tile_noise(tx, ty, 5) * 16)}"
 
     def tree_kind(self, position):
         x, y = position
+        if self.theme == "snow":
+            return "tree_snowpine"
         return ("tree_round", "tree_round", "tree_fruit", "tree_pine")[int(tile_noise(x, y, 31) * 4)]
 
     def rock_kind(self, position):
         x, y = position
-        prefix = {"volcanic": "basalt", "canyon": "rock"}.get(self.theme, "mossrock")
+        prefix = {"volcanic": "basalt", "canyon": "rock", "snow": "icerock"}.get(self.theme, "mossrock")
         return f"{prefix}_{(x * 7 + y * 5) % 3}"
 
     def field_decals(self):
         """Walkable ground details per theme, kept off everything the player interacts with."""
         if getattr(self, "_decals", None) is None:
             busy = (self.walls | self.path | set(self.chests) | self.herb_positions
-                    | self.water | self.lava | self.bridge | set(self.altar_positions.values()))
+                    | self.water | self.lava | self.ice | self.bridge | set(self.altar_positions.values()))
             if self.route_data:
                 busy |= {self.route_data["village_portal"], self.route_data["dungeon_portal"]}
             if self.toby_position:
@@ -285,6 +304,7 @@ class FieldScene(BaseScene):
                 "forest": ("flower_patch", "tuft", "flower_patch_1", "tuft", "pebbles"),
                 "canyon": ("dry_tuft", "dry_tuft", "dry_tuft"),
                 "volcanic": ("ember", "ember", "pebbles"),
+                "snow": ("pebbles", "dry_tuft", "pebbles"),
             }[self.theme]
             decals = {}
             for y in range(1, self.ROWS - 1):
@@ -657,7 +677,7 @@ class FieldScene(BaseScene):
         elif self.route_data and self._near_point(self.route_data["dungeon_portal"], px, py, 1.25):
             self.game.enter_world(f"{self.route_data['shrine']}_1f", self.route_data["dungeon_spawn"])
         elif self.route_data and self._near_point(self.route_data["village_portal"], px, py, 1.25):
-            self.game.enter_world("village", self.route_data["return_village"])
+            self.game.enter_world(self.route_data.get("home", "village"), self.route_data["return_village"])
         elif self.herb_positions and any(
                 point not in self.collected_herbs and (point[0] - px) ** 2 + (point[1] - py) ** 2 <= 1.2
                 for point in self.herb_positions):
@@ -737,6 +757,12 @@ class FieldScene(BaseScene):
                 position = (tx, ty)
                 rect = pygame.Rect(round(tx * TILE_SIZE - camera_x), round(ty * TILE_SIZE - camera_y), TILE_SIZE, TILE_SIZE)
                 surface.blit(sprite(self.ground_tile(tx, ty), (TILE_SIZE, TILE_SIZE)), rect)
+                if position in self.ice:
+                    near = lambda dx, dy: (tx + dx, ty + dy) in self.ice
+                    mask = ((1 if near(0, -1) else 0) | (2 if near(1, 0) else 0) | (4 if near(0, 1) else 0)
+                            | (8 if near(-1, 0) else 0) | (16 if near(1, -1) else 0) | (32 if near(1, 1) else 0)
+                            | (64 if near(-1, 1) else 0) | (128 if near(-1, -1) else 0))
+                    surface.blit(sprite(f"ice_edge_{mask}_{(tx + ty) % 2}", (TILE_SIZE, TILE_SIZE)), rect)
                 if position in self.lava:
                     mask = ((1 if (tx, ty - 1) in self.lava else 0)
                             | (2 if (tx + 1, ty) in self.lava else 0)

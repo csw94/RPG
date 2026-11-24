@@ -10,7 +10,10 @@ MAP_GRAPH = {
     "village_square": ("village_chief_house", "village_house_1", "village_house_2",
                        "village_north_shrine", "field_east", "field_west", "field_south"),
     "village_chief_house": ("village_square",),
-    "village_north_shrine": ("village_square", "shrine_abyss_1f"),
+    "village_north_shrine": ("village_square", "shrine_abyss_1f", "field_north"),
+    "field_north": ("village_north_shrine", "shrine_ice_1f"),
+    "shrine_ice_1f": ("field_north", "shrine_ice_2f"),
+    "shrine_ice_2f": ("shrine_ice_1f",),
     "village_house_1": ("village_square",),
     "village_house_2": ("village_square",),
     "field_east": ("village_square", "shrine_wind_1f"),
@@ -61,5 +64,17 @@ FIELD_ROUTES = {
         "groves": (), "herbs": (),
         "chests": {(23, 14): "high_potion", (9, 10): "gold"},
         "enemy_pool": ("salamander", "magma_slime", "goblin"), "encounter_rate": 0.14,
+    },
+    # Reached through the north altar clearing once two shrines are cleared; you climb
+    # from the bottom edge up through snowfields and frozen lakes to the Ice Shrine.
+    "field_north": {
+        "name": "서리 고원", "theme": "snow", "shrine": "shrine_ice", "home": "village_north_shrine",
+        "village_portal": (26, 29), "village_spawn": (26, 28), "return_village": (15, 2),
+        "dungeon_portal": (9, 3), "dungeon_spawn": (12, 13), "return_dungeon": (9, 4),
+        "path": ((26, 28), (22, 22), (31, 17), (24, 12), (14, 10), (9, 4)),
+        "groves": ((3, 18, 9, 8), (36, 20, 10, 7), (40, 4, 8, 7), (17, 2, 8, 5), (30, 25, 6, 4)),
+        "herbs": (),
+        "chests": {(33, 17): "high_potion", (14, 7): "gold"},
+        "enemy_pool": ("snow_wolf", "ice_slime", "frost_wisp"), "encounter_rate": 0.12,
     },
 }

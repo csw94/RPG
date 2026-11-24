@@ -22,6 +22,12 @@ SHRINE_DUNGEONS = {
         "chest_pos": (20, 12), "stairs": (22, 13), "boss_pos": (12, 3), "exit": (12, 14),
         "style": "earth", "monsters": ("skeleton", "bandit", "scorpion"),
     },
+    "shrine_ice": {
+        "boss": "shrine_ice", "name": "얼음 제단", "chest": "high_potion",
+        "field": "field_north",
+        "chest_pos": (20, 3), "stairs": (2, 2), "boss_pos": (12, 6), "exit": (12, 14),
+        "style": "ice", "monsters": ("skeleton", "ice_slime", "frost_wisp"),
+    },
     "shrine_fire": {
         "boss": "shrine_fire", "name": "불꽃의 신전", "chest": "high_potion",
         "field": "field_south",
@@ -116,6 +122,15 @@ class DungeonScene(FieldScene):
                 self.walls.update((x, 7) for x in range(5, 20) if x != 12)
                 self.walls.update((6, y) for y in range(2, 13) if y in (3, 4, 10, 11))
                 self.walls.update((18, y) for y in range(2, 13) if y in (3, 4, 10, 11))
+        elif style == "ice":
+            # Ice: frozen columns in a lattice, opening into a crystal hall upstairs.
+            self.walls.update((x, 5) for x in range(1, 24) if x not in (4, 12, 20))
+            self.walls.update((x, 10) for x in range(1, 24) if x not in (7, 17))
+            self.walls.update({(6, 7), (6, 8), (18, 7), (18, 8), (12, 7)})
+            if self.floor == 2:
+                self.walls.difference_update((x, 5) for x in range(9, 16))
+                self.walls.update({(9, 3), (15, 3), (9, 8), (15, 8)})
+                self.walls.discard((12, 7))  # keep the guardian's throne clear
         elif style == "abyss":
             # Abyss: zigzag terraces, then a column maze, then a pillared throne hall.
             if self.floor == 1:
@@ -229,7 +244,8 @@ class DungeonScene(FieldScene):
 
     def dungeon_decals(self):
         if getattr(self, "_decals", None) is None:
-            name = {"wind": "tuft", "earth": "pebbles", "fire": "ember", "abyss": "pebbles"}[self.style]
+            name = {"wind": "tuft", "earth": "pebbles", "fire": "ember", "ice": "pebbles",
+                    "abyss": "pebbles"}[self.style]
             special = {self.EXIT, self.STAIRS, self.boss_position, self.ENTRY, *self.chests}
             self._decals = {(x, y): name for x in range(self.COLS) for y in range(self.ROWS)
                             if (x, y) not in self.walls and (x, y) not in special

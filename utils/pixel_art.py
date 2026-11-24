@@ -340,6 +340,10 @@ def _terrain_overlay(mask, kind="path", variant=0):
         fill = (212, 88, 48)
         accents = ((240, 148, 64), (184, 64, 42), (248, 188, 92))
         rim = LAVA_RIM
+    elif kind == "ice":
+        fill = (170, 208, 230)
+        accents = ((200, 228, 242), (146, 188, 216), (226, 242, 250))
+        rim = (112, 150, 182)
     else:
         fill = PALETTE["path"]
         accents = (PALETTE["path_light"], PALETTE["path_dark"], PALETTE["path_light"])
@@ -362,7 +366,7 @@ def _terrain_overlay(mask, kind="path", variant=0):
         pygame.draw.polygon(surface, fill, ((0, 8), (8, 16), (0, 16)))
     if mask & 128:
         pygame.draw.polygon(surface, fill, ((0, 0), (8, 0), (0, 8)))
-    rng = random.Random(mask * 101 + variant + {"path": 0, "water": 550, "lava": 880}[kind])
+    rng = random.Random(mask * 101 + variant + {"path": 0, "water": 550, "lava": 880, "ice": 990}[kind])
     for _ in range(9):
         x, y = rng.randrange(1, 15), rng.randrange(1, 15)
         if surface.get_at((x, y)).a:
@@ -381,6 +385,14 @@ def _terrain_overlay(mask, kind="path", variant=0):
     if water:
         _rect(surface, (220, 240, 244), 5, 5, 2, 1)
         _rect(surface, (180, 220, 232), 10, 10, 2, 1)
+    elif kind == "ice":
+        # Diagonal glints and a hairline crack read as frozen water.
+        for x, y in ((4, 9), (5, 8), (6, 7)):
+            if solid[y][x]:
+                surface.set_at((x, y), (244, 250, 255))
+        for x, y in ((9, 5), (10, 6), (10, 7), (11, 8)):
+            if solid[y][x]:
+                surface.set_at((x, y), (130, 170, 200))
     elif kind == "lava":
         # Cooling crust plates break up the flat orange and tie it to the ash ground.
         for _ in range(2):
@@ -966,6 +978,69 @@ def _canyon(variant):
     return _ground((186, 118, 82), (166, 102, 72), (204, 140, 98), variant, 611, strata)
 
 
+def _snow(variant):
+    def sparkle(surface, rng, v):
+        if v % 3 == 0:
+            _rect(surface, (255, 255, 255), rng.randrange(1, 15), rng.randrange(1, 15), 1, 1)
+        if v % 5 == 2:
+            x, y = rng.randrange(1, 12), rng.randrange(2, 14)
+            _rect(surface, (206, 218, 232), x, y, 4, 1)
+    return _ground((232, 238, 244), (210, 220, 232), (248, 251, 255), variant, 733, sparkle)
+
+
+def _snowcap(surface):
+    """Pile snow on every upward-facing edge of a sprite (pines, rocks)."""
+    surface = surface.copy()
+    w, h = surface.get_size()
+    outline = PALETTE["outline"]
+    solid = lambda x, y: 0 <= x < w and 0 <= y < h and surface.get_at((x, y)).a >= 200 \
+        and tuple(surface.get_at((x, y)))[:3] != outline
+    tops = [(x, y) for y in range(h) for x in range(w) if solid(x, y) and not solid(x, y - 1)]
+    for x, y in tops:
+        surface.set_at((x, y), (246, 250, 255))
+        if solid(x, y + 1) and (x + y) % 3 == 0:
+            surface.set_at((x, y + 1), (214, 228, 240))
+    return surface
+
+
+def _frosted(surface, eyes=(130, 236, 255)):
+    """Ice-touched recolour: pale blues by brightness, outline kept, vivid head pixels glow."""
+    surface = surface.copy()
+    outline = PALETTE["outline"]
+    w, h = surface.get_size()
+    pixels = [(x, y) for y in range(h) for x in range(w) if surface.get_at((x, y)).a >= 200]
+    lum = {p: sum(tuple(surface.get_at(p))[:3]) for p in pixels}
+    upper = sorted(v for p, v in lum.items() if p[1] < h * 0.5)
+    bright = upper[-max(2, len(upper) // 25)] if upper else 999
+    for p in pixels:
+        r, g, b, a = surface.get_at(p)
+        if (r, g, b) == outline:
+            continue
+        vivid = max(r, g, b) - min(r, g, b) > 70 or lum[p] > 650
+        if lum[p] >= bright and lum[p] > 300 and vivid and p[1] < h * 0.5:
+            surface.set_at(p, (*eyes, a))
+            continue
+        k = lum[p] / 765
+        surface.set_at(p, (int(96 + 150 * k), int(130 + 120 * k), int(168 + 87 * k), a))
+    return surface
+
+
+def _frost_wisp():
+    """Frost wisp (16x16): a floating flame of cold light with two dark eyes."""
+    s = _canvas()
+    pygame.draw.ellipse(s, (150, 206, 236), (3, 5, 10, 9))
+    pygame.draw.polygon(s, (150, 206, 236), ((4, 8), (6, 2), (8, 6), (10, 1), (12, 8)))
+    pygame.draw.ellipse(s, (214, 240, 252), (5, 7, 6, 5))
+    _rect(s, (250, 254, 255), 7, 8, 2, 2)
+    _rect(s, (40, 70, 110), 6, 9, 1, 2)
+    _rect(s, (40, 70, 110), 9, 9, 1, 2)
+    _rect(s, (150, 206, 236), 5, 14, 2, 1)
+    _rect(s, (150, 206, 236), 9, 14, 2, 1)
+    _rect(s, (190, 228, 246), 2, 3, 1, 1)
+    _rect(s, (190, 228, 246), 13, 4, 1, 1)
+    return _outline(s)
+
+
 def _ash(variant):
     def cracks(surface, rng, v):
         if v % 3 == 0:
@@ -981,6 +1056,7 @@ ROCK_TONES = {
     "rock": ((176, 126, 100), (214, 168, 134), (136, 90, 74)),     # red canyon sandstone
     "basalt": ((82, 74, 84), (122, 112, 120), (58, 50, 60)),       # volcanic
     "mossrock": ((146, 146, 136), (188, 188, 174), (106, 108, 104)),  # forest / grassland
+    "icerock": ((150, 176, 198), (214, 232, 244), (106, 132, 158)),  # frost highlands
 }
 
 
@@ -1172,6 +1248,7 @@ DUNGEON_TONES = {
     "earth": ((146, 108, 78), (118, 86, 62), (112, 84, 64), (150, 116, 86), (64, 48, 42), (250, 200, 110)),
     "fire": ((76, 64, 70), (58, 50, 56), (120, 54, 48), (156, 76, 62), (52, 34, 36), (250, 150, 64)),
     "abyss": ((54, 46, 72), (40, 34, 56), (66, 50, 98), (96, 78, 136), (28, 22, 40), (186, 140, 255)),
+    "ice": ((190, 214, 230), (162, 190, 212), (120, 160, 190), (170, 204, 226), (70, 98, 126), (140, 230, 255)),
 }
 
 
@@ -1431,13 +1508,15 @@ def sprite(name, size=(32, 32)):
         mask, variant = int(parts[-2]), int(parts[-1])
         kind = "water" if name.startswith("water_edge_") else "path"
         _BASE[name] = _terrain_overlay(mask, kind, variant)
-    elif name not in _BASE and name.startswith("lava_edge_"):
+    elif name not in _BASE and name.startswith(("lava_edge_", "ice_edge_")):
         parts = name.split("_")
-        _BASE[name] = _terrain_overlay(int(parts[-2]), "lava", int(parts[-1]))
-    elif name not in _BASE and name.startswith(("grass_", "canyon_", "ash_", "rock_", "basalt_", "mossrock_")):
+        _BASE[name] = _terrain_overlay(int(parts[-2]), parts[0], int(parts[-1]))
+    elif name not in _BASE and name.startswith(("grass_", "canyon_", "ash_", "snow_", "rock_", "basalt_", "mossrock_",
+                                                 "icerock_")):
         prefix, number = name.rsplit("_", 1)
-        builder = {"grass": _grass, "canyon": _canyon, "ash": _ash, "rock": _rock,
-                   "basalt": lambda v: _rock(v, "basalt"), "mossrock": lambda v: _rock(v, "mossrock")}[prefix]
+        builder = {"grass": _grass, "canyon": _canyon, "ash": _ash, "snow": _snow, "rock": _rock,
+                   "basalt": lambda v: _rock(v, "basalt"), "mossrock": lambda v: _rock(v, "mossrock"),
+                   "icerock": lambda v: _rock(v, "icerock")}[prefix]
         _BASE[name] = builder(int(number))
     if name not in _BASE and name.startswith(("dfloor_", "dwall_", "wall_torch_")):
         parts = name.split("_")
@@ -1513,6 +1592,11 @@ def sprite(name, size=(32, 32)):
             "void_slime": lambda: _abyssal(_slime_v2(), (60, 150, 170)),
             "abyss_knight": lambda: _abyssal(_dark_knight(), (120, 70, 190)),
             "abyss_lord": lambda: _abyssal(_golem(), (150, 60, 210), eyes=(255, 120, 230)),
+            "frost_wolf": lambda: _frosted(pygame.transform.flip(_wolf(), True, False)),
+            "ice_slime": lambda: _frosted(_slime_v2()),
+            "frost_wisp": _frost_wisp,
+            "frost_lizard": lambda: _frosted(_lizardman(), eyes=(90, 210, 255)),
+            "tree_snowpine": lambda: _snowcap(_tree("pine")),
             "wolf": lambda: pygame.transform.flip(_wolf(), True, False),
             "mushroom": _mushroom,
             "scorpion": _scorpion,

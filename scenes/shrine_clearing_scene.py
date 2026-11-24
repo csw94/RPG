@@ -2,6 +2,7 @@
 
 import pygame
 
+from gameplay.world_data import FIELD_ROUTES, NORTH_UNLOCK, SHRINES
 from scenes.field_scene import FieldScene
 from settings import TILE_SIZE
 from utils.pixel_art import hero_sprite, sprite, walk_frame
@@ -11,6 +12,7 @@ class ShrineClearingScene(FieldScene):
     COLS, ROWS = 32, 21
     ALTAR = (15, 7)
     SPAWN = (15, 17)
+    NORTH_GATE = (15, 1)  # road to the Frost Highlands, frozen shut until NORTH_UNLOCK seals
 
     def __init__(self, game, state=None):
         state = dict(state or {})
@@ -21,7 +23,7 @@ class ShrineClearingScene(FieldScene):
         self.message = "북쪽 별빛 제단입니다. 남쪽 문으로 광장에 돌아갈 수 있습니다."
         self.altar_positions = {"shrine_wind": self.ALTAR}
         self.portal_position = (15, self.ROWS - 2)
-        self.path = {(15, y) for y in range(9, self.ROWS - 1)}
+        self.path = {(15, y) for y in range(9, self.ROWS - 1)} | {(15, y) for y in range(1, 6)}
         self.walls = {(x, y) for x in range(self.COLS) for y in range(self.ROWS)
                       if x in (0, self.COLS - 1) or y in (0, self.ROWS - 1)}
         ox, oy = 3, 2
@@ -36,11 +38,15 @@ class ShrineClearingScene(FieldScene):
         self.walls.update(self.rocks)
         self.walls.update(self.trees)
         self.walls.add(self.ALTAR)
-        self.walls.difference_update(self.path | {self.portal_position})
+        self.walls.difference_update(self.path | {self.portal_position, self.NORTH_GATE})
         self._restore_player_position(self.SPAWN)
 
+    def north_open(self):
+        cleared = sum(1 for key in SHRINES if self.quest_flags.get(key))
+        return cleared >= NORTH_UNLOCK or bool(self.quest_flags.get("shrine_ice"))
+
     def map_markers(self):
-        return [("altar", self.ALTAR), ("gate", self.portal_position)]
+        return [("altar", self.ALTAR), ("gate", self.portal_position), ("gate", self.NORTH_GATE)]
 
     def _interact(self):
         x, y = self.player["x"], self.player["y"]
@@ -55,6 +61,11 @@ class ShrineClearingScene(FieldScene):
             else:
                 self.show_dialogue(["마을 북쪽에 세워진 오래된 별빛 제단이다.",
                                     "제단의 빛은 광장의 분수와 함께 마을을 지켜왔다."])
+        elif (x - self.NORTH_GATE[0]) ** 2 + (y - self.NORTH_GATE[1]) ** 2 <= 1.5:
+            if self.north_open():
+                self.game.enter_world("field_north", FIELD_ROUTES["field_north"]["village_spawn"])
+            else:
+                self.message = "두꺼운 얼음 결계가 북쪽 길을 막고 있다. 제단 두 곳을 정화하면 녹을 것 같다."
         elif (x - self.portal_position[0]) ** 2 + (y - self.portal_position[1]) ** 2 <= 1.5:
             from scenes.village_scene import VillageScene
             self.game.enter_world("village", VillageScene.SHRINE_RETURN)
@@ -79,6 +90,8 @@ class ShrineClearingScene(FieldScene):
         gx, gy = self.portal_position
         items.append(("gate", (gy + 1) * t, lambda view, cam_x, cam_y: view.blit(
             sprite("gate_arch", (48, 64)), (gx * t - 8 - cam_x, gy * t - 32 - cam_y))))
+        nx, ny = self.NORTH_GATE
+        items.append(("north_gate", (ny + 1) * t, self._draw_north_gate))
         px, py = self.player["x"], self.player["y"]
         near_altar = self.HERO_ZONE.collidepoint(round(px), round(py))
         near_gate = abs(px - gx) <= 1.5 and py >= gy - 2
@@ -100,6 +113,19 @@ class ShrineClearingScene(FieldScene):
             pygame.draw.circle(view, (126, 190, 235), (px, py - 34), 5)
             pygame.draw.circle(view, (222, 242, 255), (px, py - 34), 2)
         return draw
+
+    def _draw_north_gate(self, view, cam_x, cam_y):
+        t = TILE_SIZE
+        x, y = self.NORTH_GATE[0] * t - 8 - cam_x, self.NORTH_GATE[1] * t - 32 - cam_y
+        view.blit(sprite("gate_arch", (48, 64)), (x, y))
+        if not self.north_open():
+            # A sheet of blue ice seals the arch until two shrines are cleared.
+            ice = pygame.Surface((32, 40), pygame.SRCALPHA)
+            ice.fill((170, 214, 240, 200))
+            for i in range(0, 40, 8):
+                pygame.draw.line(ice, (236, 248, 255, 230), (2, i + 6), (12, i), 2)
+            pygame.draw.rect(ice, (96, 140, 180, 255), ice.get_rect(), 2)
+            view.blit(ice, (x + 8, y + 22))
 
     def _draw_hero(self, view, cam_x, cam_y):
         t = TILE_SIZE

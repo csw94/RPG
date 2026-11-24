@@ -14,7 +14,8 @@ import random
 from gameplay.enemies import ENEMIES
 
 ELEMENTS = ("none", "light", "wind", "earth", "fire", "dark")
-BOSS_PATTERNS = ("gust", "earthquake", "enrage", "dark_arts", "abyss")
+BOSS_PATTERNS = ("gust", "earthquake", "enrage", "dark_arts", "abyss", "blizzard")
+FREEZE_CHANCE = 0.25
 
 SKILLS = {
     "light_bolt": {"id": "light_bolt", "name": "빛의 탄", "mp": 3, "level": 1, "kind": "attack",
@@ -58,6 +59,7 @@ class BattleEngine:
         self.howl = 0
         self.turn = 0
         self.phase = 1  # the final boss turns to phase 2 below half HP
+        self.thawed = False  # a hero who just lost a turn to ice can't be refrozen at once
         self.result = None
         self.log = []
 
@@ -108,14 +110,19 @@ class BattleEngine:
                    text=f"{label}! {amount}의 피해." + (" (수호)" if self.guarding else ""))
         return amount
 
-    def _apply_status(self, events, target, status, turns):
+    def _apply_status(self, events, target, status, turns, text=None):
         if target == "hero" and status in self.field.immunities:
             self._emit(events, type="message", text=f"장비가 {STATUS_NAMES[status]}을(를) 막아냈다!")
             return
         self.statuses[target][status] = turns
         who = "적" if target == "enemy" else "수호자"
         self._emit(events, type="status", target=target, status=status,
-                   text=f"{who}이(가) {STATUS_NAMES[status]} 상태가 되었다!")
+                   text=text or f"{who}이(가) {STATUS_NAMES[status]} 상태가 되었다!")
+
+    def _try_freeze(self, events, chance=FREEZE_CHANCE):
+        if self.thawed or "stun" in self.statuses["hero"] or self.rng.random() >= chance:
+            return
+        self._apply_status(events, "hero", "stun", 1, text="몸이 꽁꽁 얼어붙었다! 다음 턴에 움직일 수 없다.")
 
     def _tick(self, events, target):
         statuses = self.statuses[target]
@@ -140,6 +147,10 @@ class BattleEngine:
         if self.result:
             return events
         field = self.field
+        if action in ("attack", "skill", "item", "flee") and self.statuses["hero"].pop("stun", None):
+            self.thawed = True
+            self._emit(events, type="stunned", target="hero", text="몸이 얼어붙어 움직일 수 없다!")
+            return self._round_tail(events)
         if action == "attack":
             weapon = field.weapon_info
             crit = self.rng.random() < CRIT_CHANCE + weapon.get("crit", 0) + field.accessory_info.get("crit", 0)
@@ -204,6 +215,11 @@ class BattleEngine:
         else:
             return events
 
+        return self._round_tail(events)
+
+    def _round_tail(self, events):
+        """Everything after the hero's action: statuses, the enemy's turn, defeat checks."""
+        field = self.field
         if self.enemy_hp <= 0:
             return self._win(events)
         self._tick(events, "enemy")
@@ -215,6 +231,7 @@ class BattleEngine:
             self._emit(events, type="stunned", target="enemy", text="적은 기절해서 움직이지 못한다!")
         else:
             self._enemy_turn(events)
+        self.thawed = False
         self._tick(events, "hero")
         self.guarding = False
         if field.hp <= 0:
@@ -246,6 +263,12 @@ class BattleEngine:
             self._emit(events, type="message", text="화염 리자드맨이 광폭화했다! ATK +5")
         elif pattern == "dark_arts" and self.turn % (2 if self.phase == 2 else 3) == 0:
             self._hit_hero(events, 24 if self.phase == 2 else 18, fixed=True, element="dark", label="어둠의 파동")
+        elif pattern == "blizzard" and self.turn % 3 == 0:
+            if self._hit_hero(events, 30, fixed=True, label="눈보라"):
+                self._try_freeze(events, 0.35)
+        elif pattern == "freeze":
+            if self._hit_hero(events, attack, label="서리 공격"):
+                self._try_freeze(events)
         elif pattern == "abyss" and self.turn % 3 == 0:
             self._hit_hero(events, 52, fixed=True, element="dark", label="심연의 폭풍")
         elif pattern == "howl" and self.turn % 3 == 0:

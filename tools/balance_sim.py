@@ -75,7 +75,9 @@ def shop(f):
         f.gold -= 80; f.high_potions += 1
 
 
-REGIONS = (("field_east", "shrine_wind"), ("field_west", "shrine_earth"), ("field_south", "shrine_fire"))
+# The north (Frost Highlands) opens after two shrines, so it comes third here.
+REGIONS = (("field_east", "shrine_wind"), ("field_west", "shrine_earth"), ("field_north", "shrine_ice"),
+           ("field_south", "shrine_fire"))
 
 
 def playthrough(per_region, rng, report):
