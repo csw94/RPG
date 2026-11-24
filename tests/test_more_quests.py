@@ -177,11 +177,11 @@ class StatusTests(unittest.TestCase):
         pygame.init()
         pygame.display.set_mode((1, 1))
 
-    def test_status_lists_all_six_requests(self):
-        self.assertEqual(len(QUEST_NAMES), 6)
+    def test_status_lists_every_request(self):
+        self.assertEqual(len(QUEST_NAMES), 7)
         game, scene = village(15, 15)
         status = StatusScene(game)
-        self.assertEqual(len(status.quest_rows()), 6)
+        self.assertEqual(len(status.quest_rows()), len(QUEST_NAMES))
         status.draw(pygame.Surface((800, 600)))
 
 

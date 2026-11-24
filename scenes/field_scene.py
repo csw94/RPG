@@ -15,9 +15,10 @@ from gameplay.world_data import FIELD_ROUTES, SHRINES
 
 
 # Villager requests that count defeated enemies, and their (gold, accessory) rewards.
-KILL_QUESTS = {"sq_wolf_hunt": "wolf", "sq_magma_ore": "magma_slime", "sq_bat_hunt": "bat"}
+KILL_QUESTS = {"sq_wolf_hunt": "wolf", "sq_magma_ore": "magma_slime", "sq_bat_hunt": "bat",
+               "sq_frost_hunt": "frost_wisp"}
 QUEST_REWARDS = {"sq_wolf_hunt": (60, "wolf_fang_charm"), "sq_magma_ore": (100, "ember_bracelet"),
-                 "sq_bat_hunt": (0, "guardian_medal")}
+                 "sq_bat_hunt": (0, "guardian_medal"), "sq_frost_hunt": (120, "frost_heart")}
 
 
 class FieldScene(BaseScene):
@@ -33,7 +34,12 @@ class FieldScene(BaseScene):
         state = state or {}
         self.world = state.get("world", "field")
         self.route_data = FIELD_ROUTES.get(self.world)
-        self.toby_position = self.route_data.get("toby") if self.route_data else ((7, 12) if self.world == "field" else None)
+        # One wandering NPC per route: Toby in the canyon, the hunter in the highlands.
+        npc = (self.route_data or {}).get("npc")
+        if not npc and self.route_data and self.route_data.get("toby"):
+            npc = {"pos": self.route_data["toby"], "sprite": "merchant", "quest": "sq_goblin_hunt"}
+        self.field_npc = npc
+        self.toby_position = npc["pos"] if npc else ((7, 12) if self.world == "field" else None)
         self.player = {"x": float(state.get("x", 2)), "y": float(state.get("y", 2))}
         self.hp = int(state.get("hp", 100))
         self.max_hp = int(state.get("max_hp", 100))
@@ -51,7 +57,7 @@ class FieldScene(BaseScene):
         for key in ("prologue_done", *SHRINES, "star_sword_awakened", "final_boss", "abyss_lord"):
             self.quest_flags.setdefault(key, 0)
         quest_targets = {"sq_moon_herb": 3, "sq_old_sword": 1, "sq_goblin_hunt": 5,
-                         "sq_wolf_hunt": 4, "sq_magma_ore": 3, "sq_bat_hunt": 4}
+                         "sq_wolf_hunt": 4, "sq_magma_ore": 3, "sq_bat_hunt": 4, "sq_frost_hunt": 4}
         saved_quests = state.get("sub_quests", {})
         self.sub_quests = {
             quest_id: {"status": saved_quests.get(quest_id, {}).get("status", "NOT_STARTED"),
@@ -184,8 +190,8 @@ class FieldScene(BaseScene):
         data = self.route_data
         self._add_path(data["path"], 1.05)
         landmarks = {data["village_portal"], data["dungeon_portal"], *data["herbs"], *data["chests"]}
-        if data.get("toby"):
-            landmarks.add(data["toby"])
+        if self.toby_position:
+            landmarks.add(self.toby_position)
         rng = random.Random({"field_east": 1103, "field_west": 2207, "field_south": 3301,
                              "field_north": 4409}[self.world])
         if data["theme"] == "forest":
@@ -449,6 +455,9 @@ class FieldScene(BaseScene):
                 "sq_bat_hunt": (["검을 찾아 준 자네라면 믿을 수 있지. 하나만 더 부탁하세.",
                                  "바람의 제단 1층에 동굴 박쥐가 들끓어 순례자들이 못 들어간다네. 4마리만 잡아 주게."],
                                 "accept_subquest:sq_bat_hunt"),
+                "sq_frost_hunt": (["사냥꾼 하른: 쉿, 조용히... 서리 정령들이 사냥감을 전부 얼려 버렸다네.",
+                                   "정령 4마리만 흩어 주면, 얼음 속에서 캐낸 귀한 보석을 주지."],
+                                  "accept_subquest:sq_frost_hunt"),
             }[quest_id]
             self.show_dialogue(lines, action)
         elif status == "IN_PROGRESS" and progress >= target:
@@ -470,6 +479,9 @@ class FieldScene(BaseScene):
                     "sq_bat_hunt": (["순례자들이 다시 제단을 찾는다는군. 역시 내가 사람 보는 눈은 있어.",
                                      "기사단 시절의 수호자의 훈장일세. 자네가 지녀 주게."],
                                     "complete_subquest:sq_bat_hunt"),
+                    "sq_frost_hunt": (["사냥꾼 하른: 고원이 다시 숨을 쉬는군. 고맙네, 젊은이.",
+                                       "얼음 심장일세. 지니고 있으면 냉기가 몸을 얼리지 못하지. (상점에서 장착)"],
+                                      "complete_subquest:sq_frost_hunt"),
                 }[quest_id]
                 self.show_dialogue(lines, action)
             else:
@@ -660,7 +672,8 @@ class FieldScene(BaseScene):
 
     def _interact(self):
         px, py = self.player["x"], self.player["y"]
-        if self.toby_position and self._interact_sidequest_npc("sq_goblin_hunt", self.toby_position):
+        quest = self.field_npc["quest"] if self.field_npc else "sq_goblin_hunt"
+        if self.toby_position and self._interact_sidequest_npc(quest, self.toby_position):
             return
         nearest = min(self.chests, key=lambda p: (p[0] - px) ** 2 + (p[1] - py) ** 2, default=None)
         if nearest and (nearest[0] - px) ** 2 + (nearest[1] - py) ** 2 <= 1.15 and nearest not in self.opened:
@@ -895,7 +908,8 @@ class FieldScene(BaseScene):
                 surface.blit(sprite("flower_yellow", (TILE_SIZE, TILE_SIZE)), (sx, sy))
             elif kind == "toby":
                 surface.blit(sprite("shadow", (26, 10)), (sx + 3, sy + TILE_SIZE - 7))
-                surface.blit(npc_sprite("merchant", NPC_SIZE, self.portal_clock, 2), (sx, sy - 16))
+                name = self.field_npc["sprite"] if self.field_npc else "merchant"
+                surface.blit(npc_sprite(name, NPC_SIZE, self.portal_clock, 2), (sx, sy - 16))
             else:
                 portal_name = "gate_arch" if kind == "portal_town" else f"portal_dungeon_{int(self.portal_clock * 3) % 2}"
                 surface.blit(sprite(portal_name, (48, 64)), (sx - 8, sy - 32))

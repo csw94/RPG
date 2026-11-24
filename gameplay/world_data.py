@@ -75,6 +75,7 @@ FIELD_ROUTES = {
         "groves": ((3, 18, 9, 8), (36, 20, 10, 7), (40, 4, 8, 7), (17, 2, 8, 5), (30, 25, 6, 4)),
         "herbs": (),
         "chests": {(33, 17): "high_potion", (14, 7): "gold"},
+        "npc": {"pos": (24, 20), "sprite": "hunter", "quest": "sq_frost_hunt"},
         "enemy_pool": ("snow_wolf", "ice_slime", "frost_wisp"), "encounter_rate": 0.12,
     },
 }

@@ -952,6 +952,20 @@ def _npc_merchant():
     return _outline(s)
 
 
+def _npc_hunter():
+    """Harn the highland hunter: fur-lined hood, thick coat, a bow over the shoulder."""
+    s = _canvas((16, 24))
+    _person_head(s, (92, 70, 56), (124, 96, 74))
+    _person_body(s, (96, 112, 128), (130, 150, 168), (70, 62, 58))
+    _rect(s, (236, 232, 222), 2, 4, 12, 2)     # fur trim of the hood
+    _rect(s, (120, 92, 70), 3, 1, 10, 3)       # hood
+    _rect(s, (206, 200, 188), 3, 3, 10, 1)
+    _rect(s, (236, 232, 222), 4, 12, 8, 1)     # fur collar
+    _rect(s, (150, 104, 66), 14, 6, 1, 13)     # bow stave
+    _rect(s, (230, 222, 200), 13, 7, 1, 11)    # bow string
+    return _outline(s)
+
+
 # --- Field terrain ------------------------------------------------------------------
 
 def _ground(base, darker, lighter, variant, seed, extra=None):
@@ -1593,6 +1607,7 @@ def sprite(name, size=(32, 32)):
             "abyss_knight": lambda: _abyssal(_dark_knight(), (120, 70, 190)),
             "abyss_lord": lambda: _abyssal(_golem(), (150, 60, 210), eyes=(255, 120, 230)),
             "frost_wolf": lambda: _frosted(pygame.transform.flip(_wolf(), True, False)),
+            "hunter": _npc_hunter,
             "ice_slime": lambda: _frosted(_slime_v2()),
             "frost_wisp": _frost_wisp,
             "frost_lizard": lambda: _frosted(_lizardman(), eyes=(90, 210, 255)),

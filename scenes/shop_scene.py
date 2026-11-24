@@ -45,7 +45,7 @@ class ShopScene(BaseScene):
         return [pygame.Rect(118 + index * 144, 156, 132, 34) for index in range(len(TAB_IDS))]
 
     def _rows(self):
-        return [pygame.Rect(118, 206 + index * 50, 564, 42) for index in range(len(self.items()))]
+        return [pygame.Rect(118, 200 + index * 44, 564, 38) for index in range(len(self.items()))]
 
     # --- input ------------------------------------------------------------------------
     def handle_events(self, events):
@@ -164,16 +164,16 @@ class ShopScene(BaseScene):
         for index, (item, rect) in enumerate(zip(items, self._rows())):
             info = item_info(item)
             ui.frame_around(surface, rect, "walnut", index == self.selected)
-            self.text(surface, f"{info['name']}   ·   {self._detail(item, info)}", (rect.x + 14, rect.y + 11), 16,
+            self.text(surface, f"{info['name']}   ·   {self._detail(item, info)}", (rect.x + 14, rect.y + 9), 16,
                       colors["cream"])
             price = self.game.font(15).render(self._price_text(item, info), True, colors["gold"])
             surface.blit(price, price.get_rect(midright=(rect.right - 14, rect.centery)))
         if items:
             chosen = item_info(items[min(self.selected, len(items) - 1)])
-            self.text(surface, chosen["desc"], (400, 418), 15, colors["cream"], True)
+            self.text(surface, chosen["desc"], (400, 434), 15, colors["cream"], True)
         if self.locked_count():
-            self.text(surface, f"제단을 더 정화하면 새 물건 {self.locked_count()}개가 들어옵니다.", (400, 446), 14,
+            self.text(surface, f"제단을 더 정화하면 새 물건 {self.locked_count()}개가 들어옵니다.", (400, 456), 14,
                       colors["muted"], True)
-        self.text(surface, self.message, (400, 478), 16, colors["gold"], True)
+        self.text(surface, self.message, (400, 482), 16, colors["gold"], True)
         self.button(surface, self.close_rect(), "마을로", False, 18)
         self.text(surface, "←→ 탭 · ↑↓ 선택 · Enter 구매/장착 · ESC 돌아가기", (400, 558), 13, colors["muted"], True)
