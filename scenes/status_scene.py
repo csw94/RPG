@@ -5,7 +5,7 @@ import pygame
 from gameplay.combat import SKILLS, xp_to_next
 from gameplay.combat import BOSS_PATTERNS
 from gameplay.enemies import ENEMIES
-from gameplay.equipment import ACCESSORIES, ARMORS, LEGACY_IDS, POTION_CAP, WEAPONS
+from gameplay.equipment import ACCESSORIES, ARMORS, CONSUMABLES, LEGACY_IDS, POTION_CAP, WEAPONS
 from gameplay.objectives import next_objective
 from gameplay.quests import QUESTS
 from scenes.base_scene import BaseScene
@@ -17,7 +17,12 @@ SEALS = (("shrine_wind", "바람의 제단"), ("shrine_earth", "대지의 폐광
          ("shrine_ice", "얼음 제단"))
 ITEM_NAMES = {"broken_old_sword": "부러진 옛 검", "knights_crest": "기사단 휘장"}
 TOGGLE_KEYS = (pygame.K_i, pygame.K_TAB)
-PAGES = (("record", "기록"), ("map", "지도"), ("bestiary", "도감"), ("achievements", "업적"))
+PAGES = (("record", "기록"), ("map", "지도"), ("bestiary", "도감"), ("achievements", "업적"), ("bag", "가방"))
+ITEM_DESCS = {"broken_old_sword": "서쪽 폐광에서 찾은 가렌의 옛 검. 가렌에게 돌려주자.",
+              "knights_crest": "가렌이 물려준 기사단 휘장. 엔딩에서 빛을 발한다."}
+BAG_ROWS_VISIBLE = 16
+SECTIONS = (("consumable", "소모품"), ("weapon", "무기"), ("armor", "방어구"), ("accessory", "장신구"),
+            ("key", "중요 물품"))
 ELEMENT_NAMES = {"light": "빛", "wind": "바람", "earth": "대지", "fire": "불", "dark": "어둠"}
 HERO_MARK = (255, 200, 40)
 MAP_COLORS = {"ground": (118, 150, 92), "path": (204, 176, 124), "water": (88, 150, 200), "lava": (224, 112, 52), "ice": (150, 196, 230), "snow": (226, 232, 240),
@@ -32,11 +37,15 @@ MARKER_STYLE = {  # colour, label for the legend
 
 
 class StatusScene(BaseScene):
-    def __init__(self, game):
+    def __init__(self, game, page="record"):
         super().__init__(game)
         self.field = game.field
-        self.page = "record"
+        self.page = page
         self.clock = 0.0
+        self.bag_scroll = 0
+        self.bag_message = "↑↓ 고르기 · Enter 사용/장착"
+        rows = self.bag_rows()
+        self.bag_index = next((i for i, row in enumerate(rows) if row["kind"] not in ("header", "empty")), 0)
 
     # --- content ----------------------------------------------------------------------
     def skill_rows(self):
@@ -67,6 +76,12 @@ class StatusScene(BaseScene):
         for event in events:
             if event.type == pygame.KEYDOWN and event.key in (*TOGGLE_KEYS, pygame.K_ESCAPE):
                 self._close()
+            elif event.type == pygame.KEYDOWN and self.page == "bag" and event.key in (
+                    pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s):
+                self._move_bag(-1 if event.key in (pygame.K_UP, pygame.K_w) else 1)
+            elif event.type == pygame.KEYDOWN and self.page == "bag" and event.key in (
+                    pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
+                self._use_bag_row()
             elif event.type == pygame.KEYDOWN and event.key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_d):
                 step = -1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1
                 order = [page for page, _ in PAGES]
@@ -97,13 +112,165 @@ class StatusScene(BaseScene):
             self._draw_bestiary(surface)
         elif self.page == "achievements":
             self._draw_achievements(surface)
+        elif self.page == "bag":
+            self._draw_bag(surface)
         else:
             self._draw_record(surface)
         for index, (page, label) in enumerate(PAGES):
-            self.button(surface, pygame.Rect(470 + index * 76, 28, 70, 30), label, page == self.page, 15)
+            self.button(surface, pygame.Rect(418 + index * 70, 28, 64, 30), label, page == self.page, 14)
         self.button(surface, self.close_rect(), "닫기", False, 18)
-        self.text(surface, "←→ 기록 / 지도 / 도감 / 업적 · I / Tab / ESC 닫기", (400, 570), 13,
+        self.text(surface, "←→ 페이지 · I / Tab / ESC 닫기", (400, 570), 13,
                   self.game.colors["muted"], True)
+
+    # --- bag page ----------------------------------------------------------------------
+    def bag_rows(self):
+        """Everything carried, grouped under section headers (empty sections say so)."""
+        f = self.field
+        groups = {
+            "consumable": [{"kind": "consumable", "id": item_id, "label": f"{info['name']} ×{f.item_count(item_id)}"}
+                           for item_id, info in CONSUMABLES.items() if f.item_count(item_id) > 0],
+            "weapon": [{"kind": "weapon", "id": item_id, "equipped": item_id == f.weapon,
+                        "label": WEAPONS[item_id]["name"] + (f" +{f.upgrades[item_id]}" if f.upgrades.get(item_id) else "")}
+                       for item_id in f.owned_weapons if item_id in WEAPONS],
+            "armor": [{"kind": "armor", "id": item_id, "equipped": item_id == f.armor,
+                       "label": ARMORS[item_id]["name"] + (f" +{f.upgrades[item_id]}" if f.upgrades.get(item_id) else "")}
+                      for item_id in f.owned_armors if item_id in ARMORS],
+            "accessory": [{"kind": "accessory", "id": item_id, "equipped": item_id == f.accessory,
+                           "label": ACCESSORIES[item_id]["name"]}
+                          for item_id in f.owned_accessories if item_id in ACCESSORIES],
+            "key": [{"kind": "key", "id": item_id, "label": ITEM_NAMES.get(item_id, item_id)}
+                    for item_id in sorted(f.quest_items)],
+        }
+        rows = []
+        for kind, title in SECTIONS:
+            rows.append({"kind": "header", "label": title})
+            rows.extend(groups[kind] or [{"kind": "empty", "label": "  (없음)"}])
+        return rows
+
+    def visible_range(self):
+        return self.bag_scroll, self.bag_scroll + BAG_ROWS_VISIBLE
+
+    def _move_bag(self, step):
+        rows = self.bag_rows()
+        index = self.bag_index
+        for _ in range(len(rows)):
+            index = (index + step) % len(rows)
+            if rows[index]["kind"] not in ("header", "empty"):
+                break
+        self.bag_index = index
+        if self.bag_index < self.bag_scroll:
+            self.bag_scroll = max(0, self.bag_index - 1)
+        elif self.bag_index >= self.bag_scroll + BAG_ROWS_VISIBLE:
+            self.bag_scroll = self.bag_index - BAG_ROWS_VISIBLE + 1
+        self.sfx("cursor")
+
+    def _use_bag_row(self):
+        rows = self.bag_rows()
+        if not rows or self.bag_index >= len(rows):
+            return
+        row, f = rows[self.bag_index], self.field
+        if row["kind"] == "consumable":
+            used, self.bag_message = f.use_item_outside(row["id"])
+            if not used:
+                self.sfx("cursor")
+            self._clamp_bag()
+        elif row["kind"] in ("weapon", "armor"):
+            if row.get("equipped"):
+                self.bag_message = "이미 장착 중입니다."
+                return
+            f.equip(row["kind"], row["id"])
+            self.sfx("confirm")
+            self.bag_message = f"{row['label']}을(를) 장착했습니다."
+            self.game.save_game()
+        elif row["kind"] == "accessory":
+            if row.get("equipped"):
+                f.unequip_accessory()
+                self.bag_message = f"{row['label']}을(를) 뺐습니다."
+            else:
+                f.equip("accessory", row["id"])
+                self.bag_message = f"{row['label']}을(를) 장착했습니다."
+            self.sfx("confirm")
+            self.game.save_game()
+        else:
+            self.bag_message = "중요한 물건이다. 소중히 간직하자."
+
+    def _clamp_bag(self):
+        """After a consumable runs out its row vanishes: keep the cursor on a real row."""
+        rows = self.bag_rows()
+        self.bag_index = min(self.bag_index, len(rows) - 1)
+        if rows[self.bag_index]["kind"] in ("header", "empty"):
+            self._move_bag(1)
+
+    def _bag_details(self, row):
+        f = self.field
+        kind, item_id = row["kind"], row.get("id")
+        if kind == "consumable":
+            info = CONSUMABLES[item_id]
+            return info["name"], [info["desc"], f"보유 {f.item_count(item_id)} / {f.item_cap(item_id)}"], "Enter: 사용"
+        if kind == "weapon":
+            info = WEAPONS[item_id]
+            level = f.upgrades.get(item_id, 0)
+            lines = [info.get("desc", ""), f"공격력 +{info['attack'] + 3 * level}" + (f" (강화 +{level})" if level else "")]
+            return info["name"], lines, "장착 중" if row.get("equipped") else "Enter: 장착"
+        if kind == "armor":
+            info = ARMORS[item_id]
+            level = f.upgrades.get(item_id, 0)
+            stats = f"방어력 +{info['defense'] + 2 * level}" + (f", HP +{info['health']}" if info.get("health") else "") \
+                + (f", MP +{info['mp']}" if info.get("mp") else "")
+            lines = [info.get("desc", ""), stats + (f" (강화 +{level})" if level else "")]
+            return info["name"], lines, "장착 중" if row.get("equipped") else "Enter: 장착"
+        if kind == "accessory":
+            info = ACCESSORIES[item_id]
+            return info["name"], [info["desc"]], "장착 중 · Enter: 빼기" if row.get("equipped") else "Enter: 장착"
+        return ITEM_NAMES.get(item_id, item_id), [ITEM_DESCS.get(item_id, "")], ""
+
+    def _draw_bag(self, surface):
+        colors = self.game.colors
+        self.text(surface, "가방", (210, 44), 28, colors["gold"], True)
+        listing = ui.frame(surface, pygame.Rect(40, 76, 330, 440), "parchment")
+        rows = self.bag_rows()
+        first, last = self.visible_range()
+        for slot, index in enumerate(range(first, min(last, len(rows)))):
+            row = rows[index]
+            y = listing.y + 8 + slot * 26
+            if row["kind"] == "header":
+                self._ink(surface, row["label"], (listing.x + 10, y + 2), 15)
+                pygame.draw.line(surface, ui.PARCHMENT_SHADE, (listing.x + 90, y + 13), (listing.right - 10, y + 13), 2)
+                continue
+            if index == self.bag_index:
+                pygame.draw.rect(surface, (226, 200, 140), (listing.x + 4, y, listing.width - 8, 24), border_radius=4)
+            label = row["label"] + ("  [장착]" if row.get("equipped") else "")
+            self._ink(surface, label, (listing.x + 22, y + 4), 14, soft=row["kind"] == "empty")
+        if len(rows) > BAG_ROWS_VISIBLE:
+            self.text(surface, f"{first + 1}-{min(last, len(rows))} / {len(rows)}  ↑↓ 스크롤",
+                      (listing.centerx, listing.bottom + 16), 12, self.game.colors["muted"], True)
+        detail = ui.frame(surface, pygame.Rect(386, 76, 374, 440), "parchment")
+        row = rows[self.bag_index] if rows else {"kind": "empty"}
+        if row["kind"] not in ("header", "empty"):
+            name, lines, action = self._bag_details(row)
+            self._ink(surface, name, (detail.x + 16, detail.y + 14), 20)
+            y = detail.y + 54
+            for line in lines:
+                for chunk in self._wrap(line, 15, detail.width - 32):
+                    self._ink(surface, chunk, (detail.x + 16, y), 15, soft=True)
+                    y += 24
+            if action:
+                self._ink(surface, action, (detail.x + 16, detail.bottom - 70), 15)
+        for index, chunk in enumerate(self._wrap(self.bag_message, 14, detail.width - 32)[:2]):
+            self._ink(surface, chunk, (detail.x + 16, detail.bottom - 42 + index * 18), 14)
+
+    def _wrap(self, text, size, width):
+        words, rows, current = str(text).split(), [], ""
+        for word in words:
+            candidate = f"{current} {word}".strip()
+            if self.game.font(size).size(candidate)[0] > width and current:
+                rows.append(current)
+                current = word
+            else:
+                current = candidate
+        if current:
+            rows.append(current)
+        return rows
 
     # --- achievements page ------------------------------------------------------------
     def _draw_achievements(self, surface):

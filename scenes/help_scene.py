@@ -8,7 +8,8 @@ from utils import ui
 CONTROLS = (
     ("방향키 / WASD", "이동, 메뉴 고르기"),
     ("스페이스 / Enter / Z", "대화·조사·상자·문과 계단, 대화 넘기기"),
-    ("I / Tab", "상태 화면(능력치·장비·기술·부탁)"),
+    ("I / Tab", "상태 화면(능력치·지도·도감·업적·가방)"),
+    ("B", "가방: 필드에서 물약 쓰기, 장비 바꿔 끼기"),
     ("O", "설정(음량·화면 크기·대화 속도·난이도)"),
     ("F5 / 저장 버튼", "지금 상태 저장"),
     ("M", "소리 켜기 / 끄기"),
@@ -57,7 +58,7 @@ class HelpScene(BaseScene):
         self.text(surface, "조작법", (400, 52), 30, colors["gold"], True)
         card = ui.frame(surface, pygame.Rect(70, 84, 660, 300), "parchment")
         for index, (keys, action) in enumerate(CONTROLS):
-            y = card.y + 14 + index * 35
+            y = card.y + 10 + index * 32
             pill = pygame.Rect(card.x + 14, y - 3, 190, 28)
             pygame.draw.rect(surface, ui.WOOD_DARK, pill, border_radius=6)
             label = self.game.font(16).render(keys, True, ui.PARCHMENT)

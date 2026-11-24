@@ -178,10 +178,10 @@ class Game:
         if getattr(self, "field", None) is not None and self.scene_name != "title":
             self.field.play_time += dt
 
-    def open_status(self):
+    def open_status(self, page="record"):
         self.audio.play("cursor")
         self.scene_name = "status"
-        self.scene = StatusScene(self)
+        self.scene = StatusScene(self, page=page)
 
     def save_game(self):
         if self.field:

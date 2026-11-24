@@ -396,6 +396,30 @@ class FieldScene(BaseScene):
         else:
             self.items[item_id] = count
 
+    def use_item_outside(self, item_id):
+        """Use a consumable from the bag while exploring. Returns (used, message)."""
+        info = CONSUMABLES[item_id]
+        if self.item_count(item_id) <= 0:
+            return False, f"{info['name']}이(가) 없습니다."
+        wants_hp = bool(info.get("heal")) and self.hp < self.max_hp
+        wants_mp = bool(info.get("mp")) and self.mp < self.max_mp
+        if not (info.get("heal") or info.get("mp")):
+            return False, f"{info['name']}은(는) 전투 중에만 효과가 있습니다."
+        if not (wants_hp or wants_mp):
+            return False, "HP와 MP가 이미 가득 찼습니다."
+        self.take_item(item_id)
+        healed = min(info.get("heal", 0), self.max_hp - self.hp)
+        restored = min(info.get("mp", 0), self.max_mp - self.mp)
+        self.hp += healed
+        self.mp += restored
+        self.sfx("heal")
+        self.game.save_game()
+        parts = ([f"HP +{healed}"] if healed else []) + ([f"MP +{restored}"] if restored else [])
+        return True, f"{info['name']} 사용: " + ", ".join(parts)
+
+    def unequip_accessory(self):
+        self.accessory = None
+
     def take_item(self, item_id):
         if self.item_count(item_id) <= 0:
             return False
@@ -736,6 +760,8 @@ class FieldScene(BaseScene):
                         self._interact()
                 elif event.key in (pygame.K_i, pygame.K_TAB) and not self.dialogue_lines:
                     self.game.open_status()
+                elif event.key == pygame.K_b and not self.dialogue_lines:
+                    self.game.open_status("bag")
                 elif event.key == pygame.K_o and not self.dialogue_lines:
                     self.game.open_settings()
                 elif event.key == pygame.K_F5:
@@ -937,7 +963,7 @@ class FieldScene(BaseScene):
             pill = note.get_rect(topright=(WIDTH - 12, 10)).inflate(16, 8)
             ui.frame(surface, pill, "parchment", border=3)
             surface.blit(note, note.get_rect(center=pill.center))
-        hint = font(12).render("I 상태 · O 설정 · M 소리", True, ui.INK_SOFT)
+        hint = font(12).render("I 상태 · B 가방 · O 설정 · M 소리", True, ui.INK_SOFT)
         surface.blit(hint, hint.get_rect(topright=(676, body.y + 46)))
         self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)
 
