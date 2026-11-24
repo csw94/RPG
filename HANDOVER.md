@@ -1,13 +1,12 @@
-# HANDOVER — Chronicles of Pixel (v0.7.2 릴리즈 + 전투 개편 작업 중)
+# HANDOVER — Chronicles of Pixel (v0.8.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.7.2 (태그 `v0.7.2`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.7.2 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.8.0 (태그 `v0.8.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.8.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 76개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 97개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
-## 진행 중: 전투 시스템 개편 (v0.8.0 예정, 아직 커밋 안 함)
-- 테스트 97개 모두 통과. 남은 일은 커밋, 태그 `v0.8.0`, 릴리즈(사용자 확인 후 진행)
+## 전투 시스템 개편 (v0.8.0)
 - `gameplay/combat.py`의 `BattleEngine`: 한 턴 전체(주인공 행동 → 상태이상 → 적 행동)를 계산하고 이벤트 목록을 돌려줌. pygame 없이 테스트할 수 있음
   - 스킬 6종은 레벨에 따라 배움(`SKILLS`). 속성 약점은 1.5배, 저항은 0.5배. 독·화상·기절, 치명타 8%, 피해량 ±10%
   - 경험치와 레벨업: `FieldScene.gain_xp()`, `xp_to_next(level) = 20 + 15×level`. 레벨이 오를 때 `LEVEL_GAINS`만큼 능력치가 오름
@@ -21,6 +20,7 @@
 - 새 테스트: `tests/test_combat.py`, `tests/test_battle_scene.py`
 
 ## 릴리즈 기록
+- **v0.8.0:** 전투 개편. 스킬, 속성, 상태이상, 경험치와 레벨업, 지역별 적 8종, 전투 연출(위 절 참고)
 - **v0.7.2:** 타이틀 화면을 "밤의 오크밸리" 장면으로 바꿈(`utils/title_art.py`). 별·반딧불이 애니메이션, 나무 판자 하단 띠 포함
 - **v0.7.1:** 마을 건물 사이에 걸어갈 수 있는 통로를 확보함(오두막↔촌장 집 3칸, 촌장 집↔잡화점 2칸)
 - **v0.7.0:** 그래픽 전면 개편, UI, 맵 30% 확장, 던전·전투 톤 통일(아래 "완료된 작업" 참고)
@@ -85,6 +85,7 @@
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
+- 전투 밸런스(적 능력치, 경험치량)는 직접 플레이해 보며 조정할 것
 - 선택 과제
   - 예전 세이브의 위치 보정. 맵 좌표가 바뀌어서 v0.6.x 세이브는 다른 위치에서 이어질 수 있음. 막힌 칸이면 안전한 위치로 자동 복구되긴 함
   - 상점 화면 바깥 금색 테두리를 나무 프레임으로 통일
