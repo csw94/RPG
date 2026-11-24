@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.9.0)
+# HANDOVER — Chronicles of Pixel (v0.9.1)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.9.0 (태그 `v0.9.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.9.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.9.1 (태그 `v0.9.1`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.9.1 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 110개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 113개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -34,6 +34,7 @@
 - 새 테스트: `tests/test_combat.py`, `tests/test_battle_scene.py`
 
 ## 릴리즈 기록
+- **v0.9.1:** 상점 테두리를 나무 프레임으로 통일. 남쪽 화산 필드를 위에서 아래로 내려가는 구조로 뒤집음
 - **v0.9.0:** 주인공 방향별 4프레임 걷기, NPC 숨쉬기·눈 깜빡임, 적 대기 동작(위 절 참고)
 - **v0.8.0:** 전투 개편. 스킬, 속성, 상태이상, 경험치와 레벨업, 지역별 적 8종, 전투 연출(위 절 참고)
 - **v0.7.2:** 타이틀 화면을 "밤의 오크밸리" 장면으로 바꿈(`utils/title_art.py`). 별·반딧불이 애니메이션, 나무 판자 하단 띠 포함
@@ -98,10 +99,6 @@
   - 크기 25×16은 손으로 짠 미로 구조라 그대로 유지
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
-
-## 미릴리즈 변경 (다음 릴리즈에 포함)
-- 상점 화면 바깥 테두리를 나무 프레임으로 통일함(`tests/test_shop_ui.py`)
-- 남쪽 필드를 위아래로 뒤집음. 위에서 들어가 아래로 내려감
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
