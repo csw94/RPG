@@ -36,6 +36,13 @@
   - 연못·용암·바위 무더기는 불규칙한 자연 모양(`_blob`)
   - 장식과 나무 종류는 줄무늬가 생기지 않는 해시(`tile_noise`)로 배치
 
+- **던전·전투 톤 통일**
+  - 던전: 제단마다 바닥·벽 팔레트가 다름(바람·대지·불꽃). 벽돌 앞면과 윗면을 구분하고, 횃불·계단(`dstairs`)·장식 추가
+  - 던전 대화창이 지도에 가려 안 보이던 문제 수정
+  - 적 전용 그림 추가: 고블린, 폭풍 하피, 바위 골렘, 화염 리자드맨. 슬라임은 다시 그리고 흑기사에는 외곽선 추가
+  - `fit_sprite`: 적 그림을 정수 배율로만 키워 비율이 찌그러지지 않게 함
+  - 전투 배경(`utils/battle_art.py`): 숲, 협곡, 화산, 마을(황혼), 던전 3종. 싸우는 장소에 따라 자동 선택(`BattleScene.backdrop_kind`)
+
 ## 확정된 설계 및 규칙
 - 그리는 방식: 코드로 그리는 픽셀아트(설계안 A). 화풍은 스타듀풍 아늑한 톤
 - 픽셀 단위: 원본 16px/타일을 2배로 키워 32px로 출력. 외곽선은 `PALETTE["outline"]`(54,40,46)
@@ -52,12 +59,9 @@
   - 문 (12,14), 시작 위치 (12,12), 나가기 칸 (12,13)
 
 ## 남은 작업
-1. (선택) 던전과 전투 화면 톤 맞추기
-   - 던전 바닥·벽은 예전 회색 타일이고, 던전 크기(25×16)는 미로 구조라 그대로 둠
-   - 전투 배경은 단색 하늘과 풀밭이고, 적 스프라이트에는 외곽선이 없음
-2. 맵 좌표가 바뀌어서, 예전 세이브는 다른 위치에서 이어질 수 있음
+1. 맵 좌표가 바뀌어서, 예전 세이브는 다른 위치에서 이어질 수 있음
    - 막힌 칸이면 안전한 위치로 자동 복구됨
-3. 릴리즈는 아직 안 함. 릴리즈할 때는 CLAUDE.md의 릴리즈 절차를 따름
+2. 정식 릴리즈(버전 태그, GitHub 릴리즈)는 아직 안 함. 로컬 `dist\ChroniclesOfPixel.exe`만 중간 점검용으로 다시 빌드함
 
 ## 핵심 파일
 - `utils/pixel_art.py`: 외부 타일과 소품(풀, 흙길, 나무, 울타리, `gate_arch` 등)
@@ -66,7 +70,8 @@
 - `scenes/house_scene.py`: `LAYOUTS`, `ROOM`, `solid_tiles()`
 - `utils/ui.py`: 공용 UI. `FieldScene._draw_hud`, `_draw_dialogue`에서 사용
 - `gameplay/world_data.py`: 52×31 필드 데이터
-- 테스트: `test_pixel_art`, `test_interiors`, `test_field_art`, `test_ui`, `test_map_size`(크기 및 모든 지점 도달 가능 여부)
+- `utils/battle_art.py`: 전투 배경. `scenes/dungeon_scene.py`의 `floor_tile`, `wall_tile`, `dungeon_decals`
+- 테스트: `test_dungeon_battle_art`, `test_pixel_art`, `test_interiors`, `test_field_art`, `test_ui`, `test_map_size`(크기 및 모든 지점 도달 가능 여부)
 
 ## 주의사항
 - 화면 확인은 `main.Game()._create_world(state)`로 장면을 만들어 렌더링한다. `new_game()`은 세이브를 덮어쓰니 쓰지 않는다.

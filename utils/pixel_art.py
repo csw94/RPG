@@ -597,7 +597,7 @@ def _dark_knight():
     _rect(surface, (224, 224, 201), 13, 10, 1, 4)
     _rect(surface, (167, 52, 45), 1, 4, 2, 5)
     _rect(surface, (167, 52, 45), 13, 4, 2, 5)
-    return surface
+    return _outline(surface)
 
 
 def _dirt():
@@ -694,7 +694,7 @@ def _skeleton():
     _rect(surface, PALETTE["bone"], 10, 10, 2, 4)
     _rect(surface, (143, 66, 54), 3, 6, 1, 6)
     _rect(surface, (143, 66, 54), 2, 5, 3, 2)
-    return surface
+    return _outline(surface)
 
 
 LAVA_RIM = (74, 52, 56)
@@ -959,6 +959,217 @@ def _ember():
     return surface
 
 
+def _slime_v2():
+    """Green slime (16x12): glossy dome, darker base, big friendly eyes."""
+    s = _canvas((16, 12))
+    pygame.draw.ellipse(s, PALETTE["slime_dark"], (1, 2, 14, 10))
+    pygame.draw.ellipse(s, PALETTE["slime"], (2, 2, 12, 8))
+    _rect(s, PALETTE["slime_light"], 4, 3, 3, 1)
+    _rect(s, PALETTE["slime_light"], 3, 4, 1, 2)
+    _rect(s, (250, 255, 240), 5, 3, 1, 1)
+    _rect(s, PALETTE["ink"], 5, 6, 2, 2)
+    _rect(s, PALETTE["ink"], 10, 6, 2, 2)
+    _rect(s, (255, 255, 255), 5, 6, 1, 1)
+    _rect(s, (255, 255, 255), 10, 6, 1, 1)
+    _rect(s, PALETTE["slime_dark"], 7, 9, 2, 1)
+    return _outline(s)
+
+
+def _goblin():
+    """Goblin scout (16x16): long ears, red eyes, patched leather tunic and a crude dagger."""
+    s = _canvas()
+    skin, skin_dark = (124, 170, 84), (88, 130, 64)
+    _rect(s, skin, 0, 4, 3, 2)
+    _rect(s, skin, 13, 4, 3, 2)
+    _rect(s, skin, 3, 2, 10, 7)
+    _rect(s, skin_dark, 3, 7, 10, 2)
+    _rect(s, (98, 70, 52), 3, 1, 10, 2)
+    _rect(s, (232, 70, 54), 5, 5, 2, 1)
+    _rect(s, (232, 70, 54), 9, 5, 2, 1)
+    _rect(s, (250, 240, 210), 6, 8, 1, 1)
+    _rect(s, (250, 240, 210), 9, 8, 1, 1)
+    _rect(s, (138, 96, 62), 4, 9, 8, 5)
+    _rect(s, (176, 128, 82), 5, 9, 6, 1)
+    _rect(s, (204, 72, 60), 7, 11, 2, 2)
+    _rect(s, skin, 2, 10, 2, 3)
+    _rect(s, skin, 12, 10, 2, 3)
+    _rect(s, (190, 200, 206), 14, 6, 1, 6)
+    _rect(s, (110, 72, 50), 13, 11, 3, 1)
+    _rect(s, (74, 60, 56), 5, 14, 2, 2)
+    _rect(s, (74, 60, 56), 9, 14, 2, 2)
+    return _outline(s)
+
+
+def _harpy():
+    """Storm harpy (24x24): teal feathered wings, wild white hair and golden talons."""
+    s = _canvas((24, 24))
+    wing, wing_light, wing_dark = (70, 150, 150), (130, 200, 190), (46, 104, 112)
+    for side in (1, -1):
+        cx = 12 + side * 2
+        pts = [(cx, 8), (cx + side * 11, 2), (cx + side * 11, 8), (cx + side * 9, 13), (cx + side * 4, 15)]
+        pygame.draw.polygon(s, wing_dark, pts)
+        pygame.draw.polygon(s, wing, [(cx, 9), (cx + side * 10, 4), (cx + side * 9, 9), (cx + side * 4, 13)])
+        for i in range(3):
+            x = cx + side * (5 + i * 2)
+            _rect(s, wing_light, min(x, x + side), 5 + i, 1, 4)
+    _rect(s, (236, 236, 226), 8, 1, 8, 4)
+    _rect(s, (236, 236, 226), 7, 4, 2, 6)
+    _rect(s, (236, 236, 226), 15, 4, 2, 6)
+    _rect(s, PALETTE["skin"], 9, 4, 6, 5)
+    _rect(s, (40, 120, 140), 10, 6, 1, 1)
+    _rect(s, (40, 120, 140), 13, 6, 1, 1)
+    _rect(s, PALETTE["skin_shadow"], 11, 8, 2, 1)
+    _rect(s, wing, 9, 9, 6, 6)
+    _rect(s, wing_light, 10, 9, 4, 2)
+    _rect(s, wing_dark, 9, 15, 6, 4)
+    for x in (9, 13):
+        _rect(s, (226, 182, 80), x, 19, 2, 3)
+        _rect(s, (226, 182, 80), x - 1, 22, 4, 1)
+    return _outline(s)
+
+
+def _golem():
+    """Rock golem (24x24): stacked mossy boulders around a glowing amber core."""
+    s = _canvas((24, 24))
+    stone, light, dark = (150, 140, 124), (190, 180, 160), (104, 96, 88)
+    _rect(s, dark, 1, 8, 6, 10)
+    _rect(s, dark, 17, 8, 6, 10)
+    _rect(s, stone, 2, 8, 4, 8)
+    _rect(s, stone, 18, 8, 4, 8)
+    _rect(s, dark, 1, 17, 6, 4)
+    _rect(s, dark, 17, 17, 6, 4)
+    _rect(s, stone, 6, 6, 12, 12)
+    _rect(s, light, 7, 6, 10, 2)
+    _rect(s, dark, 6, 16, 12, 2)
+    _rect(s, stone, 8, 1, 8, 6)
+    _rect(s, light, 9, 1, 6, 1)
+    _rect(s, (250, 196, 90), 9, 3, 2, 2)
+    _rect(s, (250, 196, 90), 13, 3, 2, 2)
+    pygame.draw.circle(s, (232, 150, 60), (12, 11), 3)
+    pygame.draw.circle(s, (255, 226, 140), (12, 11), 1)
+    _rect(s, dark, 7, 18, 4, 5)
+    _rect(s, dark, 13, 18, 4, 5)
+    _rect(s, stone, 8, 18, 2, 4)
+    _rect(s, stone, 14, 18, 2, 4)
+    for x, y in ((8, 6), (14, 7), (3, 8), (19, 8), (10, 1)):
+        _rect(s, PALETTE["leaf"], x, y, 3, 1)
+        s.set_at((x + 1, y), PALETTE["leaf_light"])
+    _rect(s, dark, 9, 13, 1, 3)
+    _rect(s, dark, 16, 9, 1, 3)
+    return _outline(s)
+
+
+def _lizardman():
+    """Fire lizardman (24x24): crimson scales, cream belly, flaming tail and a curved blade."""
+    s = _canvas((24, 24))
+    scale, scale_light, scale_dark = (196, 70, 52), (230, 112, 72), (140, 44, 40)
+    pygame.draw.polygon(s, scale_dark, ((4, 20), (1, 16), (2, 13), (6, 18)))
+    _rect(s, (250, 170, 60), 1, 11, 2, 3)
+    _rect(s, (255, 226, 120), 1, 12, 1, 1)
+    _rect(s, scale, 8, 2, 9, 6)
+    _rect(s, scale, 15, 5, 5, 3)
+    _rect(s, scale_light, 9, 2, 6, 1)
+    _rect(s, (250, 210, 80), 13, 4, 2, 1)
+    _rect(s, PALETTE["ink"], 14, 4, 1, 1)
+    _rect(s, scale_dark, 16, 7, 4, 1)
+    for x in (9, 11, 13):
+        _rect(s, (250, 170, 60), x, 1, 1, 1)
+    _rect(s, scale, 7, 8, 9, 9)
+    _rect(s, (238, 208, 150), 9, 9, 5, 7)
+    _rect(s, (214, 180, 124), 9, 11, 5, 1)
+    _rect(s, (214, 180, 124), 9, 13, 5, 1)
+    _rect(s, scale, 5, 9, 2, 6)
+    _rect(s, scale, 16, 9, 2, 5)
+    _rect(s, scale_dark, 7, 17, 3, 5)
+    _rect(s, scale_dark, 13, 17, 3, 5)
+    _rect(s, scale, 6, 21, 4, 2)
+    _rect(s, scale, 13, 21, 4, 2)
+    pygame.draw.line(s, (214, 220, 226), (19, 13), (22, 3))
+    pygame.draw.line(s, (240, 244, 246), (20, 12), (23, 4))
+    _rect(s, (150, 104, 66), 17, 13, 3, 2)
+    return _outline(s)
+
+
+
+DUNGEON_TONES = {
+    # floor, floor seam, wall, wall light, wall top, accent
+    "wind": ((150, 166, 164), (124, 140, 140), (118, 140, 142), (160, 180, 178), (70, 84, 90), (120, 206, 220)),
+    "earth": ((146, 108, 78), (118, 86, 62), (112, 84, 64), (150, 116, 86), (64, 48, 42), (250, 200, 110)),
+    "fire": ((76, 64, 70), (58, 50, 56), (120, 54, 48), (156, 76, 62), (52, 34, 36), (250, 150, 64)),
+}
+
+
+def _dfloor(style, variant):
+    floor, seam, *_rest = DUNGEON_TONES[style]
+    surface = _canvas()
+    surface.fill(floor)
+    offset = 4 if variant % 2 else 0
+    _rect(surface, seam, 0, 7, 16, 1)
+    _rect(surface, seam, 0, 15, 16, 1)
+    _rect(surface, seam, (7 + offset) % 16, 0, 1, 7)
+    _rect(surface, seam, (11 + offset) % 16, 8, 1, 7)
+    light = tuple(min(255, v + 14) for v in floor)
+    _rect(surface, light, 1, 1, 4, 1)
+    _rect(surface, light, 9, 9, 3, 1)
+    rng = random.Random(variant * 31 + len(style))
+    if style == "wind" and variant == 1:
+        _rect(surface, PALETTE["leaf"], rng.randrange(2, 12), 6, 3, 1)
+    elif style == "earth":
+        x, y = rng.randrange(2, 12), rng.randrange(2, 12)
+        _rect(surface, (176, 140, 104), x, y, 2, 1)
+    elif style == "fire" and variant == 2:
+        _rect(surface, (40, 32, 38), 3, 11, 5, 1)
+        surface.set_at((5, 11), (240, 140, 70))
+    return surface
+
+
+def _dwall(style, face):
+    _floor, _seam, wall, light, top, _accent = DUNGEON_TONES[style]
+    surface = _canvas()
+    if not face:
+        surface.fill(top)
+        _rect(surface, tuple(min(255, v + 12) for v in top), 0, 0, 16, 1)
+        _rect(surface, tuple(min(255, v + 8) for v in top), 3, 6, 4, 1)
+        _rect(surface, tuple(min(255, v + 8) for v in top), 10, 11, 3, 1)
+        return surface
+    surface.fill(PALETTE["outline"])
+    _rect(surface, top, 0, 0, 16, 3)
+    _rect(surface, light, 0, 3, 16, 1)
+    for row, y in enumerate((4, 8, 12)):
+        off = 4 if row % 2 else 0
+        for x in range(-off, 16, 8):
+            _rect(surface, wall, x + 1, y, 7, 3)
+            _rect(surface, light, x + 1, y, 6, 1)
+    if style == "earth":
+        _rect(surface, PALETTE["outline"], 6, 3, 4, 13)
+        _rect(surface, (150, 104, 66), 7, 3, 2, 13)
+    _rect(surface, (30, 22, 26), 0, 15, 16, 1)
+    return surface
+
+
+def _wall_torch(style):
+    accent = DUNGEON_TONES[style][5]
+    surface = _canvas()
+    _rect(surface, PALETTE["outline"], 6, 7, 4, 6)
+    _rect(surface, (120, 84, 60), 7, 7, 2, 5)
+    _rect(surface, PALETTE["outline"], 5, 6, 6, 2)
+    pygame.draw.polygon(surface, accent, ((5, 6), (8, 0), (11, 6)))
+    pygame.draw.polygon(surface, (255, 236, 180), ((7, 6), (8, 3), (9, 6)))
+    return surface
+
+
+def _dstairs():
+    surface = _canvas()
+    surface.fill(PALETTE["outline"])
+    for step in range(4):
+        y = 2 + step * 3
+        shade = 150 - step * 22
+        _rect(surface, (shade, shade - 6, shade - 10), 2 + step, y, 12 - step * 2, 2)
+        _rect(surface, (shade + 30, shade + 24, shade + 18), 2 + step, y, 12 - step * 2, 1)
+    _rect(surface, (20, 16, 20), 6, 14, 4, 2)
+    return surface
+
+
 def sprite(name, size=(32, 32)):
     """Return a cached pixel sprite, enlarged with nearest-neighbor sampling."""
     if name not in _BASE and name.startswith(("trail_", "water_edge_")):
@@ -974,10 +1185,22 @@ def sprite(name, size=(32, 32)):
         builder = {"grass": _grass, "canyon": _canyon, "ash": _ash, "rock": _rock,
                    "basalt": lambda v: _rock(v, "basalt"), "mossrock": lambda v: _rock(v, "mossrock")}[prefix]
         _BASE[name] = builder(int(number))
+    if name not in _BASE and name.startswith(("dfloor_", "dwall_", "wall_torch_")):
+        parts = name.split("_")
+        if parts[0] == "dfloor":
+            _BASE[name] = _dfloor(parts[1], int(parts[2]))
+        elif parts[0] == "dwall":
+            _BASE[name] = _dwall(parts[2], parts[1] == "face")
+        else:
+            _BASE[name] = _wall_torch(parts[2])
     if name not in _BASE:
         builders = {
             "player": _player,
-            "slime": _slime,
+            "slime": _slime_v2,
+            "goblin": _goblin,
+            "harpy": _harpy,
+            "golem": _golem,
+            "lizardman": _lizardman,
             "chest": lambda: _chest(False),
             "chest_open": lambda: _chest(True),
             "path": lambda: _path(0),
@@ -1001,6 +1224,7 @@ def sprite(name, size=(32, 32)):
             "barrel": _barrel,
             "gate_arch": _gate_arch,
             "crops": _crops,
+            "dstairs": _dstairs,
             "rock": _rock,
             "tuft": lambda: _tuft_decal("green"),
             "dry_tuft": lambda: _tuft_decal("dry"),
@@ -1046,3 +1270,11 @@ def hero_sprite(weapon="rusty_sword", armor="traveler_clothes", size=(32, 32), d
     if key not in _HERO_SCALED:
         _HERO_SCALED[key] = pygame.transform.scale(_player(weapon, armor, direction, frame), size)
     return _HERO_SCALED[key]
+
+
+def fit_sprite(name, box):
+    """Scale a sprite by the largest integer factor that fits ``box``, keeping proportions."""
+    base = sprite(name, None)
+    w, h = base.get_size()
+    factor = max(1, min(box[0] // w, box[1] // h))
+    return sprite(name, (w * factor, h * factor))

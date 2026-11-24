@@ -6,7 +6,7 @@ from gameplay.enemies import ENEMIES
 from gameplay.world_data import FIELD_ROUTES
 from scenes.field_scene import FieldScene
 from settings import TILE_SIZE
-from utils.pixel_art import hero_sprite, sprite
+from utils.pixel_art import fit_sprite, hero_sprite, sprite, tile_noise
 
 
 SHRINE_DUNGEONS = {
@@ -64,6 +64,7 @@ class DungeonScene(FieldScene):
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)
             if x in (0, self.COLS - 1) or y in (0, self.ROWS - 1)
         }
+        self.style = shrine["style"]
         self._build_shrine_layout(shrine["style"])
         self.walls.difference_update({self.EXIT, self.STAIRS, self.boss_position,
                                       shrine["chest_pos"], self.ENTRY})
@@ -163,38 +164,70 @@ class DungeonScene(FieldScene):
             else:
                 self.message = "주변에는 상호작용할 대상이 없습니다."
 
+    def hud_title(self):
+        return f"{self.dungeon_name} {self.floor}층"
+
+    def floor_tile(self, x, y):
+        return f"dfloor_{self.style}_{int(tile_noise(x, y, 61) * 3)}"
+
+    def wall_tile(self, x, y):
+        """Walls with open floor below show their brick face; others show the dark top."""
+        below = (x, y + 1)
+        if y + 1 < self.ROWS and below not in self.walls:
+            return f"dwall_face_{self.style}"
+        return f"dwall_top_{self.style}"
+
+    def dungeon_decals(self):
+        if getattr(self, "_decals", None) is None:
+            name = {"wind": "tuft", "earth": "pebbles", "fire": "ember"}[self.style]
+            special = {self.EXIT, self.STAIRS, self.boss_position, self.ENTRY, *self.chests}
+            self._decals = {(x, y): name for x in range(self.COLS) for y in range(self.ROWS)
+                            if (x, y) not in self.walls and (x, y) not in special
+                            and tile_noise(x, y, 62) < 0.07}
+        return self._decals
+
     def draw(self, surface):
-        super().draw(surface)
-        camera_x, camera_y = self._camera()
-        start_x = max(0, int(camera_x // TILE_SIZE))
-        end_x = min(self.COLS, int((camera_x + 800) // TILE_SIZE) + 2)
-        start_y = max(0, int(camera_y // TILE_SIZE))
-        end_y = min(self.ROWS, int((camera_y + 512) // TILE_SIZE) + 2)
+        t = TILE_SIZE
+        cam_x, cam_y = (round(v) for v in self._camera())
+        surface.fill((20, 16, 20), (0, 0, 800, self.VIEW_HEIGHT))
+        start_x, end_x = max(0, cam_x // t), min(self.COLS, (cam_x + 800) // t + 2)
+        start_y, end_y = max(0, cam_y // t), min(self.ROWS, (cam_y + self.VIEW_HEIGHT) // t + 2)
+        decals = self.dungeon_decals()
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
-                rect = pygame.Rect(round(x * TILE_SIZE - camera_x), round(y * TILE_SIZE - camera_y),
-                                   TILE_SIZE, TILE_SIZE)
+                pos = (x * t - cam_x, y * t - cam_y)
                 if (x, y) in self.walls:
-                    surface.blit(sprite("stone", (TILE_SIZE, TILE_SIZE)), rect)
-                    if (x, y) in ((7, 4), (15, 8), (18, 5)):
-                        surface.blit(sprite("torch", (TILE_SIZE, TILE_SIZE)), rect)
+                    name = self.wall_tile(x, y)
+                    surface.blit(sprite(name, (t, t)), pos)
+                    if name.startswith("dwall_face_") and tile_noise(x, y, 63) < 0.14:
+                        surface.blit(sprite(f"wall_torch_{self.style}", (t, t)), pos)
                 else:
-                    surface.blit(sprite(f"dungeon_floor_{(x + y + self.floor) % 2}",
-                                         (TILE_SIZE, TILE_SIZE)), rect)
+                    surface.blit(sprite(self.floor_tile(x, y), (t, t)), pos)
+                    if (x, y - 1) in self.walls:
+                        shade = pygame.Surface((t, 6), pygame.SRCALPHA)
+                        shade.fill((20, 14, 20, 70))
+                        surface.blit(shade, pos)
+                    if (x, y) in decals:
+                        surface.blit(sprite(decals[(x, y)], (t, t)), pos)
                 if (x, y) in self.chests:
                     name = "chest_open" if (x, y) in self.opened else "chest"
-                    surface.blit(sprite(name, (TILE_SIZE, TILE_SIZE)), rect)
-        for point in (self.EXIT, self.STAIRS):
-            x, y = point
-            surface.blit(sprite(f"portal_dungeon_{int(self.portal_clock * 3) % 2}", (48, 64)),
-                         (round(x * TILE_SIZE - camera_x - 8), round(y * TILE_SIZE - camera_y - 32)))
+                    surface.blit(sprite(name, (t, t)), pos)
+        sx, sy = self.STAIRS
+        surface.blit(sprite("dstairs", (t, t)), (sx * t - cam_x, sy * t - cam_y))
+        ex, ey = self.EXIT
+        surface.blit(sprite(f"portal_dungeon_{int(self.portal_clock * 3) % 2}", (48, 64)),
+                     (ex * t - cam_x - 8, ey * t - cam_y - 32))
         if self.floor == 2 and not self.quest_flags[self.boss_id]:
-            x, y = self.boss_position
-            boss = ENEMIES[self.boss_id]
-            surface.blit(sprite(boss["sprite"], (48, 48)),
-                         (round(x * TILE_SIZE - camera_x - 8), round(y * TILE_SIZE - camera_y - 20)))
-        foot_x = round(self.player["x"] * TILE_SIZE + TILE_SIZE / 2 - camera_x)
-        foot_y = round((self.player["y"] + 1) * TILE_SIZE - camera_y)
-        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16), self.facing,
+            bx, by = self.boss_position
+            boss = fit_sprite(ENEMIES[self.boss_id]["sprite"], (48, 48))
+            surface.blit(sprite("shadow", (36, 12)), (bx * t + t // 2 - 18 - cam_x, (by + 1) * t - 8 - cam_y))
+            surface.blit(boss, (bx * t + t // 2 - boss.get_width() // 2 - cam_x,
+                                (by + 1) * t - boss.get_height() - cam_y))
+        foot_x = round(self.player["x"] * t + t / 2) - cam_x
+        foot_y = round((self.player["y"] + 1) * t) - cam_y
+        surface.blit(sprite("shadow", (26, 10)), (foot_x - 13, foot_y - 7))
+        surface.blit(hero_sprite(self.weapon, self.armor, (t, t + 16), self.facing,
                                  int(self.walk_clock) % 2 if self.walk_clock else 0),
-                     (foot_x - TILE_SIZE // 2, foot_y - TILE_SIZE - 16))
+                     (foot_x - t // 2, foot_y - t - 16))
+        self._draw_dialogue(surface)
+        self._draw_hud(surface)

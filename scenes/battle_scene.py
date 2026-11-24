@@ -3,11 +3,11 @@
 import random
 import pygame
 
-from utils import ui
+from utils import battle_art, ui
 
 from gameplay.enemies import ENEMIES
 from scenes.base_scene import BaseScene
-from utils.pixel_art import hero_sprite, sprite
+from utils.pixel_art import fit_sprite, hero_sprite
 
 
 class BattleScene(BaseScene):
@@ -150,16 +150,23 @@ class BattleScene(BaseScene):
             if self.result_timer <= 0:
                 self.game.finish_battle()
 
+    def backdrop_kind(self):
+        """Fight where you stand: dungeon style, route theme, or the village square."""
+        field = self.game.field
+        shrine = getattr(field, "shrine_key", None)
+        if shrine:
+            return f"dungeon_{shrine.replace('shrine_', '')}"
+        if getattr(field, "world", "") == "village":
+            return "village"
+        return getattr(field, "theme", "forest")
+
     def draw(self, surface):
-        surface.fill((112, 174, 205))
-        for x, y, width in ((72, 147, 92), (546, 129, 116), (333, 207, 54)):
-            pygame.draw.rect(surface, (210, 230, 215), (x, y, width, 12))
-            pygame.draw.rect(surface, (210, 230, 215), (x + 14, y - 10, width - 28, 10))
-            pygame.draw.rect(surface, (151, 201, 211), (x + 8, y + 12, width - 16, 5))
-        pygame.draw.rect(surface, (64, 131, 83), (0, 307, 800, 67))
-        pygame.draw.rect(surface, (46, 108, 70), (0, 307, 800, 9))
-        surface.blit(hero_sprite(self.game.field.weapon, self.game.field.armor, (80, 120)), (198, 184))
-        surface.blit(sprite(self.enemy["sprite"], self.enemy["size"]), (518, 211))
+        surface.blit(battle_art.backdrop(self.backdrop_kind()), (0, 0))
+        feet = battle_art.FEET_Y * 2
+        hero = hero_sprite(self.game.field.weapon, self.game.field.armor, (80, 120))
+        surface.blit(hero, (battle_art.HERO_SPOT * 2 - hero.get_width() // 2, feet - hero.get_height()))
+        enemy = fit_sprite(self.enemy["sprite"], self.enemy["size"])
+        surface.blit(enemy, (battle_art.ENEMY_SPOT * 2 - enemy.get_width() // 2, feet - enemy.get_height() + 4))
         self._panel(surface, pygame.Rect(54, 24, 263, 94))
         self.text(surface, "\uc218\ud638\uc790", (78, 42), 20)
         self._bar(surface, 78, 77, 215, self.game.field.hp, self.game.field.max_hp, self.game.colors["red"])
