@@ -119,6 +119,8 @@ class HouseInteriorScene(FieldScene):
                         self._interact()
                 elif event.key in (pygame.K_i, pygame.K_TAB) and not self.dialogue_lines:
                     self.game.open_status()
+                elif event.key == pygame.K_o and not self.dialogue_lines:
+                    self.game.open_settings()
                 elif event.key == pygame.K_F5:
                     self.sfx("save")
                     self.game.save_game()

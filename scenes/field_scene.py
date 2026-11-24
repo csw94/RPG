@@ -522,6 +522,8 @@ class FieldScene(BaseScene):
                         self._interact()
                 elif event.key in (pygame.K_i, pygame.K_TAB) and not self.dialogue_lines:
                     self.game.open_status()
+                elif event.key == pygame.K_o and not self.dialogue_lines:
+                    self.game.open_settings()
                 elif event.key == pygame.K_F5:
                     self.sfx("save")
                     self.game.save_game()
@@ -689,7 +691,7 @@ class FieldScene(BaseScene):
         surface.blit(font(15).render(f"{self.gold}", True, ui.INK), (stats_x + 324, body.y + 6))
         pygame.draw.line(surface, ui.PARCHMENT_SHADE, (body.x + 8, body.y + 36), (body.x + 660, body.y + 36))
         surface.blit(font(16).render(str(self.message), True, ui.INK_SOFT), (body.x + 10, body.y + 42))
-        hint = font(12).render("I 상태창 · M 소리", True, ui.INK_SOFT)
+        hint = font(12).render("I 상태 · O 설정 · M 소리", True, ui.INK_SOFT)
         surface.blit(hint, hint.get_rect(topright=(676, body.y + 46)))
         self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)
 

@@ -9,7 +9,7 @@ from utils.pixel_art import sprite
 
 class TitleScene(BaseScene):
     SLOT_COUNT = 3
-    OPTIONS = ("새 모험 시작", "모험 이어하기", "조작법", "게임 종료")
+    OPTIONS = ("새 모험 시작", "모험 이어하기", "조작법", "설정", "게임 종료")
     SLOT_LABELS = ("제1 슬롯", "제2 슬롯", "제3 슬롯")
 
     def __init__(self, game):
@@ -98,6 +98,9 @@ class TitleScene(BaseScene):
         if choice == "조작법":
             from scenes.help_scene import HelpScene
             self.game.scene, self.game.scene_name = HelpScene(self.game, self), "help"
+            return
+        if choice == "설정":
+            self.game.open_settings()
             return
         self.slot_action = "new" if choice == "새 모험 시작" else "load"
         self.mode = "slots"

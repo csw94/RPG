@@ -15,6 +15,7 @@ from scenes.status_scene import StatusScene
 from scenes.title_scene import TitleScene
 from scenes.village_scene import VillageScene
 from settings import COLORS, FPS, HEIGHT, TITLE, WIDTH
+from utils import display, user_settings
 from utils.audio import RATE, Audio, music_for
 from utils.resource import resource_path
 
@@ -28,7 +29,17 @@ class Game:
             pygame.display.set_icon(pygame.image.load(resource_path("assets/icon.png")))
         except (FileNotFoundError, pygame.error):
             pass  # The window still opens with the default icon.
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        # Scenes draw on an 800x600 canvas; present() scales it to the window size.
+        self.canvas = pygame.Surface((WIDTH, HEIGHT))
+        self.settings = user_settings.load()
+        try:
+            self.desktop = pygame.display.get_desktop_sizes()[0]
+        except (pygame.error, IndexError):
+            self.desktop = (WIDTH, HEIGHT)
+        self.display_modes = display.available_modes(self.desktop)
+        self.window = None
+        self.view = pygame.Rect(0, 0, WIDTH, HEIGHT)
+        self.apply_display(self.settings["display"])
         self.clock = pygame.time.Clock()
         self.colors = COLORS
         self.running = True
@@ -40,6 +51,7 @@ class Game:
         self.scene = TitleScene(self)
         self._fonts = {}
         self.audio = Audio()
+        self.audio.set_volumes(self.settings["music"], self.settings["sfx"])
 
     def font(self, size):
         if size not in self._fonts:
@@ -112,6 +124,35 @@ class Game:
         self.scene_name = "shop"
         self.scene = ShopScene(self)
 
+    def apply_display(self, mode):
+        """Resize the window (or go fullscreen); unknown or oversized modes fall back to 1x."""
+        if mode not in self.display_modes:
+            mode = "1x"
+        self.settings["display"] = mode
+        flags = pygame.FULLSCREEN if mode == "fullscreen" else 0
+        try:
+            self.window = pygame.display.set_mode(display.window_size(mode, self.desktop), flags)
+        except pygame.error:
+            self.settings["display"] = "1x"
+            self.window = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.view = display.view_rect(self.window.get_size())
+
+    def save_settings(self):
+        user_settings.save(self.settings)
+
+    def open_settings(self):
+        from scenes.settings_scene import SettingsScene
+        self.audio.play("cursor")
+        self.scene, self.scene_name = SettingsScene(self, self.scene), "settings"
+
+    def present(self):
+        if self.view.size == (WIDTH, HEIGHT) and self.window.get_size() == (WIDTH, HEIGHT):
+            self.window.blit(self.canvas, (0, 0))
+        else:
+            self.window.fill((0, 0, 0))
+            self.window.blit(pygame.transform.scale(self.canvas, self.view.size), self.view.topleft)
+        pygame.display.flip()
+
     def open_status(self):
         self.audio.play("cursor")
         self.scene_name = "status"
@@ -153,7 +194,7 @@ class Game:
     def run(self):
         while self.running:
             dt = min(self.clock.tick(FPS) / 1000.0, 0.05)
-            events = pygame.event.get()
+            events = display.map_events(pygame.event.get(), self.view)
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -164,8 +205,8 @@ class Game:
             enemy = getattr(self.scene, "enemy", None) if self.scene_name == "battle" else None
             track = getattr(self.scene, "music_track", None)
             self.audio.update(track or music_for(self.scene_name, enemy["id"] if enemy else None))
-            self.scene.draw(self.screen)
-            pygame.display.flip()
+            self.scene.draw(self.canvas)
+            self.present()
         pygame.quit()
 
 

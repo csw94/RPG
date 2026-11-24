@@ -14,8 +14,8 @@ from array import array
 import pygame
 
 RATE = 22050
-SFX_VOLUME = 0.55
-MUSIC_VOLUME = 0.32
+MAX_SFX_VOLUME = 0.8    # volume at setting level 10
+MAX_MUSIC_VOLUME = 0.45
 
 
 # --- synthesis --------------------------------------------------------------------------
@@ -196,6 +196,8 @@ class Audio:
     def __init__(self, enabled=True):
         self.enabled = False
         self.muted = False
+        self.music_volume = MAX_MUSIC_VOLUME * 0.7
+        self.sfx_volume = MAX_SFX_VOLUME * 0.7
         self.current = None
         self._sounds = {}
         self._rendered = {}
@@ -236,8 +238,10 @@ class Audio:
     def play(self, name):
         if not self.enabled or self.muted or name not in SFX:
             return
+        if self.sfx_volume <= 0:
+            return
         sound = self._sound("sfx", name)
-        sound.set_volume(SFX_VOLUME)
+        sound.set_volume(self.sfx_volume)
         sound.play()
 
     def play_music(self, name):
@@ -248,7 +252,7 @@ class Audio:
             return
         self.current = name
         self._music_channel.stop()
-        self._music_channel.set_volume(0.0 if self.muted else MUSIC_VOLUME)
+        self._music_channel.set_volume(0.0 if self.muted else self.music_volume)
         self._music_channel.play(sound, loops=-1, fade_ms=400)
 
     def update(self, track):
@@ -258,6 +262,15 @@ class Audio:
 
     def toggle_mute(self):
         self.muted = not self.muted
-        if self.enabled:
-            self._music_channel.set_volume(0.0 if self.muted else MUSIC_VOLUME)
+        self._apply_music_volume()
         return self.muted
+
+    def set_volumes(self, music_level, sfx_level):
+        """Volume levels 0-10 from the settings screen."""
+        self.music_volume = MAX_MUSIC_VOLUME * max(0, min(10, music_level)) / 10
+        self.sfx_volume = MAX_SFX_VOLUME * max(0, min(10, sfx_level)) / 10
+        self._apply_music_volume()
+
+    def _apply_music_volume(self):
+        if self.enabled:
+            self._music_channel.set_volume(0.0 if self.muted else self.music_volume)
