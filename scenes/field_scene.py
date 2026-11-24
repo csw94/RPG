@@ -47,6 +47,10 @@ class FieldScene(BaseScene):
         self.xp = int(state.get("xp", 0))
         self.play_time = float(state.get("play_time", 0))
         self.autosave_flash = 0.0  # seconds left to show the "자동 저장됨" notice
+        from gameplay.achievements import ACHIEVEMENTS
+        self.achievements = {a for a in state.get("achievements", ()) if a in ACHIEVEMENTS}
+        self.achievement_toasts = []  # names waiting to be announced, shown one at a time
+        self.toast_clock = 0.0
         self.difficulty = state.get("difficulty") if state.get("difficulty") in DIFFICULTIES else "normal"
         # Bestiary: enemy id -> times defeated (0 = met but not yet beaten).
         self.bestiary = {key: int(value) for key, value in (state.get("bestiary") or {}).items() if key in ENEMIES}
@@ -334,7 +338,7 @@ class FieldScene(BaseScene):
         opened_by_world[self.world] = [list(position) for position in sorted(self.opened)]
         return {**self.player, "world": self.world, "layout_version": LAYOUT_VERSION,
                 "play_time": round(self.play_time, 1), "stats": dict(self.stats), "difficulty": self.difficulty,
-                "bestiary": dict(self.bestiary),
+                "bestiary": dict(self.bestiary), "achievements": sorted(self.achievements),
                 "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
                 "potions": self.potions, "high_potions": self.high_potions, "gold": self.gold,
@@ -696,6 +700,11 @@ class FieldScene(BaseScene):
     def update(self, dt):
         self.portal_clock += dt
         self.autosave_flash = max(0.0, self.autosave_flash - dt)
+        if self.achievement_toasts:
+            self.toast_clock += dt
+            if self.toast_clock >= 3.0:
+                self.achievement_toasts.pop(0)
+                self.toast_clock = 0.0
         keys = pygame.key.get_pressed()
         dx, dy = self._key_direction(keys)
         moving = bool(dx or dy)
@@ -800,6 +809,11 @@ class FieldScene(BaseScene):
         surface.blit(font(15).render(f"{self.gold}", True, ui.INK), (stats_x + 324, body.y + 6))
         pygame.draw.line(surface, ui.PARCHMENT_SHADE, (body.x + 8, body.y + 36), (body.x + 660, body.y + 36))
         surface.blit(font(16).render(str(self.message), True, ui.INK_SOFT), (body.x + 10, body.y + 42))
+        if self.achievement_toasts:
+            banner = font(17).render(f"★ 업적 달성: {self.achievement_toasts[0]}", True, ui.INK)
+            pill = banner.get_rect(midtop=(WIDTH // 2, 12)).inflate(28, 14)
+            ui.frame(surface, pill, "parchment", True, border=4)
+            surface.blit(banner, banner.get_rect(center=pill.center))
         if self.autosave_flash > 0:
             note = font(13).render("자동 저장됨", True, ui.INK)
             pill = note.get_rect(topright=(WIDTH - 12, 10)).inflate(16, 8)

@@ -185,6 +185,9 @@ class Game:
 
     def save_game(self):
         if self.field:
+            from gameplay.achievements import check_achievements
+            if check_achievements(self.field):
+                self.audio.play("level_up")
             self.save_manager.save(self.field.serialize(), self.active_slot)
 
     def start_battle(self, enemy_type="slime"):

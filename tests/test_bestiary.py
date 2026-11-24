@@ -80,9 +80,9 @@ class PageTests(unittest.TestCase):
         for _ in range(3):
             status.handle_events([key(pygame.K_RIGHT)])
             seen.append(status.page)
-        self.assertEqual(seen, ["record", "map", "bestiary", "record"])
-        status.handle_events([key(pygame.K_LEFT)])
-        self.assertEqual(status.page, "bestiary")
+        self.assertEqual(seen, ["record", "map", "bestiary", "achievements"])
+        status.handle_events([key(pygame.K_RIGHT), key(pygame.K_LEFT)])
+        self.assertEqual(status.page, "achievements")
 
     def test_rows_cover_every_enemy_with_seen_and_defeats(self):
         game, field = hero(bestiary={"slime": 2, "shrine_wind": 0})

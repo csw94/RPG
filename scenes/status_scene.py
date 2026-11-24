@@ -17,7 +17,7 @@ SEALS = (("shrine_wind", "바람의 제단"), ("shrine_earth", "대지의 폐광
          ("shrine_ice", "얼음 제단"))
 ITEM_NAMES = {"broken_old_sword": "부러진 옛 검", "knights_crest": "기사단 휘장"}
 TOGGLE_KEYS = (pygame.K_i, pygame.K_TAB)
-PAGES = (("record", "기록"), ("map", "지도"), ("bestiary", "도감"))
+PAGES = (("record", "기록"), ("map", "지도"), ("bestiary", "도감"), ("achievements", "업적"))
 ELEMENT_NAMES = {"light": "빛", "wind": "바람", "earth": "대지", "fire": "불", "dark": "어둠"}
 HERO_MARK = (255, 200, 40)
 MAP_COLORS = {"ground": (118, 150, 92), "path": (204, 176, 124), "water": (88, 150, 200), "lava": (224, 112, 52), "ice": (150, 196, 230), "snow": (226, 232, 240),
@@ -94,12 +94,31 @@ class StatusScene(BaseScene):
             self._draw_map(surface)
         elif self.page == "bestiary":
             self._draw_bestiary(surface)
+        elif self.page == "achievements":
+            self._draw_achievements(surface)
         else:
             self._draw_record(surface)
         for index, (page, label) in enumerate(PAGES):
-            self.button(surface, pygame.Rect(540 + index * 78, 28, 72, 30), label, page == self.page, 15)
+            self.button(surface, pygame.Rect(470 + index * 76, 28, 70, 30), label, page == self.page, 15)
         self.button(surface, self.close_rect(), "닫기", False, 18)
-        self.text(surface, "←→ 기록 / 지도 / 도감 · I / Tab / ESC 닫기", (400, 570), 13, self.game.colors["muted"], True)
+        self.text(surface, "←→ 기록 / 지도 / 도감 / 업적 · I / Tab / ESC 닫기", (400, 570), 13,
+                  self.game.colors["muted"], True)
+
+    # --- achievements page ------------------------------------------------------------
+    def _draw_achievements(self, surface):
+        from gameplay.achievements import ACHIEVEMENTS
+        colors, unlocked = self.game.colors, self.field.achievements
+        self.text(surface, "업적", (210, 44), 28, colors["gold"], True)
+        self.text(surface, f"달성 {len(unlocked)}/{len(ACHIEVEMENTS)}", (400, 80), 15, colors["cream"], True)
+        for index, (achievement_id, achievement) in enumerate(ACHIEVEMENTS.items()):
+            col, row = index % 2, index // 2
+            cell = pygame.Rect(46 + col * 358, 98 + row * 60, 350, 54)
+            done = achievement_id in unlocked
+            body = ui.frame(surface, cell, "parchment", done)
+            star = self.game.font(22).render("★" if done else "·", True, (200, 150, 40) if done else ui.INK_SOFT)
+            surface.blit(star, star.get_rect(center=(body.x + 18, body.centery)))
+            self._ink(surface, achievement["name"], (body.x + 36, body.y + 5), 15, soft=not done)
+            self._ink(surface, achievement["desc"], (body.x + 36, body.y + 25), 12, soft=True)
 
     # --- bestiary page ----------------------------------------------------------------
     def bestiary_rows(self):
@@ -125,7 +144,7 @@ class StatusScene(BaseScene):
         rows = self.bestiary_rows()
         seen = sum(row["seen"] for row in rows)
         owned, total = self.gear_collection()
-        self.text(surface, "도감", (400, 44), 28, colors["gold"], True)
+        self.text(surface, "도감", (210, 44), 28, colors["gold"], True)
         self.text(surface, f"만난 적 {seen}/{len(rows)}  ·  모은 장비 {owned}/{total}", (400, 80), 15,
                   colors["cream"], True)
         for row, cell in zip(rows, self.bestiary_cells()):
@@ -175,7 +194,7 @@ class StatusScene(BaseScene):
 
     def _draw_map(self, surface):
         f, colors = self.field, self.game.colors
-        self.text(surface, f"지도 · {f.hud_title()}", (400, 44), 26, colors["gold"], True)
+        self.text(surface, f"지도 · {f.hud_title()}", (230, 44), 24, colors["gold"], True)
         rect = self.map_rect()
         cell = rect.width // f.COLS
         ui.frame(surface, rect.inflate(16, 16), "walnut")
@@ -212,7 +231,7 @@ class StatusScene(BaseScene):
     # --- record page ------------------------------------------------------------------
     def _draw_record(self, surface):
         f, colors = self.field, self.game.colors
-        self.text(surface, "수호자의 기록", (400, 44), 28, colors["gold"], True)
+        self.text(surface, "수호자의 기록", (230, 44), 28, colors["gold"], True)
 
         # Left: portrait and core stats.
         card = ui.frame(surface, pygame.Rect(40, 72, 230, 444), "parchment")
