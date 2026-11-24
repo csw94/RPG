@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.15.0)
+# HANDOVER — Chronicles of Pixel (v0.16.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.15.0 (태그 `v0.15.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.15.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.16.0 (태그 `v0.16.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.16.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 227개 모두 통과 (미릴리즈 변경 포함 시 246개): `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 246개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -132,7 +132,21 @@
   - 처치 수를 세는 부탁은 `KILL_QUESTS` 표에, 보상은 `QUEST_REWARDS` 표에 있음
   - 보상 장신구: 늑대 송곳니 부적(치명타 +10%), 용암석 팔찌(공격 +3, 화상 면역), 수호자의 훈장(방어 +5). 이제 장신구가 치명타와 방어력도 올릴 수 있음
 
+## 서리 고원과 네 번째 제단 (v0.16.0)
+- 제단이 4개가 됨: `gameplay/world_data.SHRINES`에 얼음 제단을 추가함. 북쪽 길은 `NORTH_UNLOCK`(2곳)을 정화하면 열림
+  - 별빛의 검은 인장 4개가 있어야 깨어남. 단, 이미 3개로 깨운 예전 세이브는 그대로 유지함(`check_fountain_awakening`)
+  - 얼음의 가호: 최대 MP +12, 방어력 +2. 촌장·분수·에필로그·목표 안내·상태 화면·상점 단계가 모두 4개 기준
+- 서리 고원(`FIELD_ROUTES["field_north"]`, 테마 `snow`)
+  - 북쪽 제단 공터의 `NORTH_GATE`(15,1)로 들어감. 잠겨 있을 때는 아치에 얼음판이 그려짐
+  - 돌아올 때는 route의 `home` 값(`village_north_shrine`)으로 감
+  - 지형: 얼어붙은 호수 `FieldScene.ice`(`ice_edge_*`), 눈 바닥 `snow_*`, `tree_snowpine`, `icerock_*`
+  - 적: 서리 늑대(그림 이름 `frost_wolf`. `snow_` 접두사는 바닥 타일이 쓰므로 피함), 얼음 슬라임, 서리 정령(새로 그림). 얼음 슬라임·늑대는 `_frosted()`로 기존 그림을 바꾼 것
+- 빙결(`freeze` 패턴): 25% 확률로 주인공에게 기절(1턴)을 걸어 다음 행동을 건너뛰게 함. 바로 다시 얼지는 않음(`BattleEngine.thawed`). 라운드 후반 처리는 `_round_tail`로 분리함
+- 얼음 제단(`SHRINE_DUNGEONS["shrine_ice"]`, 2층): 보스 빙결 리자드킹(`blizzard` 패턴: 3턴마다 눈보라 30 피해, 35% 확률로 빙결)
+- 밸런스: 시뮬레이터 지역 순서를 동 → 서 → 북 → 남으로 바꿈. 지역이 늘어난 만큼 불꽃 신전(HP 360)과 말포스(HP 720, 공격 58)를 강화함. 지역당 4번 싸우면 보스 승률 약 95%
+
 ## 릴리즈 기록
+- **v0.16.0:** 새 지역 「서리 고원」과 네 번째 제단 「얼음 제단」(제단 두 곳을 정화하면 열림), 새 적 4종과 빙결 상태이상, 인장 4개 기준으로 이야기 확장, 불꽃·최종 보스 밸런스 조정
 - **v0.15.0:** 엔딩 후 도전 던전 「별빛 심연」(3층, 숨겨진 보스와 전용 장신구), 상태 화면의 지도 페이지와 다음 목표 안내, 마을 부탁 3개 추가(전용 장신구 보상), CI 자동 테스트와 릴리즈 노트 자동화
 - **v0.14.1:** 북쪽 제단에서 주인공이 제단·기둥에 가려지던 문제 수정(깊이 순서로 그리기)
 - **v0.14.0:** 장비 다양화. 속성 무기 3종, 방어구 2종, 장신구 칸과 장신구 4종, 탭으로 나뉜 상점, 제단 진행도에 따라 늘어나는 상품
@@ -206,19 +220,6 @@
   - 크기 25×16은 손으로 짠 미로 구조라 그대로 유지
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
-
-## 미릴리즈 변경 (다음 릴리즈에 포함)
-- 제단이 4개가 됨: `gameplay/world_data.SHRINES`에 얼음 제단을 추가함. 북쪽 길은 `NORTH_UNLOCK`(2곳)을 정화하면 열림
-  - 별빛의 검은 인장 4개가 있어야 깨어남. 단, 이미 3개로 깨운 예전 세이브는 그대로 유지함(`check_fountain_awakening`)
-  - 얼음의 가호: 최대 MP +12, 방어력 +2. 촌장·분수·에필로그·목표 안내·상태 화면·상점 단계가 모두 4개 기준
-- 서리 고원(`FIELD_ROUTES["field_north"]`, 테마 `snow`)
-  - 북쪽 제단 공터의 `NORTH_GATE`(15,1)로 들어감. 잠겨 있을 때는 아치에 얼음판이 그려짐
-  - 돌아올 때는 route의 `home` 값(`village_north_shrine`)으로 감
-  - 지형: 얼어붙은 호수 `FieldScene.ice`(`ice_edge_*`), 눈 바닥 `snow_*`, `tree_snowpine`, `icerock_*`
-  - 적: 서리 늑대(그림 이름 `frost_wolf`. `snow_` 접두사는 바닥 타일이 쓰므로 피함), 얼음 슬라임, 서리 정령(새로 그림). 얼음 슬라임·늑대는 `_frosted()`로 기존 그림을 바꾼 것
-- 빙결(`freeze` 패턴): 25% 확률로 주인공에게 기절(1턴)을 걸어 다음 행동을 건너뛰게 함. 바로 다시 얼지는 않음(`BattleEngine.thawed`). 라운드 후반 처리는 `_round_tail`로 분리함
-- 얼음 제단(`SHRINE_DUNGEONS["shrine_ice"]`, 2층): 보스 빙결 리자드킹(`blizzard` 패턴: 3턴마다 눈보라 30 피해, 35% 확률로 빙결)
-- 밸런스: 시뮬레이터 지역 순서를 동 → 서 → 북 → 남으로 바꿈. 지역이 늘어난 만큼 불꽃 신전(HP 360)과 말포스(HP 720, 공격 58)를 강화함. 지역당 4번 싸우면 보스 승률 약 95%
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
