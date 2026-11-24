@@ -192,5 +192,27 @@ class DefeatChoiceTests(unittest.TestCase):
         self.assertEqual(game.finished, 1)
 
 
+class FinalPhaseSceneTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        pygame.init()
+        pygame.display.set_mode((1, 1))
+
+    def test_phase_two_darkens_the_fight_and_switches_music(self):
+        game = FakeGame()
+        game.field.hp = game.field.max_hp = 9999
+        played = []
+        game.audio = type("A", (), {"play": lambda self, name: played.append(name)})()
+        scene = BattleScene(game, "final_boss", rng=FixedRng())
+        self.assertIsNone(scene.music_track)
+        scene.engine.enemy_hp = scene.engine.enemy_max_hp // 2 + 1
+        scene.handle_events([key(pygame.K_RETURN)])
+        play_out(scene)
+        self.assertEqual(scene.engine.phase, 2)
+        self.assertEqual(scene.music_track, "final")
+        self.assertIn("phase", played)
+        scene.draw(pygame.Surface((800, 600)))
+
+
 if __name__ == "__main__":
     unittest.main()

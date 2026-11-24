@@ -105,6 +105,9 @@ SFX = {
     "chest": lambda: _arp(("G5", "C6", "E6", "G6"), 0.055, "square", 0.2, 0.18),
     "coin": lambda: _seq(_voice(1319, 0.05, "square", 0.18), _voice(1760, 0.14, "square", 0.18)),
     "save": lambda: _seq(_voice(660, 0.07, "triangle", 0.3), _voice(880, 0.12, "triangle", 0.3)),
+    "phase": lambda: _mix(_voice(140, 0.9, "noise", 0.4, release=0.5, slide=0.4, seed=6),
+                          _voice(330, 0.9, "square", 0.22, release=0.4, slide=0.25, duty=0.25),
+                          _voice(220, 0.9, "triangle", 0.3, release=0.4, slide=0.25)),
 }
 
 
@@ -133,6 +136,11 @@ MUSIC = {
                          "E5:.5 E5:.5 G5:1 A5:1 G5:1 E5:2 .:2",
                "bass": " ".join(["E3:.5 E4:.5"] * 4 + ["C3:.5 C4:.5"] * 4
                                 + ["D3:.5 D4:.5"] * 4 + ["B2:.5 B3:.5"] * 4)},
+    "final": {"bpm": 172, "hat": True,
+              "melody": "D5:.5 F5:.5 A5:.5 D6:.5 C#6:1 A5:1 A#5:.5 A5:.5 G5:.5 F5:.5 E5:2 "
+                        "D5:.5 E5:.5 F5:.5 A5:.5 G5:1 F5:1 E5:1 C#5:1 D5:2",
+              "bass": " ".join(["D2:.5 D3:.5"] * 4 + ["A#2:.5 A#3:.5"] * 4
+                               + ["G2:.5 G3:.5"] * 4 + ["A2:.5 A3:.5"] * 4)},
     "boss": {"bpm": 160, "hat": True,
              "melody": "A4:.5 C5:.5 E5:.5 A5:.5 G#5:1 E5:1 F5:.5 E5:.5 D5:.5 C5:.5 B4:2 "
                        "A4:.5 B4:.5 C5:.5 E5:.5 D5:1 C5:1 B4:2 G#4:2",

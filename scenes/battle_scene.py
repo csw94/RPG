@@ -13,7 +13,7 @@ from utils.pixel_art import enemy_idle, hero_sprite
 
 EVENT_TIME = {"damage": 0.55, "heal": 0.5, "miss": 0.45, "status": 0.55, "status_tick": 0.5,
               "level_up": 1.0, "xp": 0.8, "defeat": 0.7, "lose": 0.9, "skill": 0.45,
-              "attack": 0.32, "stunned": 0.6, "guard": 0.5}
+              "attack": 0.32, "stunned": 0.6, "guard": 0.5, "phase": 1.4}
 ELEMENT_COLORS = {"light": (255, 236, 150), "wind": (150, 230, 190), "earth": (214, 170, 110),
                   "fire": (255, 140, 70), "dark": (170, 120, 220), "none": (255, 255, 255)}
 STATUS_COLORS = {"poison": (150, 96, 190), "burn": (230, 110, 54), "stun": (230, 200, 90)}
@@ -42,6 +42,7 @@ class BattleScene(BaseScene):
         self.lines = [f"{self.enemy['name']}이(가) 나타났다!"]
         self.done_timer = 0.0
         self.clock = 0.0              # drives the enemy's idle animation
+        self.flash = 0.0              # full-screen flash when the final boss awakens
         self.kind = self.backdrop_kind()  # fixed: losing moves the hero to the village mid-fight
         self.sfx("encounter")
 
@@ -142,8 +143,14 @@ class BattleScene(BaseScene):
         self.mode = "playing"
 
     # --- playback -------------------------------------------------------------------
+    @property
+    def music_track(self):
+        """Overrides the scene music: the final boss's second phase has its own theme."""
+        return "final" if self.engine.phase == 2 else None
+
     def update(self, dt):
         self.clock += dt
+        self.flash = max(0.0, self.flash - dt)
         for side in self.shake:
             self.shake[side] = max(0.0, self.shake[side] - dt)
             self.lunge[side] = max(0.0, self.lunge[side] - dt)
@@ -193,6 +200,10 @@ class BattleScene(BaseScene):
             self._popup(STATUS_NAMES[event["status"]], STATUS_COLORS[event["status"]], x)
         elif kind == "level_up":
             self._popup(f"LEVEL {event['level']}!", (255, 222, 110), battle_art.HERO_SPOT * 2)
+        elif kind == "phase":
+            self.flash = 0.7
+            self.shake["hero"] = self.shake["enemy"] = 0.7
+            self._popup("각성!", (196, 140, 255), x)
 
     def _cue(self, event):
         kind, target = event["type"], event.get("target")
@@ -201,7 +212,7 @@ class BattleScene(BaseScene):
         else:
             name = {"skill": "skill", "heal": "heal", "miss": "miss", "status": "status", "stunned": "status",
                     "status_tick": "hurt", "guard": "guard", "level_up": "level_up", "defeat": "victory",
-                    "lose": "defeat", "flee": "flee"}.get(kind)
+                    "lose": "defeat", "flee": "flee", "phase": "phase"}.get(kind)
         if name:
             self.sfx(name)
 
@@ -246,6 +257,8 @@ class BattleScene(BaseScene):
         field = self.game.field
         surface.blit(battle_art.backdrop(self.kind), (0, 0))
         feet = battle_art.FEET_Y * 2
+        if self.engine.phase == 2:
+            self._draw_dark_sky(surface)
         hero = hero_sprite(field.weapon, field.armor, (80, 120))
         hx = battle_art.HERO_SPOT * 2 - hero.get_width() // 2 + self._offset("hero", 1)
         surface.blit(hero, (hx, feet - hero.get_height()))
@@ -254,6 +267,8 @@ class BattleScene(BaseScene):
         else:
             enemy, bob = enemy_idle(self.enemy["sprite"], self.enemy["size"], self.clock)
             ex = battle_art.ENEMY_SPOT * 2 - enemy.get_width() // 2 + self._offset("enemy", -1)
+            if self.engine.phase == 2:
+                self._draw_aura(surface, ex + enemy.get_width() // 2, feet + bob, enemy.get_height())
             if self.shake["enemy"] and int(self.shake["enemy"] * 30) % 2:
                 enemy = enemy.copy()
                 enemy.fill((255, 255, 255, 0), special_flags=pygame.BLEND_RGBA_MAX)
@@ -270,6 +285,30 @@ class BattleScene(BaseScene):
                 img.set_alpha(max(0, alpha))
                 surface.blit(img, img.get_rect(center=(popup["x"] + dx, y + dy)))
         self._draw_bottom(surface)
+        if self.flash:
+            veil = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+            veil.fill((236, 214, 255, int(230 * min(1.0, self.flash / 0.7))))
+            surface.blit(veil, (0, 0))
+
+    @staticmethod
+    def _draw_dark_sky(surface):
+        """Malphas's second phase: the arena sinks into violet darkness."""
+        veil = pygame.Surface((surface.get_width(), 374), pygame.SRCALPHA)
+        veil.fill((34, 12, 48, 120))
+        surface.blit(veil, (0, 0))
+
+    def _draw_aura(self, surface, cx, feet, height):
+        """Pulsing dark-violet flames behind the boss (drawn in blocky 4px steps)."""
+        wave = (self.clock * 3) % 2
+        pulse = 0.5 + 0.5 * (wave if wave < 1 else 2 - wave)  # triangle wave between 0.5 and 1
+        layer = pygame.Surface((220, height + 60), pygame.SRCALPHA)
+        w, h = layer.get_size()
+        for ring, alpha in ((0, 70), (14, 90), (28, 120)):
+            rect = pygame.Rect(ring + int(6 * pulse), ring // 2, w - 2 * ring - int(12 * pulse), h - ring)
+            pygame.draw.ellipse(layer, (120, 50, 170, alpha), rect)
+        small = pygame.transform.scale(layer, (w // 4, h // 4))
+        layer = pygame.transform.scale(small, (w, h))
+        surface.blit(layer, (cx - w // 2, feet - h + 10))
 
     def _draw_status_panels(self, surface):
         field, engine = self.game.field, self.engine

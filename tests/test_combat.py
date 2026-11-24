@@ -217,5 +217,48 @@ class BalanceRuleTests(unittest.TestCase):
         self.assertEqual(hps, sorted(hps))
 
 
+class FinalBossPhaseTests(unittest.TestCase):
+    def strong_hero(self):
+        return hero(8, hp=9999, max_hp=9999, mp=0)
+
+    def test_malphas_enters_phase_two_once_at_half_hp(self):
+        engine = BattleEngine(self.strong_hero(), "final_boss", rng=FixedRng())
+        engine.enemy_hp = engine.enemy_max_hp // 2 + 1
+        events = engine.act("attack")
+        phases = [e for e in events if e["type"] == "phase"]
+        self.assertEqual(len(phases), 1)
+        self.assertEqual(engine.phase, 2)
+        engine.act("attack")
+        self.assertEqual(sum(e["type"] == "phase" for e in engine.log), 1)
+
+    def test_phase_two_clears_statuses_and_hits_harder(self):
+        calm = BattleEngine(self.strong_hero(), "final_boss", rng=FixedRng())
+        calm.turn = 2  # next turn: a dark wave in phase one, a full slash in phase two
+        calm.act("attack")
+        angry = BattleEngine(self.strong_hero(), "final_boss", rng=FixedRng())
+        angry.turn = 2
+        angry.statuses["enemy"]["burn"] = 3
+        angry.enemy_hp = angry.enemy_max_hp // 2 + 5
+        angry.act("attack")
+        self.assertEqual(angry.statuses["enemy"], {})
+        self.assertGreater(damage_to(angry.log, "hero"), damage_to(calm.log, "hero"))
+
+    def test_dark_wave_comes_every_second_turn_in_phase_two(self):
+        engine = BattleEngine(self.strong_hero(), "final_boss", rng=FixedRng())
+        engine.phase = 2
+        waves = []
+        for _ in range(6):
+            events = engine.act("attack")
+            waves.append(any("어둠의 파동" in e["text"] for e in events))
+        self.assertEqual(sum(waves), 3)
+
+    def test_other_bosses_have_a_single_phase(self):
+        for boss in ("shrine_wind", "shrine_earth", "shrine_fire"):
+            engine = BattleEngine(self.strong_hero(), boss, rng=FixedRng())
+            engine.enemy_hp = engine.enemy_max_hp // 2 + 1
+            engine.act("attack")
+            self.assertEqual(engine.phase, 1, boss)
+
+
 if __name__ == "__main__":
     unittest.main()

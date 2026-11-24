@@ -162,7 +162,8 @@ class Game:
             self.scene.handle_events(events)
             self.scene.update(dt)
             enemy = getattr(self.scene, "enemy", None) if self.scene_name == "battle" else None
-            self.audio.update(music_for(self.scene_name, enemy["id"] if enemy else None))
+            track = getattr(self.scene, "music_track", None)
+            self.audio.update(track or music_for(self.scene_name, enemy["id"] if enemy else None))
             self.scene.draw(self.screen)
             pygame.display.flip()
         pygame.quit()

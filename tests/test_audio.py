@@ -66,6 +66,10 @@ class PlaybackTests(unittest.TestCase):
         self.assertIsNone(music_for("shop", None))      # keep whatever is playing
         self.assertIsNone(music_for("status", None))
 
+    def test_final_phase_has_its_own_cue_and_track(self):
+        self.assertIn("phase", SFX)
+        self.assertIn("final", MUSIC)
+
 
 class BattleCueTests(unittest.TestCase):
     @classmethod

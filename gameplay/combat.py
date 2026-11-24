@@ -57,6 +57,7 @@ class BattleEngine:
         self.enraged = False
         self.howl = 0
         self.turn = 0
+        self.phase = 1  # the final boss turns to phase 2 below half HP
         self.result = None
         self.log = []
 
@@ -196,6 +197,7 @@ class BattleEngine:
         self._tick(events, "enemy")
         if self.enemy_hp <= 0:
             return self._win(events)
+        self._check_phase(events)
         self.turn += 1
         if self.statuses["enemy"].pop("stun", None):
             self._emit(events, type="stunned", target="enemy", text="적은 기절해서 움직이지 못한다!")
@@ -206,6 +208,15 @@ class BattleEngine:
         if field.hp <= 0:
             return self._lose(events)
         return events
+
+    def _check_phase(self, events):
+        if self.enemy["id"] != "final_boss" or self.phase != 1 or self.enemy_hp > self.enemy_max_hp // 2:
+            return
+        self.phase = 2
+        self.statuses["enemy"].clear()
+        self._emit(events, type="phase", target="enemy", phase=2,
+                   text="흑기사 말포스: 별빛 따위에 무릎 꿇을 성싶으냐!")
+        self._emit(events, type="message", text="말포스가 어둠의 갑옷을 벗어 던졌다! 공격이 거세진다.")
 
     def _enemy_turn(self, events):
         enemy, pattern = self.enemy, self.enemy["pattern"]
@@ -221,8 +232,8 @@ class BattleEngine:
         elif pattern == "enrage" and not self.enraged and self.enemy_hp <= self.enemy_max_hp // 2:
             self.enraged = True
             self._emit(events, type="message", text="화염 리자드맨이 광폭화했다! ATK +5")
-        elif pattern == "dark_arts" and self.turn % 3 == 0:
-            self._hit_hero(events, 18, fixed=True, element="dark", label="어둠의 파동")
+        elif pattern == "dark_arts" and self.turn % (2 if self.phase == 2 else 3) == 0:
+            self._hit_hero(events, 24 if self.phase == 2 else 18, fixed=True, element="dark", label="어둠의 파동")
         elif pattern == "howl" and self.turn % 3 == 0:
             self.howl += 3
             self._emit(events, type="message", text="숲늑대가 울부짖었다! 공격력이 올랐다.")
@@ -234,7 +245,7 @@ class BattleEngine:
                 self._emit(events, type="heal", target="enemy", amount=healed, text=f"박쥐가 {healed} 회복했다.")
         else:
             bonus = 5 if self.enraged else 0
-            bonus += 8 if pattern == "dark_arts" else 0
+            bonus += (16 if self.phase == 2 else 8) if pattern == "dark_arts" else 0
             label = {"dark_arts": "암흑 베기", "poison": "독 공격", "burn": "불꽃 공격"}.get(pattern, "적의 공격")
             dealt = self._hit_hero(events, attack + bonus, label=label)
             if dealt and pattern in ("poison", "burn") and self.rng.random() < 0.3:
