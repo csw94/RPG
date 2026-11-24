@@ -1,11 +1,14 @@
-# HANDOVER — Chronicles of Pixel 그래픽 개편 (v0.7.0)
+# HANDOVER — Chronicles of Pixel 그래픽 개편 (v0.7.1)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.7.0 (커밋 `3f575f5`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.7.0 (Actions 성공, `ChroniclesOfPixel.exe` 첨부됨)
+- **최신 릴리즈:** v0.7.1 (커밋 `c9e41af`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.7.1 (Actions 성공, `ChroniclesOfPixel.exe` 첨부됨)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 커밋으로 빌드함. 실행 확인 완료
-- v0.7.0 이후 `main`에 수정 1건 반영(아직 릴리즈 안 함): 마을 건물 사이 통로 확보
 - 테스트 69개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+
+## 릴리즈 기록
+- **v0.7.1:** 마을 건물 사이에 걸어갈 수 있는 통로를 확보함(오두막↔촌장 집 3칸, 촌장 집↔잡화점 2칸)
+- **v0.7.0:** 그래픽 전면 개편, UI, 맵 30% 확장, 던전·전투 톤 통일(아래 "완료된 작업" 참고)
 
 ## 완료된 작업 (v0.6.3 → v0.7.0)
 1. **마을 외부**
@@ -66,7 +69,7 @@
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
 
 ## 남은 작업 및 아이디어
-- 통로 수정을 반영한 패치 릴리즈(v0.7.1)가 필요하면 CLAUDE.md 절차대로 진행
+- 필수로 남은 작업은 없음
 - 선택 과제
   - 예전 세이브의 위치 보정. 맵 좌표가 바뀌어서 v0.6.x 세이브는 다른 위치에서 이어질 수 있음. 막힌 칸이면 안전한 위치로 자동 복구되긴 함
   - 타이틀 화면 배경을 새 톤에 맞추기. 지금은 단색 배경에 프레임만 바뀐 상태
