@@ -2,7 +2,7 @@
 
 import pygame
 
-from utils import ui
+from utils import title_art, ui
 from scenes.base_scene import BaseScene
 from utils.pixel_art import sprite
 
@@ -20,6 +20,7 @@ class TitleScene(BaseScene):
         self.confirm_overwrite = False
         self.slot_data = self.game.save_manager.list_saves()
         self.notice = ""
+        self.clock = 0.0
 
     def handle_events(self, events):
         for event in events:
@@ -109,38 +110,46 @@ class TitleScene(BaseScene):
         self.game.new_game(slot)
 
     def update(self, dt):
-        pass
+        self.clock += dt
 
     def _frame(self, surface, rect, fill=None, active=False):
         ui.frame_around(surface, rect, "walnut", active)
 
     def _draw_background(self, surface):
-        surface.fill((23, 33, 29))
-        # Stone side columns and small gold insets make a quiet castle hall frame.
-        for x in (22, 42, 738, 758):
-            pygame.draw.rect(surface, (49, 54, 45), (x, 0, 14, 600))
-            for y in range(22, 600, 44):
-                pygame.draw.rect(surface, (78, 75, 58), (x, y, 14, 2))
-        pygame.draw.rect(surface, (36, 49, 39), (56, 0, 688, 600))
-        pygame.draw.rect(surface, (54, 69, 49), (56, 0, 688, 6))
-        for x, y in ((100, 80), (700, 90), (125, 475), (675, 490)):
-            pygame.draw.rect(surface, self.game.colors["gold"], (x, y, 5, 5))
+        """Oak Valley at night (cached), animated stars and fireflies, and a wooden footer."""
+        surface.blit(title_art.backdrop(), (0, 0))
+        title_art.draw_overlay(surface, self.clock)
+        if self.mode == "slots":
+            veil = pygame.Surface((800, 600), pygame.SRCALPHA)
+            veil.fill((12, 10, 28, 110))
+            surface.blit(veil, (0, 0))
+        ui.plank_strip(surface, (0, 548, 800, 52))
+
+    def _soft_label(self, surface, value, center, size, color):
+        """Text on a translucent dark pill so it stays readable over the meadow."""
+        width = self.game.font(size).size(str(value))[0] + 28
+        pill = pygame.Surface((width, size + 14), pygame.SRCALPHA)
+        pygame.draw.rect(pill, (16, 12, 24, 150), pill.get_rect(), border_radius=8)
+        surface.blit(pill, pill.get_rect(center=center))
+        self.text(surface, value, center, size, color, True)
 
     def _draw_menu(self, surface):
         header = pygame.Rect(132, 38, 536, 126)
         self._frame(surface, header, self.game.colors["panel"], True)
         self.text(surface, "별빛 결계의 수호자", (400, 84), 40, self.game.colors["gold"], True)
         self.text(surface, "CHRONICLES OF PIXEL", (400, 129), 17, self.game.colors["cream"], True)
-        self._draw_crest(surface, (400, 221))
+        shadow = pygame.Surface((60, 14), pygame.SRCALPHA)
+        pygame.draw.ellipse(shadow, (16, 24, 20, 110), shadow.get_rect())
+        surface.blit(shadow, (370, 262))
         surface.blit(sprite("player", (64, 96)), (368, 174))
         for index, (label, rect) in enumerate(zip(self.OPTIONS, self._menu_buttons())):
             self.button(surface, rect, label, index == self.selected, 21)
         self.text(surface, "방향키로 선택 · Enter로 결정", (400, 568), 16, self.game.colors["muted"], True)
         if self.notice:
-            self.text(surface, self.notice, (400, 510), 16, self.game.colors["gold"], True)
+            self._soft_label(surface, self.notice, (400, 514), 16, self.game.colors["gold"])
 
     def _draw_slots(self, surface):
-        self.text(surface, "모험 기록", (400, 85), 34, self.game.colors["gold"], True)
+        self._soft_label(surface, "모험 기록", (400, 85), 34, self.game.colors["gold"])
         self.text(surface, "저장할 슬롯을 선택하세요", (400, 130), 19, self.game.colors["cream"], True)
         for index, (rect, label) in enumerate(zip(self._slot_cards(), self.SLOT_LABELS)):
             state = self.slot_data.get(index + 1)
