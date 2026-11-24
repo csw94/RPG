@@ -9,7 +9,7 @@ from utils.pixel_art import sprite
 
 class TitleScene(BaseScene):
     SLOT_COUNT = 3
-    OPTIONS = ("새 모험 시작", "모험 이어하기", "게임 종료")
+    OPTIONS = ("새 모험 시작", "모험 이어하기", "조작법", "게임 종료")
     SLOT_LABELS = ("제1 슬롯", "제2 슬롯", "제3 슬롯")
 
     def __init__(self, game):
@@ -85,16 +85,21 @@ class TitleScene(BaseScene):
             self._choose_slot()
 
     def _menu_buttons(self):
-        return [pygame.Rect(285, 322 + i * 60, 230, 46) for i in range(3)]
+        return [pygame.Rect(285, 286 + i * 46, 230, 38) for i in range(len(self.OPTIONS))]
 
     def _slot_cards(self):
         return [pygame.Rect(88 + i * 210, 244, 194, 214) for i in range(3)]
 
     def _choose_menu(self):
-        if self.selected == 2:
+        choice = self.OPTIONS[self.selected]
+        if choice == "게임 종료":
             self.game.running = False
             return
-        self.slot_action = "new" if self.selected == 0 else "load"
+        if choice == "조작법":
+            from scenes.help_scene import HelpScene
+            self.game.scene, self.game.scene_name = HelpScene(self.game, self), "help"
+            return
+        self.slot_action = "new" if choice == "새 모험 시작" else "load"
         self.mode = "slots"
         self.selected = 0
         self.confirm_overwrite = False
@@ -149,10 +154,10 @@ class TitleScene(BaseScene):
         surface.blit(shadow, (370, 262))
         surface.blit(sprite("player", (64, 96)), (368, 174))
         for index, (label, rect) in enumerate(zip(self.OPTIONS, self._menu_buttons())):
-            self.button(surface, rect, label, index == self.selected, 21)
+            self.button(surface, rect, label, index == self.selected, 20)
         self.text(surface, "방향키로 선택 · Enter로 결정", (400, 568), 16, self.game.colors["muted"], True)
         if self.notice:
-            self._soft_label(surface, self.notice, (400, 514), 16, self.game.colors["gold"])
+            self._soft_label(surface, self.notice, (400, 528), 16, self.game.colors["gold"])
 
     def _draw_slots(self, surface):
         self._soft_label(surface, "모험 기록", (400, 85), 34, self.game.colors["gold"])
