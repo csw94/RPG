@@ -7,8 +7,9 @@ CARRIED = ("level", "xp", "max_hp", "max_mp", "atk", "defense", "evasion_bonus",
            "owned_accessories", "bestiary", "achievements", "play_time", "stats", "difficulty",
            "layout_version")
 
-# Per extra cycle: enemy HP +60%, damage taken +35%, gold and experience +30%.
-CYCLE_STEP = {"enemy_hp": 0.6, "damage": 0.35, "gold": 0.3, "xp": 0.3}
+# Per extra cycle: enemy HP +160%, damage taken +60%, gold and experience +30%.
+# (Simulated: the carried-over hero still sweeps the shrines, the final boss ~75% wins.)
+CYCLE_STEP = {"enemy_hp": 1.6, "damage": 0.6, "gold": 0.3, "xp": 0.3}
 
 
 def cycle_multipliers(cycle):

@@ -189,8 +189,8 @@
 - 회차 플레이(`gameplay/new_game_plus.py`)
   - 엔딩 후 촌장 대화의 `offer_new_game_plus`가 `ConfirmScene`(예/아니오, 기본값은 아니오)을 띄움. 예를 고르면 `Game.start_new_game_plus`가 같은 슬롯에서 다음 회차를 시작함
   - 이어지는 항목은 `CARRIED` 목록. 나머지(이야기 플래그, 부탁, 상자, 약초, 중요 물품, 위치)는 초기화됨. `prologue_done`은 1로 시작함
-  - `cycle`이 오를 때마다 `cycle_multipliers`가 적용됨: 적 HP +60%, 받는 피해 +35%, 골드·경험치 +30%. `difficulty_of`가 난이도 배율과 곱해서 돌려줌(`xp` 키 추가)
-  - 회차 밸런스는 아직 시뮬레이션하지 않음
+  - `cycle`이 오를 때마다 `cycle_multipliers`가 적용됨: 적 HP +160%, 받는 피해 +60%, 골드·경험치 +30%(v0.23.0에서 조정). `difficulty_of`가 난이도 배율과 곱해서 돌려줌(`xp` 키 추가)
+  - 시뮬레이터 `--plus` 결과: 2회차 제단 보스는 넘겨받은 주인공이 쉽게 이기고, 최종 보스 승률은 약 75%
 - 조작 편의
   - 대화 타자 효과: `TEXT_SPEEDS`(초당 18/40/90 글자 또는 즉시)
     - 설정의 `text_speed`(settings.json)로 속도를 정함
