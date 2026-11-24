@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.9.2)
+# HANDOVER — Chronicles of Pixel (v0.10.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.9.2 (태그 `v0.9.2`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.9.2 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.10.0 (태그 `v0.10.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.10.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 124개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 128개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -44,7 +44,17 @@
   - 맵 구조를 또 바꿀 때는 `LAYOUT_VERSION`을 올리고, `LAYOUT_SINCE`와 `_point_mover`에 단계를 추가할 것
 - 아주 옛날 단일 `field` 세이브는 숲길 필드 입구에서 이어서 시작함(`main._create_world`)
 
+## 전투 밸런스 (v0.10.0)
+- 전투 밸런스 조정. 숫자는 `tools/balance_sim.py`로 시뮬레이션해서 정함
+  - 목표: 필드 전투 3~4턴, 보스전 10~15턴. 지역당 4번 싸우면 보스 승률 약 85%, 5번 이상이면 거의 100%
+  - 제단 보너스는 고유 효과만 남김: 바람은 회피 15%, 대지는 최대 HP +40·방어력 +4, 불은 공격력 +6. 공통으로 주던 +30 HP, +5 공격, +3 방어는 없앰(레벨업과 겹쳤기 때문)
+  - 전투에서 이기면 MP +2 회복(`combat.VICTORY_MP`). 그전에는 MP를 회복할 방법이 레벨업뿐이었음
+  - 던전마다 적 구성이 다름(`SHRINE_DUNGEONS[...]["monsters"]`)
+  - 보스 HP: 하피 160, 골렘 260, 리자드맨 300, 말포스 580. 필드 적 HP는 약 20% 올림. 일반 적 경험치는 약 25% 올림
+  - 시뮬레이터 실행: `.venv\Scripts\python.exe tools\balance_sim.py [지역당 전투 수] [반복 횟수]`
+
 ## 릴리즈 기록
+- **v0.10.0:** 전투 밸런스를 다시 조정함. 제단 보너스는 고유 효과만 남김, 승리 시 MP +2, 던전별 적 구성, 보스 강화. `tools/balance_sim.py` 추가
 - **v0.9.2:** 예전 세이브의 위치를 현재 맵에 맞게 자동 보정. 세이브에 `layout_version`을 저장함
 - **v0.9.1:** 상점 테두리를 나무 프레임으로 통일. 남쪽 화산 필드를 위에서 아래로 내려가는 구조로 뒤집음
 - **v0.9.0:** 주인공 방향별 4프레임 걷기, NPC 숨쉬기·눈 깜빡임, 적 대기 동작(위 절 참고)
@@ -111,15 +121,6 @@
   - 크기 25×16은 손으로 짠 미로 구조라 그대로 유지
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
-
-## 미릴리즈 변경 (다음 릴리즈에 포함)
-- 전투 밸런스 조정. 숫자는 `tools/balance_sim.py`로 시뮬레이션해서 정함
-  - 목표: 필드 전투 3~4턴, 보스전 10~15턴. 지역당 4번 싸우면 보스 승률 약 85%, 5번 이상이면 거의 100%
-  - 제단 보너스는 고유 효과만 남김: 바람은 회피 15%, 대지는 최대 HP +40·방어력 +4, 불은 공격력 +6. 공통으로 주던 +30 HP, +5 공격, +3 방어는 없앰(레벨업과 겹쳤기 때문)
-  - 전투에서 이기면 MP +2 회복(`combat.VICTORY_MP`). 그전에는 MP를 회복할 방법이 레벨업뿐이었음
-  - 던전마다 적 구성이 다름(`SHRINE_DUNGEONS[...]["monsters"]`)
-  - 보스 HP: 하피 160, 골렘 260, 리자드맨 300, 말포스 580. 필드 적 HP는 약 20% 올림. 일반 적 경험치는 약 25% 올림
-  - 시뮬레이터 실행: `.venv\Scripts\python.exe tools\balance_sim.py [지역당 전투 수] [반복 횟수]`
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음

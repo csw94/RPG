@@ -5,7 +5,7 @@ Usage (from the project root):
 
 Each region: ~60% field fights, ~40% shrine-dungeon fights, then the shop, then the boss.
 A simple player AI drinks potions when low and casts the best affordable attack skill.
-Targets (v0.9.3): field fights 3-4 turns; bosses ~10-15 turns; with 4 fights per region
+Targets (v0.10.0): field fights 3-4 turns; bosses ~10-15 turns; with 4 fights per region
 bosses are won ~85% of the time, with 5+ almost always.
 """
 import os
