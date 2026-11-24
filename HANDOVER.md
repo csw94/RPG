@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.14.1)
+# HANDOVER — Chronicles of Pixel (v0.15.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.14.1 (태그 `v0.14.1`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.14.1 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.15.0 (태그 `v0.15.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.15.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 194개 모두 통과 (미릴리즈 변경 포함 시 227개): `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 227개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -114,7 +114,26 @@
   - 주인공은 제단 주변(`HERO_ZONE`), 남쪽 문 근처, 맨 위 울타리 바로 아래에 있을 때만 다시 그림
   - 테스트: `tests/test_shrine_clearing_depth.py`
 
+## CI·별빛 심연·지도·서브퀘스트 (v0.15.0)
+- CI와 릴리즈 자동화(`.github/workflows/ci.yml`, `release.yml`, `tools/release_notes.py`)
+  - `main`에 푸시할 때마다 테스트가 돌아감
+  - 태그를 푸시하면 테스트 → EXE 빌드 → 릴리즈 순서로 진행함. 릴리즈 노트는 이 파일의 "릴리즈 기록" 줄(`- **vX.Y.Z:** ...`)에서 가져오므로, **태그를 만들기 전에 릴리즈 기록을 먼저 적을 것**
+  - Python은 로컬과 같은 3.14. `test_release_tooling`이 버전이 같은지 검사함
+- 엔딩 후 던전 별빛 심연(`POSTGAME_DUNGEONS["shrine_abyss"]`, 3층)
+  - `DUNGEONS = SHRINE_DUNGEONS + POSTGAME_DUNGEONS`. 층 수는 `floors`, 층별 상자는 `floor_chests`로 정함. 층이 3개 이상인 던전에서는 EXIT가 위층, STAIRS가 아래층으로 이어짐
+  - 입구는 북쪽 제단. 최종 보스를 쓰러뜨린 뒤 제단을 조사하면 `enter_abyss`가 실행됨. 제단 공터로 나올 때는 `return_pos`에 놓임
+  - 적 3종과 보스 `abyss_lord`는 기존 그림을 `_abyssal()`로 보랏빛으로 바꾼 것. 보스 패턴 `abyss`는 3턴마다 52 고정 피해
+  - 보상: 2층 상자 `accessory:star_amulet`, 보스 처치 시 `abyss_crown` + 500G. 플래그는 `quest_flags["abyss_lord"]`
+  - 시뮬레이션(본편을 지역당 5회씩 싸우고 클리어, 용비늘 갑옷·힘의 팔찌 장착 가정): 층마다 2번 싸우면 보스 승률 약 45%, 4번이면 약 90%
+- 지도 페이지와 다음 목표
+  - 상태 화면에서 ←→로 기록과 지도를 오감(`StatusScene.page`)
+  - 장면마다 `map_markers()`로 표시할 지점을 넘겨줌. 다음 목표는 `gameplay/objectives.py`의 `next_objective`
+- 서브퀘스트 3개 추가: 숲의 사냥꾼(광장 주민, 숲늑대 4), 용암석 수집(로건, 제단을 하나 정화한 뒤, 마그마 슬라임 3), 동굴 소탕(가렌, 옛 검 부탁을 마친 뒤, 동굴 박쥐 4)
+  - 처치 수를 세는 부탁은 `KILL_QUESTS` 표에, 보상은 `QUEST_REWARDS` 표에 있음
+  - 보상 장신구: 늑대 송곳니 부적(치명타 +10%), 용암석 팔찌(공격 +3, 화상 면역), 수호자의 훈장(방어 +5). 이제 장신구가 치명타와 방어력도 올릴 수 있음
+
 ## 릴리즈 기록
+- **v0.15.0:** 엔딩 후 도전 던전 「별빛 심연」(3층, 숨겨진 보스와 전용 장신구), 상태 화면의 지도 페이지와 다음 목표 안내, 마을 부탁 3개 추가(전용 장신구 보상), CI 자동 테스트와 릴리즈 노트 자동화
 - **v0.14.1:** 북쪽 제단에서 주인공이 제단·기둥에 가려지던 문제 수정(깊이 순서로 그리기)
 - **v0.14.0:** 장비 다양화. 속성 무기 3종, 방어구 2종, 장신구 칸과 장신구 4종, 탭으로 나뉜 상점, 제단 진행도에 따라 늘어나는 상품
 - **v0.13.0:** 타이틀의 조작법 화면, 설정 화면(음량·화면 크기·전체 화면), README 갱신
@@ -187,24 +206,6 @@
   - 크기 25×16은 손으로 짠 미로 구조라 그대로 유지
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
-
-## 미릴리즈 변경 (다음 릴리즈에 포함)
-- CI와 릴리즈 자동화(`.github/workflows/ci.yml`, `release.yml`, `tools/release_notes.py`)
-  - `main`에 푸시할 때마다 테스트가 돌아감
-  - 태그를 푸시하면 테스트 → EXE 빌드 → 릴리즈 순서로 진행함. 릴리즈 노트는 이 파일의 "릴리즈 기록" 줄(`- **vX.Y.Z:** ...`)에서 가져오므로, **태그를 만들기 전에 릴리즈 기록을 먼저 적을 것**
-  - Python은 로컬과 같은 3.14. `test_release_tooling`이 버전이 같은지 검사함
-- 엔딩 후 던전 별빛 심연(`POSTGAME_DUNGEONS["shrine_abyss"]`, 3층)
-  - `DUNGEONS = SHRINE_DUNGEONS + POSTGAME_DUNGEONS`. 층 수는 `floors`, 층별 상자는 `floor_chests`로 정함. 층이 3개 이상인 던전에서는 EXIT가 위층, STAIRS가 아래층으로 이어짐
-  - 입구는 북쪽 제단. 최종 보스를 쓰러뜨린 뒤 제단을 조사하면 `enter_abyss`가 실행됨. 제단 공터로 나올 때는 `return_pos`에 놓임
-  - 적 3종과 보스 `abyss_lord`는 기존 그림을 `_abyssal()`로 보랏빛으로 바꾼 것. 보스 패턴 `abyss`는 3턴마다 52 고정 피해
-  - 보상: 2층 상자 `accessory:star_amulet`, 보스 처치 시 `abyss_crown` + 500G. 플래그는 `quest_flags["abyss_lord"]`
-  - 시뮬레이션(본편을 지역당 5회씩 싸우고 클리어, 용비늘 갑옷·힘의 팔찌 장착 가정): 층마다 2번 싸우면 보스 승률 약 45%, 4번이면 약 90%
-- 지도 페이지와 다음 목표
-  - 상태 화면에서 ←→로 기록과 지도를 오감(`StatusScene.page`)
-  - 장면마다 `map_markers()`로 표시할 지점을 넘겨줌. 다음 목표는 `gameplay/objectives.py`의 `next_objective`
-- 서브퀘스트 3개 추가: 숲의 사냥꾼(광장 주민, 숲늑대 4), 용암석 수집(로건, 제단을 하나 정화한 뒤, 마그마 슬라임 3), 동굴 소탕(가렌, 옛 검 부탁을 마친 뒤, 동굴 박쥐 4)
-  - 처치 수를 세는 부탁은 `KILL_QUESTS` 표에, 보상은 `QUEST_REWARDS` 표에 있음
-  - 보상 장신구: 늑대 송곳니 부적(치명타 +10%), 용암석 팔찌(공격 +3, 화상 면역), 수호자의 훈장(방어 +5). 이제 장신구가 치명타와 방어력도 올릴 수 있음
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
