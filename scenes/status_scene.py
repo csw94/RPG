@@ -231,7 +231,8 @@ class StatusScene(BaseScene):
     # --- record page ------------------------------------------------------------------
     def _draw_record(self, surface):
         f, colors = self.field, self.game.colors
-        self.text(surface, "수호자의 기록", (230, 44), 28, colors["gold"], True)
+        title = "수호자의 기록" + (f" · {f.cycle}회차" if f.cycle > 1 else "")
+        self.text(surface, title, (230, 44), 26, colors["gold"], True)
 
         # Left: portrait and core stats.
         card = ui.frame(surface, pygame.Rect(40, 72, 230, 444), "parchment")

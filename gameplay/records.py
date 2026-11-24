@@ -14,7 +14,9 @@ def slot_summary(state):
     """Three short lines for a save slot: level and time, seals, and ending/notes."""
     flags = state.get("quest_flags", {}) or {}
     seals = sum(1 for key in SHRINES if flags.get(key))
-    lines = [f"레벨 {state.get('level', 1)} · {format_play_time(state.get('play_time', 0))}",
+    cycle = int(state.get("cycle", 1))
+    prefix = f"{cycle}회차 · " if cycle > 1 else ""
+    lines = [f"{prefix}레벨 {state.get('level', 1)} · {format_play_time(state.get('play_time', 0))}",
              f"인장 {seals}/{len(SHRINES)} · {DIFFICULTIES.get(state.get('difficulty'), DIFFICULTIES['normal'])['name']}"]
     if flags.get("abyss_lord"):
         lines.append("★ 엔딩 · 심연 정복")

@@ -320,7 +320,7 @@ class BattleEngine:
         reward = field.resolve_battle_victory(self.enemy["id"])
         if self.enemy["id"] == "final_boss":
             field.pending_epilogue = True
-        xp = self.enemy.get("xp", 0)
+        xp = round(self.enemy.get("xp", 0) * self.difficulty.get("xp", 1.0))
         if xp:
             self._emit(events, type="xp", amount=xp, text=f"{reward} · 경험치 +{xp}")
             for up in field.gain_xp(xp):

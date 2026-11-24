@@ -207,7 +207,9 @@ class HouseInteriorScene(FieldScene):
         cleared = sum(self.quest_flags[key] for key in SHRINES)
         if self.quest_flags["final_boss"]:
             self.show_dialogue(["오크밸리의 수호 기사여, 그대 덕분에 별빛 결계가 다시 빛나고 있네.",
-                                "언제든 마을에 들러 쉬어 가게."])
+                                "...그런데 먼 땅의 결계들도 흔들린다는 소식이 들려오는군.",
+                                "더 강해진 그대라면, 처음부터 다시 새 여정을 떠나 보겠나?"],
+                               action="offer_new_game_plus")
         elif not self.quest_flags["prologue_done"]:
             self.quest_flags["prologue_done"] = 1
             if "rusty_sword" not in self.owned_weapons:

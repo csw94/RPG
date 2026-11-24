@@ -46,6 +46,7 @@ class FieldScene(BaseScene):
         self.level = int(state.get("level", 1))
         self.xp = int(state.get("xp", 0))
         self.play_time = float(state.get("play_time", 0))
+        self.cycle = max(1, int(state.get("cycle", 1)))  # new game plus round
         self.autosave_flash = 0.0  # seconds left to show the "자동 저장됨" notice
         from gameplay.achievements import ACHIEVEMENTS
         self.achievements = {a for a in state.get("achievements", ()) if a in ACHIEVEMENTS}
@@ -337,7 +338,7 @@ class FieldScene(BaseScene):
         }
         opened_by_world[self.world] = [list(position) for position in sorted(self.opened)]
         return {**self.player, "world": self.world, "layout_version": LAYOUT_VERSION,
-                "play_time": round(self.play_time, 1), "stats": dict(self.stats), "difficulty": self.difficulty,
+                "play_time": round(self.play_time, 1), "stats": dict(self.stats), "difficulty": self.difficulty, "cycle": self.cycle,
                 "bestiary": dict(self.bestiary), "achievements": sorted(self.achievements),
                 "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
@@ -434,6 +435,16 @@ class FieldScene(BaseScene):
             return
         if action and action.startswith("complete_subquest:"):
             self._complete_sidequest(action.split(":", 1)[1])
+            return
+        if action == "offer_new_game_plus":
+            from scenes.confirm_scene import ConfirmScene
+            self.game.scene = ConfirmScene(
+                self.game, self, f"새 여정 ({self.cycle + 1}회차)",
+                ["레벨·장비·골드·도감·업적은 그대로 이어집니다.",
+                 "제단과 부탁은 처음부터 다시, 적은 한층 강해집니다.",
+                 "지금 세이브 슬롯에 덮어씁니다. 시작할까요?"],
+                self.game.start_new_game_plus)
+            self.game.scene_name = "confirm"
             return
         if action == "enter_abyss":
             from scenes.dungeon_scene import POSTGAME_DUNGEONS

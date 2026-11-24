@@ -194,6 +194,15 @@ class Game:
         self.scene_name = "battle"
         self.scene = BattleScene(self, enemy_type)
 
+    def start_new_game_plus(self):
+        """Begin the next cycle in the same slot, carrying the hero over."""
+        from gameplay.new_game_plus import new_game_plus_state
+
+        self.field = self._create_world(new_game_plus_state(self.field.serialize()))
+        self.scene_name, self.scene = self.field.world, self.field
+        self.field.message = f"{self.field.cycle}회차 모험이 시작되었습니다. 촌장님께 인사드리고 떠나세요."
+        self.save_game()
+
     def retry_battle(self, snapshot, enemy_type):
         """After a defeat: restore the pre-battle state and fight the same enemy again."""
         self.field = self._create_world(snapshot)
