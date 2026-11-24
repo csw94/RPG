@@ -47,6 +47,9 @@ class FieldScene(BaseScene):
         self.max_mp = int(state.get("max_mp", 10))
         self.level = int(state.get("level", 1))
         self.xp = int(state.get("xp", 0))
+        self.play_time = float(state.get("play_time", 0))
+        saved_stats = state.get("stats") or {}
+        self.stats = {key: int(saved_stats.get(key, 0)) for key in ("wins", "losses", "flees")}
         self.potions = int(state.get("potions", 0))
         self.high_potions = int(state.get("high_potions", 0))
         self.gold = int(state.get("gold", 0))
@@ -329,6 +332,7 @@ class FieldScene(BaseScene):
         }
         opened_by_world[self.world] = [list(position) for position in sorted(self.opened)]
         return {**self.player, "world": self.world, "layout_version": LAYOUT_VERSION,
+                "play_time": round(self.play_time, 1), "stats": dict(self.stats),
                 "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
                 "potions": self.potions, "high_potions": self.high_potions, "gold": self.gold,

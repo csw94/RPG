@@ -6,6 +6,7 @@ import pygame
 
 from utils import ui
 
+from gameplay.records import format_play_time
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils.pixel_art import NPC_SIZE, sprite
 
@@ -91,6 +92,16 @@ class EpilogueScene:
         self.clock += dt
         if self.card:
             self.card_clock += dt
+
+    def record_rows(self):
+        f = self.field
+        done = sum(q["status"] == "COMPLETED" for q in f.sub_quests.values())
+        return [
+            ("레벨", f"Lv.{f.level}"), ("플레이 시간", format_play_time(f.play_time)),
+            ("공격력", f.attack_power), ("방어력", f.defense_power),
+            ("전투 승리", f"{f.stats['wins']}회"), ("마을의 부탁", f"{done} / {len(f.sub_quests)}"),
+            ("금화", f"{f.gold} G"), ("최대 HP", f.max_hp),
+        ]
 
     # --- drawing --------------------------------------------------------------
     def text(self, surface, value, pos, size=18, color=None, center=False):
@@ -203,22 +214,17 @@ class EpilogueScene:
         self.text(surface, "견습 기사는 오크밸리의 수호 기사가 되었다.", (WIDTH // 2, 222), 18, cream, True)
 
         f = self.field
-        done = sum(q["status"] == "COMPLETED" for q in f.sub_quests.values())
-        stats = [
-            ("레벨", f"Lv.{f.level}"), ("최대 HP", f.max_hp),
-            ("공격력", f.attack_power), ("방어력", f.defense_power),
-            ("금화", f"{f.gold} G"), ("마을의 부탁", f"{done} / {len(f.sub_quests)}"),
-        ]
-        panel = pygame.Rect(210, 262, 380, 150)
+        stats = self.record_rows()
+        panel = pygame.Rect(180, 250, 440, 182)
         pygame.draw.rect(surface, tuple(round(c * fade) for c in colors["panel"]), panel)
         pygame.draw.rect(surface, gold, panel, 2)
         for i, (label, value) in enumerate(stats):
             col, row = i % 2, i // 2
-            x, y = panel.x + 22 + col * 190, panel.y + 22 + row * 42
+            x, y = panel.x + 24 + col * 214, panel.y + 18 + row * 40
             self.text(surface, label, (x, y), 16, muted)
             self.text(surface, value, (x + 96, y - 2), 19, cream)
         if "knights_crest" in f.quest_items:
-            self.text(surface, "기사의 휘장을 가슴에 단 채", (WIDTH // 2, 438), 16, muted, True)
-        self.text(surface, "THE END", (WIDTH // 2, 482), 30, gold, True)
+            self.text(surface, "기사의 휘장을 가슴에 단 채", (WIDTH // 2, 452), 16, muted, True)
+        self.text(surface, "THE END", (WIDTH // 2, 492), 30, gold, True)
         if self.card_clock > 0.6:
             self.text(surface, "SPACE / Enter  마을로 돌아가기", (WIDTH // 2, 548), 16, muted, True)

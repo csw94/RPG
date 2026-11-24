@@ -214,6 +214,7 @@ class BattleEngine:
                 self._emit(events, type="message", text="보스의 압도적인 기운에 도망칠 수 없다!")
                 return events
             self.result = "flee"
+            self._tally("flees")
             self._emit(events, type="flee", text="전투에서 도망쳤다.")
             return events
         else:
@@ -241,6 +242,11 @@ class BattleEngine:
         if field.hp <= 0:
             return self._lose(events)
         return events
+
+    def _tally(self, key):
+        stats = getattr(self.field, "stats", None)
+        if stats is not None:
+            stats[key] = stats.get(key, 0) + 1
 
     def _check_phase(self, events):
         if self.enemy["id"] != "final_boss" or self.phase != 1 or self.enemy_hp > self.enemy_max_hp // 2:
@@ -298,6 +304,7 @@ class BattleEngine:
     def _win(self, events):
         field = self.field
         self.result = "win"
+        self._tally("wins")
         self.enemy_hp = 0
         self._emit(events, type="defeat", target="enemy", text=f"{self.enemy['name']} 격파!")
         field.mp = min(field.max_mp, field.mp + VICTORY_MP + field.accessory_info.get("victory_mp", 0))
@@ -320,6 +327,7 @@ class BattleEngine:
 
         field = self.field
         self.result = "lose"
+        self._tally("losses")
         field.hp = max(1, field.max_hp // 2)
         self.statuses["hero"].clear()
         field.player.update(x=float(VillageScene.START[0]), y=float(VillageScene.START[1]))

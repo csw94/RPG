@@ -2,6 +2,7 @@
 
 import pygame
 
+from gameplay.records import slot_summary
 from utils import title_art, ui
 from scenes.base_scene import BaseScene
 from utils.pixel_art import sprite
@@ -171,12 +172,12 @@ class TitleScene(BaseScene):
             self._draw_crest(surface, (rect.centerx, rect.top + 49), small=True)
             self.text(surface, label, (rect.centerx, rect.top + 92), 20, self.game.colors["gold"], True)
             if state:
-                self.text(surface, f"레벨 {state.get('level', 1)}", (rect.centerx, rect.top + 126), 18,
-                          self.game.colors["cream"], True)
-                self.text(surface, f"HP {state.get('hp', 0)}/{state.get('max_hp', 0)}", (rect.centerx, rect.top + 153), 16,
-                          self.game.colors["cream"], True)
-                self.text(surface, f"금화 {state.get('gold', 0)} · 포션 {state.get('potions', 0)}", (rect.centerx, rect.top + 178), 15,
-                          self.game.colors["muted"], True)
+                first, second, third = slot_summary(state)
+                self.text(surface, first, (rect.centerx, rect.top + 126), 17, self.game.colors["cream"], True)
+                self.text(surface, second, (rect.centerx, rect.top + 153), 15, self.game.colors["cream"], True)
+                ending = third.startswith("★")
+                self.text(surface, third, (rect.centerx, rect.top + 178), 15,
+                          self.game.colors["gold"] if ending else self.game.colors["muted"], True)
             else:
                 self.text(surface, "빈 슬롯", (rect.centerx, rect.top + 149), 18, self.game.colors["muted"], True)
         self.button(surface, pygame.Rect(328, 492, 144, 42), "뒤로", False, 18)

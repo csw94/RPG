@@ -153,6 +153,11 @@ class Game:
             self.window.blit(pygame.transform.scale(self.canvas, self.view.size), self.view.topleft)
         pygame.display.flip()
 
+    def count_play_time(self, dt):
+        """Play time grows while an adventure is open (not on the title screen)."""
+        if getattr(self, "field", None) is not None and self.scene_name != "title":
+            self.field.play_time += dt
+
     def open_status(self):
         self.audio.play("cursor")
         self.scene_name = "status"
@@ -202,6 +207,7 @@ class Game:
                     self.audio.toggle_mute()
             self.scene.handle_events(events)
             self.scene.update(dt)
+            self.count_play_time(dt)
             enemy = getattr(self.scene, "enemy", None) if self.scene_name == "battle" else None
             track = getattr(self.scene, "music_track", None)
             self.audio.update(track or music_for(self.scene_name, enemy["id"] if enemy else None))
