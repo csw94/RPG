@@ -207,6 +207,9 @@ class VillageScene(FieldScene):
                                 f"요즘 손님들 사이에 이런 소문이 돌아요. \"{self.inn_rumour()}\""],
                                action="inn_offer")
             return
+        if name == "smithy":
+            self.show_dialogue(["대장장이 브론: 흠, 좋은 장비로군. 더 단단하게 두드려 주지."], action="open_smithy")
+            return
         if name == "apothecary":
             self.show_dialogue(["약사 미라: 어서 오세요! 오늘 끓인 물약이 아주 잘 됐어요."],
                                action="open_apothecary")

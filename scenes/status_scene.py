@@ -251,11 +251,12 @@ class StatusScene(BaseScene):
             ui.bar(surface, pygame.Rect(card.x + 12, y + 20, card.width - 24, 10), value, maximum, color)
             y += 38
         weapon, armor, accessory = f.weapon_info, f.armor_info, f.accessory_info
-        attack_detail = f"기본 {f.atk} + 무기 {weapon['attack']}"
+        attack_detail = f"기본 {f.atk} + 무기 {weapon['attack'] + 3 * f.upgrades.get(f.weapon, 0)}"
         if accessory.get("attack"):
             attack_detail += f" + 장신구 {accessory['attack']}"
         for label, total, detail in (("공격력", f.attack_power, attack_detail),
-                                     ("방어력", f.defense_power, f"기본 {f.defense} + 방어구 {armor['defense']}")):
+                                     ("방어력", f.defense_power,
+                                      f"기본 {f.defense} + 방어구 {armor['defense'] + 2 * f.upgrades.get(f.armor, 0)}")):
             self._ink(surface, label, (card.x + 12, y), 15)
             self._ink(surface, str(total), (card.right - 12, y), 17, right=True)
             self._ink(surface, detail, (card.x + 12, y + 19), 12, soft=True)
@@ -266,9 +267,10 @@ class StatusScene(BaseScene):
         # Right top: gear and items.
         gear = ui.frame(surface, pygame.Rect(286, 72, 474, 124), "parchment")
         self._ink(surface, "장비 · 소지품", (gear.x + 12, gear.y + 6), 16)
-        self._ink(surface, f"무기  {weapon['name']} ({weapon['desc'] if weapon.get('element') else '공격 +' + str(weapon['attack'])})",
+        forged = lambda item_id: f" +{f.upgrades[item_id]}" if f.upgrades.get(item_id) else ""
+        self._ink(surface, f"무기  {weapon['name']}{forged(f.weapon)} ({weapon['desc'] if weapon.get('element') else '공격 +' + str(weapon['attack'])})",
                   (gear.x + 12, gear.y + 28), 13)
-        self._ink(surface, f"방어구  {armor['name']} (방어 +{armor['defense']})", (gear.x + 12, gear.y + 45), 13)
+        self._ink(surface, f"방어구  {armor['name']}{forged(f.armor)} (방어 +{armor['defense']})", (gear.x + 12, gear.y + 45), 13)
         self._ink(surface, "장신구  " + (f"{accessory['name']} ({accessory['desc']})" if accessory else "없음"),
                   (gear.x + 12, gear.y + 62), 13, soft=not accessory)
         ui.coin(surface, (gear.right - 90, gear.y + 15))

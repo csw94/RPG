@@ -64,6 +64,9 @@ class FieldScene(BaseScene):
         self.stats = {key: int(saved_stats.get(key, 0)) for key in ("wins", "losses", "flees")}
         self.potions = int(state.get("potions", 0))
         self.high_potions = int(state.get("high_potions", 0))
+        # Smithy upgrades: item id -> +level (1-3), kept per item.
+        self.upgrades = {key: max(1, min(3, int(value))) for key, value in (state.get("upgrades") or {}).items()
+                         if (key in WEAPONS or key in ARMORS) and int(value) > 0}
         # Newer consumables (mana potions, antidotes, elixirs); potions keep their own fields.
         self.items = {key: int(value) for key, value in (state.get("items") or {}).items()
                       if key in CONSUMABLES and "attr" not in CONSUMABLES[key] and int(value) > 0}
@@ -348,7 +351,7 @@ class FieldScene(BaseScene):
         return {**self.player, "world": self.world, "layout_version": LAYOUT_VERSION,
                 "play_time": round(self.play_time, 1), "stats": dict(self.stats), "difficulty": self.difficulty, "cycle": self.cycle,
                 "bestiary": dict(self.bestiary), "achievements": sorted(self.achievements),
-                "items": dict(self.items),
+                "items": dict(self.items), "upgrades": dict(self.upgrades),
                 "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
                 "potions": self.potions, "high_potions": self.high_potions, "gold": self.gold,
@@ -417,11 +420,13 @@ class FieldScene(BaseScene):
 
     @property
     def attack_power(self):
-        return self.atk + self.weapon_info["attack"] + self.accessory_info.get("attack", 0)
+        return (self.atk + self.weapon_info["attack"] + self.accessory_info.get("attack", 0)
+                + 3 * self.upgrades.get(self.weapon, 0))
 
     @property
     def defense_power(self):
-        return self.defense + self.armor_info["defense"] + self.accessory_info.get("defense", 0)
+        return (self.defense + self.armor_info["defense"] + self.accessory_info.get("defense", 0)
+                + 2 * self.upgrades.get(self.armor, 0))
 
     @property
     def evasion(self):
@@ -517,6 +522,9 @@ class FieldScene(BaseScene):
             self.game.enter_world("shrine_abyss_1f", POSTGAME_DUNGEONS["shrine_abyss"]["spawn"])
         elif action == "open_shop":
             self.game.open_shop()
+        elif action == "open_smithy":
+            from scenes.smithy_scene import SmithyScene
+            self.game.scene, self.game.scene_name = SmithyScene(self.game, self), "smithy"
         elif action == "open_apothecary":
             self.game.open_shop("mira")
         elif action == "inn_offer":
