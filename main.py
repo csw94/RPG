@@ -123,9 +123,9 @@ class Game:
         self.scene_name, self.scene = self.field.world, self.field
         self.save_game()
 
-    def open_shop(self):
+    def open_shop(self, shop="logan"):
         self.scene_name = "shop"
-        self.scene = ShopScene(self)
+        self.scene = ShopScene(self, shop)
 
     def apply_display(self, mode):
         """Resize the window (or go fullscreen); unknown or oversized modes fall back to 1x."""

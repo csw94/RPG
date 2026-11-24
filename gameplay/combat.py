@@ -201,6 +201,9 @@ class BattleEngine:
             else:
                 self.guarding = True
                 self._emit(events, type="guard", target="hero", text="방패를 굳게 세웠다.")
+        elif action == "item" and skill_id:
+            if not self._use_item(events, skill_id):
+                return events
         elif action == "item":
             if field.potions > 0:
                 field.potions -= 1
@@ -248,6 +251,28 @@ class BattleEngine:
         if field.hp <= 0:
             return self._lose(events)
         return events
+
+    def _use_item(self, events, item_id):
+        """Use one consumable chosen from the battle item menu. False when it can't be used."""
+        from gameplay.equipment import CONSUMABLES
+
+        field, info = self.field, CONSUMABLES.get(item_id)
+        if not info or not field.take_item(item_id):
+            self._emit(events, type="message", text="사용할 아이템이 없습니다.")
+            return False
+        self._emit(events, type="message", text=f"{info['name']}을(를) 사용했다.")
+        if info.get("heal"):
+            amount = min(info["heal"], field.max_hp - field.hp)
+            field.hp += amount
+            self._emit(events, type="heal", target="hero", amount=amount, text=f"HP {amount} 회복.")
+        if info.get("mp"):
+            gained = min(info["mp"], field.max_mp - field.mp)
+            field.mp += gained
+            self._emit(events, type="message", text=f"MP {gained} 회복.")
+        if info.get("cure"):
+            self.statuses["hero"].clear()
+            self._emit(events, type="message", text="몸이 가벼워졌다. 상태이상이 모두 나았다.")
+        return True
 
     def _tally(self, key):
         stats = getattr(self.field, "stats", None)

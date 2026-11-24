@@ -11,7 +11,7 @@ from utils import ui
 from gameplay.save_migration import LAYOUT_VERSION
 from utils.pixel_art import NPC_SIZE, hero_sprite, walk_frame, sprite, tile_noise, npc_sprite
 from gameplay.enemies import ENEMIES
-from gameplay.equipment import ACCESSORIES, ARMORS, WEAPONS
+from gameplay.equipment import ACCESSORIES, ARMORS, CONSUMABLES, WEAPONS
 from gameplay.difficulty import DIFFICULTIES, difficulty_of
 from gameplay.quests import QUESTS, kill_quests
 from gameplay.world_data import FIELD_ROUTES, SHRINES
@@ -64,6 +64,9 @@ class FieldScene(BaseScene):
         self.stats = {key: int(saved_stats.get(key, 0)) for key in ("wins", "losses", "flees")}
         self.potions = int(state.get("potions", 0))
         self.high_potions = int(state.get("high_potions", 0))
+        # Newer consumables (mana potions, antidotes, elixirs); potions keep their own fields.
+        self.items = {key: int(value) for key, value in (state.get("items") or {}).items()
+                      if key in CONSUMABLES and "attr" not in CONSUMABLES[key] and int(value) > 0}
         self.gold = int(state.get("gold", 0))
         self.atk = int(state.get("atk", 15))
         self.defense = int(state.get("defense", state.get("def", 5)))
@@ -345,6 +348,7 @@ class FieldScene(BaseScene):
         return {**self.player, "world": self.world, "layout_version": LAYOUT_VERSION,
                 "play_time": round(self.play_time, 1), "stats": dict(self.stats), "difficulty": self.difficulty, "cycle": self.cycle,
                 "bestiary": dict(self.bestiary), "achievements": sorted(self.achievements),
+                "items": dict(self.items),
                 "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
                 "potions": self.potions, "high_potions": self.high_potions, "gold": self.gold,
@@ -369,6 +373,34 @@ class FieldScene(BaseScene):
         if self.toby_position:
             markers.append(("npc", self.toby_position))
         return markers
+
+    # --- consumables -------------------------------------------------------------------
+    def item_count(self, item_id):
+        attr = CONSUMABLES[item_id].get("attr")
+        return getattr(self, attr) if attr else self.items.get(item_id, 0)
+
+    def item_cap(self, item_id):
+        return CONSUMABLES[item_id].get("cap", 10)
+
+    def add_item(self, item_id, amount=1):
+        count = min(self.item_cap(item_id), self.item_count(item_id) + amount)
+        attr = CONSUMABLES[item_id].get("attr")
+        if attr:
+            setattr(self, attr, count)
+        else:
+            self.items[item_id] = count
+
+    def take_item(self, item_id):
+        if self.item_count(item_id) <= 0:
+            return False
+        attr = CONSUMABLES[item_id].get("attr")
+        if attr:
+            setattr(self, attr, getattr(self, attr) - 1)
+        else:
+            self.items[item_id] -= 1
+            if not self.items[item_id]:
+                del self.items[item_id]
+        return True
 
     # --- equipment ---------------------------------------------------------------------
     @property
@@ -485,6 +517,14 @@ class FieldScene(BaseScene):
             self.game.enter_world("shrine_abyss_1f", POSTGAME_DUNGEONS["shrine_abyss"]["spawn"])
         elif action == "open_shop":
             self.game.open_shop()
+        elif action == "open_apothecary":
+            self.game.open_shop("mira")
+        elif action == "inn_offer":
+            from scenes.confirm_scene import ConfirmScene
+            self.game.scene = ConfirmScene(self.game, self, f"하룻밤 묵을까요? ({self.inn_price()}G)",
+                                           ["푹 자고 나면 HP와 MP가 모두 회복됩니다.",
+                                            f"가진 금화: {self.gold}G"], self.rest_at_inn)
+            self.game.scene_name = "confirm"
         elif action == "final_boss":
             self.game.start_battle("final_boss")
         elif action == "epilogue":

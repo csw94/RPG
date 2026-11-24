@@ -20,7 +20,7 @@ STATUS_COLORS = {"poison": (150, 96, 190), "burn": (230, 110, 54), "stun": (230,
 
 
 class BattleScene(BaseScene):
-    ACTIONS = ("공격", "스킬", "포션", "도망")
+    ACTIONS = ("공격", "스킬", "아이템", "도망")
 
     def __init__(self, game, enemy_type="slime", rng=None):
         super().__init__(game)
@@ -31,6 +31,7 @@ class BattleScene(BaseScene):
         self.enemy = self.engine.enemy
         self.selected = 0
         self.skill_index = 0
+        self.item_index = 0
         self.mode = "menu"            # menu | skills | playing | done
         self.queue = []
         self.current = None
@@ -58,6 +59,14 @@ class BattleScene(BaseScene):
     def skill_list(self):
         return self.engine.available_skills()
 
+    def item_list(self):
+        """(id, info, count) for every consumable the hero carries."""
+        from gameplay.equipment import CONSUMABLES
+
+        field = self.game.field
+        return [(item_id, info, field.item_count(item_id)) for item_id, info in CONSUMABLES.items()
+                if field.item_count(item_id) > 0]
+
     # --- input ----------------------------------------------------------------------
     def handle_events(self, events):
         for event in events:
@@ -80,6 +89,16 @@ class BattleScene(BaseScene):
         elif self.mode == "playing":
             if confirm:
                 self.event_timer = 0  # skip ahead
+        elif self.mode == "items":
+            items = self.item_list()
+            if back or not items:
+                self.mode = "menu"
+                self.sfx("cursor")
+            elif step:
+                self.item_index = (self.item_index + step) % len(items)
+                self.sfx("cursor")
+            elif confirm:
+                self._run("item", items[self.item_index][0])
         elif self.mode == "skills":
             skills = self.skill_list()
             if back:
@@ -106,6 +125,12 @@ class BattleScene(BaseScene):
                         self._leave()
                 return
             self._leave()
+        elif self.mode == "items":
+            for index, rect in enumerate(self._grid_buttons(len(self.item_list()))):
+                if rect.collidepoint(pos):
+                    self.item_index = index
+                    self._run("item", self.item_list()[index][0])
+                    return
         elif self.mode == "skills":
             for index, rect in enumerate(self._skill_buttons()):
                 if rect.collidepoint(pos):
@@ -126,6 +151,15 @@ class BattleScene(BaseScene):
             self.game.finish_battle()
 
     def _choose(self):
+        if self.selected == 2:
+            if not self.item_list():
+                self.lines = (self.lines + ["사용할 아이템이 없습니다."])[-3:]
+                self.sfx("cursor")
+                return
+            self.sfx("confirm")
+            self.mode = "items"
+            self.item_index = 0
+            return
         if self.selected == 1:
             self.sfx("confirm")
             self.mode = "skills"
@@ -242,6 +276,10 @@ class BattleScene(BaseScene):
     def _defeat_buttons(self):
         return [pygame.Rect(250 + i * 160, 470, 140, 44) for i in range(2)]
 
+    @staticmethod
+    def _grid_buttons(count):
+        return [pygame.Rect(26 + (i % 4) * 188, 446 + (i // 4) * 56, 180, 46) for i in range(count)]
+
     def _skill_buttons(self):
         return [pygame.Rect(26 + (i % 4) * 188, 446 + (i // 4) * 56, 180, 46)
                 for i in range(len(self.skill_list()))]
@@ -342,7 +380,13 @@ class BattleScene(BaseScene):
             latest = index == len(recent) - 1
             self.text(surface, line, (400, 402 + index * 22), 18,
                       self.game.colors["gold"] if latest else self.game.colors["muted"], True)
-        if self.mode == "skills":
+        if self.mode == "items":
+            items = self.item_list()
+            for index, ((item_id, info, count), rect) in enumerate(zip(items, self._grid_buttons(len(items)))):
+                self.button(surface, rect, f"{info['name']} ×{count}", index == self.item_index, 17)
+            chosen = items[min(self.item_index, len(items) - 1)][1] if items else None
+            footer = f"{chosen['desc']}   ·   Esc: 뒤로" if chosen else "Esc: 뒤로"
+        elif self.mode == "skills":
             skills = self.skill_list()
             for index, (skill, rect) in enumerate(zip(skills, self._skill_buttons())):
                 usable = field.mp >= skill["mp"]
@@ -364,7 +408,7 @@ class BattleScene(BaseScene):
         else:
             for index, (label, rect) in enumerate(zip(self.ACTIONS, self._buttons())):
                 if index == 2:
-                    label = f"포션 ({field.potions}/{field.high_potions})"
+                    label = f"아이템 ({sum(count for _, _, count in self.item_list())})"
                 self.button(surface, rect, label, index == self.selected)
             footer = (f"HP {field.hp}/{field.max_hp}   MP {field.mp}/{field.max_mp}   "
                       f"ATK {field.attack_power}   DEF {field.defense_power}   "

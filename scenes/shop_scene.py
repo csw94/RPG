@@ -6,30 +6,36 @@ can be re-equipped here for free.
 
 import pygame
 
-from gameplay.equipment import POTION_CAP, SHOP_ITEMS, SHOP_TABS, item_info, shop_stock
+from gameplay.equipment import SHOP_ITEMS, SHOP_TABS, item_info, shop_stock
 from gameplay.world_data import SHRINES
 from scenes.base_scene import BaseScene
 from utils import ui
 
 TAB_IDS = [tab for tab, _ in SHOP_TABS]
+SHOPS = {"logan": ("오크밸리 상점", "로건: 천천히 골라 보게. 제단을 정화할 때마다 새 물건을 들여놓지!"),
+         "mira": ("미라의 물약 상점", "미라: 물약은 넉넉히! 해독제도 잊지 마세요.")}
 
 
 class ShopScene(BaseScene):
-    def __init__(self, game):
+    def __init__(self, game, shop="logan"):
         super().__init__(game)
-        self.tab = TAB_IDS[0]
+        self.shop = shop
+        self.tabs = [tab for tab in TAB_IDS if any(i["kind"] == tab and i.get("shop", "logan") == shop
+                                                   for i in SHOP_ITEMS)]
+        self.tab = self.tabs[0]
         self.selected = 0
-        self.message = "로건: 천천히 골라 보게. 제단을 정화할 때마다 새 물건을 들여놓지!"
+        self.title, self.message = SHOPS[shop]
 
     # --- stock ------------------------------------------------------------------------
     def cleared(self):
         return sum(1 for key in SHRINES if self.game.field.quest_flags.get(key))
 
     def items(self):
-        return shop_stock(self.cleared(), self.tab)
+        return shop_stock(self.cleared(), self.tab, self.shop)
 
     def locked_count(self):
-        return len([i for i in SHOP_ITEMS if i["kind"] == self.tab]) - len(self.items())
+        return len([i for i in SHOP_ITEMS if i["kind"] == self.tab and i.get("shop", "logan") == self.shop]) \
+            - len(self.items())
 
     # --- layout -----------------------------------------------------------------------
     @staticmethod
@@ -40,9 +46,9 @@ class ShopScene(BaseScene):
     def close_rect():
         return pygame.Rect(330, 506, 140, 40)
 
-    @staticmethod
-    def _tab_rects():
-        return [pygame.Rect(118 + index * 144, 156, 132, 34) for index in range(len(TAB_IDS))]
+    def _tab_rects(self):
+        start = 400 - (len(self.tabs) * 144 - 12) // 2
+        return [pygame.Rect(start + index * 144, 156, 132, 34) for index in range(len(self.tabs))]
 
     def _rows(self):
         return [pygame.Rect(118, 200 + index * 44, 564, 38) for index in range(len(self.items()))]
@@ -55,7 +61,7 @@ class ShopScene(BaseScene):
                     self._close()
                 elif event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_RIGHT, pygame.K_d):
                     step = -1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1
-                    self._switch_tab(TAB_IDS[(TAB_IDS.index(self.tab) + step) % len(TAB_IDS)])
+                    self._switch_tab(self.tabs[(self.tabs.index(self.tab) + step) % len(self.tabs)])
                 elif event.key in (pygame.K_UP, pygame.K_w, pygame.K_DOWN, pygame.K_s) and self.items():
                     step = -1 if event.key in (pygame.K_UP, pygame.K_w) else 1
                     self.selected = (self.selected + step) % len(self.items())
@@ -63,7 +69,7 @@ class ShopScene(BaseScene):
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     self._purchase()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for tab, rect in zip(TAB_IDS, self._tab_rects()):
+                for tab, rect in zip(self.tabs, self._tab_rects()):
                     if rect.collidepoint(event.pos):
                         self._switch_tab(tab)
                 for index, rect in enumerate(self._rows()):
@@ -92,15 +98,15 @@ class ShopScene(BaseScene):
         info = item_info(item)
         player = self.game.field
         if item["kind"] == "potion":
-            inventory = "high_potions" if item["id"] == "high_potion" else "potions"
-            if getattr(player, inventory) >= POTION_CAP:
-                self.message = f"포션은 종류별로 {POTION_CAP}개까지 가질 수 있습니다."
+            cap = player.item_cap(item["id"])
+            if player.item_count(item["id"]) >= cap:
+                self.message = f"{info['name']}은(는) {cap}개까지 가질 수 있습니다."
                 return
             if player.gold < info["price"]:
                 self.message = "골드가 부족합니다."
                 return
             player.gold -= info["price"]
-            setattr(player, inventory, getattr(player, inventory) + 1)
+            player.add_item(item["id"])
             self.sfx("coin")
             self.message = f"{info['name']}을(를) 가방에 넣었습니다."
             self.game.save_game()
@@ -138,8 +144,7 @@ class ShopScene(BaseScene):
     def _price_text(self, item, info):
         player = self.game.field
         if item["kind"] == "potion":
-            count = player.high_potions if item["id"] == "high_potion" else player.potions
-            return f"보유 {count}/{POTION_CAP} · {info['price']} G"
+            return f"보유 {player.item_count(item['id'])}/{player.item_cap(item['id'])} · {info['price']} G"
         owned = {"weapon": player.owned_weapons, "armor": player.owned_armors,
                  "accessory": player.owned_accessories}[item["kind"]]
         if getattr(player, item["kind"]) == item["id"]:
@@ -150,15 +155,16 @@ class ShopScene(BaseScene):
         colors, player = self.game.colors, self.game.field
         ui.plank_strip(surface, (0, 0, surface.get_width(), surface.get_height()))
         ui.frame(surface, self.panel_rect(), "walnut", border=8)
-        self.text(surface, "오크밸리 상점", (400, 62), 30, colors["gold"], True)
+        self.text(surface, self.title, (400, 62), 30, colors["gold"], True)
         gold = self.text(surface, f"보유 골드 {player.gold} G", (410, 98), 19, colors["cream"], True)
         ui.coin(surface, (gold.left - 14, gold.centery))
         accessory = player.accessory_info.get("name", "장신구 없음")
         self.text(surface, f"장착 중: {player.weapon_info['name']} · {player.armor_info['name']} · {accessory}",
                   (400, 126), 15, colors["muted"], True)
 
-        for (tab, label), rect in zip(SHOP_TABS, self._tab_rects()):
-            self.button(surface, rect, label, tab == self.tab, 17)
+        labels = dict(SHOP_TABS)
+        for tab, rect in zip(self.tabs, self._tab_rects()):
+            self.button(surface, rect, labels[tab], tab == self.tab, 17)
 
         items = self.items()
         for index, (item, rect) in enumerate(zip(items, self._rows())):

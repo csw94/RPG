@@ -65,6 +65,26 @@ LEGACY_IDS = {"iron_sword", "silver_sword", "leather_armor", "chainmail"}
 SMALL_POTION = {"name": "회복약(소)", "price": 30, "heal": 50, "desc": "HP 50 회복"}
 HIGH_POTION = {"name": "고급 회복약", "price": 80, "heal": 120, "desc": "HP 120 회복"}
 POTION_CAP = 10
+# Everything usable from the battle item menu. Potions live in their own save fields
+# ("attr"); the newer consumables are counted in FieldScene.items.
+CONSUMABLES = {
+    "small_potion": {**SMALL_POTION, "attr": "potions"},
+    "high_potion": {**HIGH_POTION, "attr": "high_potions"},
+    "mana_potion": {"name": "마나 물약", "price": 50, "mp": 30, "desc": "MP 30 회복"},
+    "antidote": {"name": "해독제", "price": 25, "cure": True, "desc": "독·화상·빙결 같은 상태이상 해제"},
+    "elixir": {"name": "엘릭서", "price": 300, "heal": 9999, "mp": 9999, "cure": True, "cap": 3,
+               "desc": "HP·MP 완전 회복 · 상태이상 해제 (3개까지)"},
+}
+# Everything usable from the battle item menu. Potions live in their own save fields
+# ("attr"); the newer consumables are counted in FieldScene.items.
+CONSUMABLES = {
+    "small_potion": {**SMALL_POTION, "attr": "potions"},
+    "high_potion": {**HIGH_POTION, "attr": "high_potions"},
+    "mana_potion": {"name": "마나 물약", "price": 50, "mp": 30, "desc": "MP 30 회복"},
+    "antidote": {"name": "해독제", "price": 25, "cure": True, "desc": "독·화상·빙결 같은 상태이상 해제"},
+    "elixir": {"name": "엘릭서", "price": 300, "heal": 9999, "mp": 9999, "cure": True, "cap": 3,
+               "desc": "HP·MP 완전 회복 · 상태이상 해제 (3개까지)"},
+}
 
 SHOP_TABS = (("weapon", "무기"), ("armor", "방어구"), ("accessory", "장신구"), ("potion", "소모품"))
 SHOP_ITEMS = (
@@ -84,6 +104,12 @@ SHOP_ITEMS = (
     {"kind": "accessory", "id": "warm_scarf", "tier": 2},
     {"kind": "potion", "id": "small_potion", "tier": 0},
     {"kind": "potion", "id": "high_potion", "tier": 0},
+    # Mira's apothecary in the south district.
+    {"kind": "potion", "id": "small_potion", "tier": 0, "shop": "mira"},
+    {"kind": "potion", "id": "high_potion", "tier": 0, "shop": "mira"},
+    {"kind": "potion", "id": "mana_potion", "tier": 0, "shop": "mira"},
+    {"kind": "potion", "id": "antidote", "tier": 0, "shop": "mira"},
+    {"kind": "potion", "id": "elixir", "tier": 3, "shop": "mira"},
 )
 CATALOGS = {"weapon": WEAPONS, "armor": ARMORS, "accessory": ACCESSORIES}
 
@@ -92,10 +118,11 @@ def item_info(item):
     kind, item_id = item["kind"], item["id"]
     if kind in CATALOGS:
         return CATALOGS[kind][item_id]
-    return HIGH_POTION if item_id == "high_potion" else SMALL_POTION
+    return CONSUMABLES[item_id]
 
 
-def shop_stock(shrines_cleared, kind=None):
-    """Items for sale after ``shrines_cleared`` shrines, optionally for one tab."""
+def shop_stock(shrines_cleared, kind=None, shop="logan"):
+    """Items one shop sells after ``shrines_cleared`` shrines, optionally for one tab."""
     return [item for item in SHOP_ITEMS
-            if item["tier"] <= shrines_cleared and (kind is None or item["kind"] == kind)]
+            if item.get("shop", "logan") == shop and item["tier"] <= shrines_cleared
+            and (kind is None or item["kind"] == kind)]
