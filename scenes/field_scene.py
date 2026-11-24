@@ -14,6 +14,12 @@ from gameplay.equipment import ACCESSORIES, ARMORS, WEAPONS
 from gameplay.world_data import FIELD_ROUTES
 
 
+# Villager requests that count defeated enemies, and their (gold, accessory) rewards.
+KILL_QUESTS = {"sq_wolf_hunt": "wolf", "sq_magma_ore": "magma_slime", "sq_bat_hunt": "bat"}
+QUEST_REWARDS = {"sq_wolf_hunt": (60, "wolf_fang_charm"), "sq_magma_ore": (100, "ember_bracelet"),
+                 "sq_bat_hunt": (0, "guardian_medal")}
+
+
 class FieldScene(BaseScene):
     # The overworld is larger than the view; town and dungeon scenes override these.
     COLS, ROWS = 52, 31
@@ -45,7 +51,8 @@ class FieldScene(BaseScene):
         for key in ("prologue_done", "shrine_wind", "shrine_earth", "shrine_fire", "star_sword_awakened", "final_boss",
                     "abyss_lord"):
             self.quest_flags.setdefault(key, 0)
-        quest_targets = {"sq_moon_herb": 3, "sq_old_sword": 1, "sq_goblin_hunt": 5}
+        quest_targets = {"sq_moon_herb": 3, "sq_old_sword": 1, "sq_goblin_hunt": 5,
+                         "sq_wolf_hunt": 4, "sq_magma_ore": 3, "sq_bat_hunt": 4}
         saved_quests = state.get("sub_quests", {})
         self.sub_quests = {
             quest_id: {"status": saved_quests.get(quest_id, {}).get("status", "NOT_STARTED"),
@@ -341,7 +348,7 @@ class FieldScene(BaseScene):
 
     @property
     def defense_power(self):
-        return self.defense + self.armor_info["defense"]
+        return self.defense + self.armor_info["defense"] + self.accessory_info.get("defense", 0)
 
     @property
     def evasion(self):
@@ -414,6 +421,15 @@ class FieldScene(BaseScene):
                                   "폐광 1층 어딘가에 남아있을 텐데, 찾아줄 수 있겠나?"], "accept_subquest:sq_old_sword"),
                 "sq_goblin_hunt": (["이봐, 모험가! 협곡 길목에 고블린 척후병 놈들이 진을 치고 있어.",
                                     "5마리만 혼내주면 두둑히 사례하지!"], "accept_subquest:sq_goblin_hunt"),
+                "sq_wolf_hunt": (["광장 주민: 요즘 숲늑대들이 밤마다 울어서 잠을 못 자요...",
+                                  "동쪽 숲길의 숲늑대 4마리만 쫓아 주시면 할아버지의 부적을 드릴게요!"],
+                                 "accept_subquest:sq_wolf_hunt"),
+                "sq_magma_ore": (["로건: 아, 마침 잘 왔네! 남쪽 화산의 마그마 슬라임 몸속엔 좋은 용암석이 있지.",
+                                  "3마리만 잡아서 가져다주면 팔찌를 하나 만들어 주겠네."],
+                                 "accept_subquest:sq_magma_ore"),
+                "sq_bat_hunt": (["검을 찾아 준 자네라면 믿을 수 있지. 하나만 더 부탁하세.",
+                                 "바람의 제단 1층에 동굴 박쥐가 들끓어 순례자들이 못 들어간다네. 4마리만 잡아 주게."],
+                                "accept_subquest:sq_bat_hunt"),
             }[quest_id]
             self.show_dialogue(lines, action)
         elif status == "IN_PROGRESS" and progress >= target:
@@ -426,6 +442,15 @@ class FieldScene(BaseScene):
                                       "현역 시절 휘장을 자네에게 물려주겠네."], "complete_subquest:sq_old_sword"),
                     "sq_goblin_hunt": (["속이 다 시원하군! 약속한 보수야.",
                                         "로건 가게에서 장비를 맞추도록 해."], "complete_subquest:sq_goblin_hunt"),
+                    "sq_wolf_hunt": (["광장 주민: 어젯밤엔 푹 잤어요! 정말 고마워요.",
+                                      "할아버지의 늑대 송곳니 부적이에요. 급소가 잘 보인대요! (상점에서 장착)"],
+                                     "complete_subquest:sq_wolf_hunt"),
+                    "sq_magma_ore": (["로건: 이 열기 좀 보게! 최고의 용암석이야.",
+                                      "용암석 팔찌일세. 불길도 막아 주지. 노점에서 장착하게."],
+                                     "complete_subquest:sq_magma_ore"),
+                    "sq_bat_hunt": (["순례자들이 다시 제단을 찾는다는군. 역시 내가 사람 보는 눈은 있어.",
+                                     "기사단 시절의 수호자의 훈장일세. 자네가 지녀 주게."],
+                                    "complete_subquest:sq_bat_hunt"),
                 }[quest_id]
                 self.show_dialogue(lines, action)
             else:
@@ -451,6 +476,11 @@ class FieldScene(BaseScene):
         elif quest_id == "sq_goblin_hunt":
             self.gold += 180
             self.potions = min(10, self.potions + 3)
+        elif quest_id in QUEST_REWARDS:
+            gold, accessory = QUEST_REWARDS[quest_id]
+            self.gold += gold
+            if accessory not in self.owned_accessories:
+                self.owned_accessories.append(accessory)
         quest["status"] = "COMPLETED"
         self.game.save_game()
         return True
@@ -521,6 +551,10 @@ class FieldScene(BaseScene):
         if enemy_id == "goblin":
             quest = self.sub_quests["sq_goblin_hunt"]
             if quest["status"] == "IN_PROGRESS":
+                quest["progress"] = min(quest["target"], quest["progress"] + 1)
+        for quest_id, target_enemy in KILL_QUESTS.items():
+            quest = self.sub_quests[quest_id]
+            if enemy_id == target_enemy and quest["status"] == "IN_PROGRESS":
                 quest["progress"] = min(quest["target"], quest["progress"] + 1)
         if enemy_id == "abyss_lord":
             self.quest_flags["abyss_lord"] = 1

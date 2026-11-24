@@ -9,7 +9,8 @@ from scenes.base_scene import BaseScene
 from utils import ui
 from utils.pixel_art import hero_sprite
 
-QUEST_NAMES = {"sq_moon_herb": "달빛 약초", "sq_old_sword": "노기사의 검", "sq_goblin_hunt": "고블린 소탕"}
+QUEST_NAMES = {"sq_moon_herb": "달빛 약초", "sq_old_sword": "노기사의 검", "sq_goblin_hunt": "고블린 소탕",
+               "sq_wolf_hunt": "숲의 사냥꾼", "sq_magma_ore": "용암석 수집", "sq_bat_hunt": "동굴 소탕"}
 SEALS = (("shrine_wind", "바람의 제단"), ("shrine_earth", "대지의 폐광"), ("shrine_fire", "불꽃의 신전"))
 ITEM_NAMES = {"broken_old_sword": "부러진 옛 검", "knights_crest": "기사단 휘장"}
 TOGGLE_KEYS = (pygame.K_i, pygame.K_TAB)
@@ -226,9 +227,10 @@ class StatusScene(BaseScene):
             self._ink(surface, name, (x + 20, quests.y + 30), 14, soft=not done)
         self._ink(surface, "마을 사람들의 부탁", (quests.x + 12, quests.y + 58), 16)
         for index, (name, text) in enumerate(self.quest_rows()):
-            y = quests.y + 82 + index * 18
-            self._ink(surface, name, (quests.x + 12, y), 14)
-            self._ink(surface, text, (quests.right - 12, y), 14, right=True, soft=text == "미수락")
+            col, row = divmod(index, 3)
+            x, y = quests.x + 12 + col * 232, quests.y + 82 + row * 18
+            self._ink(surface, name, (x, y), 13)
+            self._ink(surface, text, (x + 212, y), 13, right=True, soft=text == "미수락")
 
 
     def _ink(self, surface, value, pos, size, right=False, soft=False):

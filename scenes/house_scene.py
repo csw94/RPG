@@ -193,7 +193,9 @@ class HouseInteriorScene(FieldScene):
 
     def _interact_garen(self):
         quest = self.sub_quests["sq_old_sword"]
-        if self.quest_flags["final_boss"] and quest["status"] == "COMPLETED":
+        if quest["status"] == "COMPLETED" and self.sub_quests["sq_bat_hunt"]["status"] != "COMPLETED":
+            self._offer_sidequest("sq_bat_hunt")
+        elif self.quest_flags["final_boss"] and quest["status"] == "COMPLETED":
             self.show_dialogue(["내 휘장을 단 기사가 마을을 구했군. 이보다 자랑스러울 수 없네."])
         elif self.quest_flags["final_boss"]:
             self.show_dialogue(["훌륭한 검술이었네, 수호 기사여. 젊은 날의 나를 보는 것 같군."])

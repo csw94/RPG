@@ -142,7 +142,7 @@ class BattleEngine:
         field = self.field
         if action == "attack":
             weapon = field.weapon_info
-            crit = self.rng.random() < CRIT_CHANCE + weapon.get("crit", 0)
+            crit = self.rng.random() < CRIT_CHANCE + weapon.get("crit", 0) + field.accessory_info.get("crit", 0)
             self._emit(events, type="attack", actor="hero", text="검을 휘둘렀다.")
             self._hit_enemy(events, field.attack_power - self.enemy["defense"],
                             element=weapon.get("element", "none"), crit=crit)
