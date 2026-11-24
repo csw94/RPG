@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.9.1)
+# HANDOVER — Chronicles of Pixel (v0.9.2)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.9.1 (태그 `v0.9.1`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.9.1 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.9.2 (태그 `v0.9.2`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.9.2 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 113개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 124개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -33,7 +33,19 @@
   - 던전: 박쥐, 해골 병사(그림 이름은 `skeleton_warrior`. 기존 `skeleton`은 장식용)
 - 새 테스트: `tests/test_combat.py`, `tests/test_battle_scene.py`
 
+## 세이브 위치 보정 (v0.9.2)
+- 예전 세이브 위치 보정(`gameplay/save_migration.py`, `tests/test_save_migration.py`)
+  - 맵 구조 버전
+    - 1: v0.6.x 이하
+    - 2: v0.7.0~v0.9.0. 필드 1.3배, 마을·제단 공터 +(3,2)
+    - 3: v0.9.1~. 남쪽 필드 상하 반전
+  - 이제 세이브에 `layout_version`을 저장함. 버전 기록이 없는 세이브는 DB의 `updated_at`(UTC)을 릴리즈 시각과 비교해 버전을 판별함
+  - `SaveManager.load()`에서 변환함. 플레이어 위치, 필드별 열린 상자, 채집한 약초 좌표를 옮김. 던전·실내 좌표는 그대로
+  - 맵 구조를 또 바꿀 때는 `LAYOUT_VERSION`을 올리고, `LAYOUT_SINCE`와 `_point_mover`에 단계를 추가할 것
+- 아주 옛날 단일 `field` 세이브는 숲길 필드 입구에서 이어서 시작함(`main._create_world`)
+
 ## 릴리즈 기록
+- **v0.9.2:** 예전 세이브의 위치를 현재 맵에 맞게 자동 보정. 세이브에 `layout_version`을 저장함
 - **v0.9.1:** 상점 테두리를 나무 프레임으로 통일. 남쪽 화산 필드를 위에서 아래로 내려가는 구조로 뒤집음
 - **v0.9.0:** 주인공 방향별 4프레임 걷기, NPC 숨쉬기·눈 깜빡임, 적 대기 동작(위 절 참고)
 - **v0.8.0:** 전투 개편. 스킬, 속성, 상태이상, 경험치와 레벨업, 지역별 적 8종, 전투 연출(위 절 참고)
@@ -99,17 +111,6 @@
   - 크기 25×16은 손으로 짠 미로 구조라 그대로 유지
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
-
-## 미릴리즈 변경 (다음 릴리즈에 포함)
-- 예전 세이브 위치 보정(`gameplay/save_migration.py`, `tests/test_save_migration.py`)
-  - 맵 구조 버전
-    - 1: v0.6.x 이하
-    - 2: v0.7.0~v0.9.0. 필드 1.3배, 마을·제단 공터 +(3,2)
-    - 3: v0.9.1~. 남쪽 필드 상하 반전
-  - 이제 세이브에 `layout_version`을 저장함. 버전 기록이 없는 세이브는 DB의 `updated_at`(UTC)을 릴리즈 시각과 비교해 버전을 판별함
-  - `SaveManager.load()`에서 변환함. 플레이어 위치, 필드별 열린 상자, 채집한 약초 좌표를 옮김. 던전·실내 좌표는 그대로
-  - 맵 구조를 또 바꿀 때는 `LAYOUT_VERSION`을 올리고, `LAYOUT_SINCE`와 `_point_mover`에 단계를 추가할 것
-- 아주 옛날 단일 `field` 세이브는 숲길 필드 입구에서 이어서 시작함(`main._create_world`)
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
