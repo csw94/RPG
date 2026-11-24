@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.19.0)
+# HANDOVER — Chronicles of Pixel (v0.20.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.19.0 (태그 `v0.19.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.19.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.20.0 (태그 `v0.20.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.20.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 292개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 314개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -182,7 +182,24 @@
   - 저장하면 HUD에 "자동 저장됨"이 표시됨(`autosave_flash`)
   - 창을 닫을 때는 `Game.shutdown`이 모험 중이면 저장함
 
+## 업적·회차 플레이·조작 편의 (v0.20.0)
+- 업적(`gameplay/achievements.py`): `ACHIEVEMENTS`에 14개가 있고, 각각 `check(field)` 함수로 달성 여부를 판정함
+  - 판정은 `Game.save_game`이 저장할 때마다 `check_achievements`를 호출해서 함. 새로 달성하면 효과음이 나고, `field.achievement_toasts`에 쌓인 알림을 HUD가 3초씩 차례로 띄움
+  - 세이브에 `achievements` 목록을 저장함. 상태 화면 네 번째 페이지에 표시됨
+- 회차 플레이(`gameplay/new_game_plus.py`)
+  - 엔딩 후 촌장 대화의 `offer_new_game_plus`가 `ConfirmScene`(예/아니오, 기본값은 아니오)을 띄움. 예를 고르면 `Game.start_new_game_plus`가 같은 슬롯에서 다음 회차를 시작함
+  - 이어지는 항목은 `CARRIED` 목록. 나머지(이야기 플래그, 부탁, 상자, 약초, 중요 물품, 위치)는 초기화됨. `prologue_done`은 1로 시작함
+  - `cycle`이 오를 때마다 `cycle_multipliers`가 적용됨: 적 HP +60%, 받는 피해 +35%, 골드·경험치 +30%. `difficulty_of`가 난이도 배율과 곱해서 돌려줌(`xp` 키 추가)
+  - 회차 밸런스는 아직 시뮬레이션하지 않음
+- 조작 편의
+  - 대화 타자 효과: `TEXT_SPEEDS`(초당 18/40/90 글자 또는 즉시)
+    - 설정의 `text_speed`(settings.json)로 속도를 정함
+    - 행동 키를 누르면 `_press_dialogue`가 먼저 줄을 완성하고, 다시 누르면 다음 줄로 넘어감
+  - 필드와 실내에서 Enter와 Z도 스페이스와 같은 행동 키(`ACTION_KEYS`)
+  - 완전한 키 재설정은 하지 않음. 모든 장면이 키를 직접 확인하고 있어서 입력 처리를 한곳으로 모으는 작업이 먼저 필요함
+
 ## 릴리즈 기록
+- **v0.20.0:** 업적 14개(달성 알림과 상태 화면 업적 페이지), 엔딩 후 회차 플레이(새 여정), 대화 글자 속도 설정과 Enter·Z 행동 키
 - **v0.19.0:** 난이도 선택(쉬움·보통·어려움, 모험 중 변경 가능), 상태 화면의 몬스터·장비 도감, 1분마다 자동 저장과 창을 닫을 때 저장
 - **v0.18.0:** 플레이 시간과 전투 기록(세이브 슬롯과 엔딩 화면에 표시), 마을 부탁 데이터를 한 곳으로 정리
 - **v0.17.0:** 서리 고원 사냥꾼 하른과 부탁(얼음 심장), 빙결 대비 장비와 제단 3·4곳 정화 단계의 상품, Lv.10 별빛 폭풍·Lv.12 성스러운 기도, 별빛 심연 난이도 재조정
