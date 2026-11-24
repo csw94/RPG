@@ -10,7 +10,7 @@ from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils import ui
 from gameplay.save_migration import LAYOUT_VERSION
 from utils.pixel_art import NPC_SIZE, hero_sprite, walk_frame, sprite, tile_noise, npc_sprite
-from gameplay.equipment import ARMORS, WEAPONS
+from gameplay.equipment import ACCESSORIES, ARMORS, WEAPONS
 from gameplay.world_data import FIELD_ROUTES
 
 
@@ -57,6 +57,10 @@ class FieldScene(BaseScene):
         self.armor = state.get("armor", "traveler_clothes")
         self.owned_weapons = list(state.get("owned_weapons", ["rusty_sword"]))
         self.owned_armors = list(state.get("owned_armors", ["traveler_clothes"]))
+        self.accessory = state.get("accessory") if state.get("accessory") in ACCESSORIES else None
+        self.owned_accessories = [a for a in state.get("owned_accessories", ()) if a in ACCESSORIES]
+        if self.accessory and self.accessory not in self.owned_accessories:
+            self.owned_accessories.append(self.accessory)
         self.quest_items = set(state.get("quest_items", ()))
         saved_opened = state.get("opened_by_world", {})
         self.opened_by_world = {
@@ -298,19 +302,59 @@ class FieldScene(BaseScene):
                 "atk": self.atk, "defense": self.defense, "evasion_bonus": self.evasion_bonus,
                 "quest_flags": self.quest_flags, "weapon": self.weapon,
                 "armor": self.armor, "owned_weapons": self.owned_weapons,
-                "owned_armors": self.owned_armors, "quest_items": sorted(self.quest_items),
+                "owned_armors": self.owned_armors, "accessory": self.accessory,
+                "owned_accessories": self.owned_accessories, "quest_items": sorted(self.quest_items),
                 "sub_quests": self.sub_quests,
                 "collected_herbs": [list(point) for point in sorted(self.collected_herbs)],
                 "opened": sorted(self.opened),
                 "opened_by_world": opened_by_world}
 
+    # --- equipment ---------------------------------------------------------------------
+    @property
+    def weapon_info(self):
+        return WEAPONS.get(self.weapon, WEAPONS["rusty_sword"])
+
+    @property
+    def armor_info(self):
+        return ARMORS.get(self.armor, ARMORS["traveler_clothes"])
+
+    @property
+    def accessory_info(self):
+        return ACCESSORIES.get(self.accessory, {})
+
     @property
     def attack_power(self):
-        return self.atk + WEAPONS.get(self.weapon, WEAPONS["rusty_sword"])["attack"]
+        return self.atk + self.weapon_info["attack"] + self.accessory_info.get("attack", 0)
 
     @property
     def defense_power(self):
-        return self.defense + ARMORS.get(self.armor, ARMORS["traveler_clothes"])["defense"]
+        return self.defense + self.armor_info["defense"]
+
+    @property
+    def evasion(self):
+        """Dodge chance in percent: the wind blessing plus any accessory."""
+        return self.evasion_bonus + self.accessory_info.get("evasion", 0)
+
+    @property
+    def immunities(self):
+        return {info["immune"] for info in (self.armor_info, self.accessory_info) if info.get("immune")}
+
+    def equip(self, kind, item_id):
+        """Wear an owned item; armor HP/MP bonuses move max HP/MP with it."""
+        owned = {"weapon": self.owned_weapons, "armor": self.owned_armors,
+                 "accessory": self.owned_accessories}[kind]
+        if item_id not in owned:
+            return False
+        if kind == "armor":
+            old, new = self.armor_info, ARMORS[item_id]
+            hp_delta = new.get("health", 0) - old.get("health", 0)
+            mp_delta = new.get("mp", 0) - old.get("mp", 0)
+            self.max_hp = max(1, self.max_hp + hp_delta)
+            self.max_mp = max(0, self.max_mp + mp_delta)
+            self.hp = max(1, min(self.max_hp, self.hp + max(0, hp_delta)))
+            self.mp = max(0, min(self.max_mp, self.mp + max(0, mp_delta)))
+        setattr(self, kind, item_id)
+        return True
 
     def show_dialogue(self, lines, action=None):
         self.dialogue_lines = list(lines)

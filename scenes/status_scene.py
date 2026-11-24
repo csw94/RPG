@@ -3,7 +3,7 @@
 import pygame
 
 from gameplay.combat import SKILLS, xp_to_next
-from gameplay.equipment import ARMORS, POTION_CAP, WEAPONS
+from gameplay.equipment import POTION_CAP
 from scenes.base_scene import BaseScene
 from utils import ui
 from utils.pixel_art import hero_sprite
@@ -85,29 +85,33 @@ class StatusScene(BaseScene):
             self._ink(surface, f"{value}/{maximum}", (card.right - 12, y), 15, right=True)
             ui.bar(surface, pygame.Rect(card.x + 12, y + 20, card.width - 24, 10), value, maximum, color)
             y += 38
-        weapon = WEAPONS.get(f.weapon, WEAPONS["rusty_sword"])
-        armor = ARMORS.get(f.armor, ARMORS["traveler_clothes"])
-        for label, total, detail in (("공격력", f.attack_power, f"기본 {f.atk} + 무기 {weapon['attack']}"),
+        weapon, armor, accessory = f.weapon_info, f.armor_info, f.accessory_info
+        attack_detail = f"기본 {f.atk} + 무기 {weapon['attack']}"
+        if accessory.get("attack"):
+            attack_detail += f" + 장신구 {accessory['attack']}"
+        for label, total, detail in (("공격력", f.attack_power, attack_detail),
                                      ("방어력", f.defense_power, f"기본 {f.defense} + 방어구 {armor['defense']}")):
             self._ink(surface, label, (card.x + 12, y), 15)
             self._ink(surface, str(total), (card.right - 12, y), 17, right=True)
             self._ink(surface, detail, (card.x + 12, y + 19), 12, soft=True)
             y += 42
-        if f.evasion_bonus:
-            self._ink(surface, f"회피 {f.evasion_bonus}% (바람의 가호)", (card.x + 12, y), 13, soft=True)
+        if f.evasion:
+            self._ink(surface, f"회피 {f.evasion}%", (card.x + 12, y), 13, soft=True)
 
         # Right top: gear and items.
         gear = ui.frame(surface, pygame.Rect(286, 72, 474, 124), "parchment")
         self._ink(surface, "장비 · 소지품", (gear.x + 12, gear.y + 6), 16)
-        self._ink(surface, f"무기  {weapon['name']} (공격 +{weapon['attack']})", (gear.x + 12, gear.y + 32), 14)
-        armor_bonus = f"방어 +{armor['defense']}" + (f", HP +{armor['health']}" if armor.get("health") else "")
-        self._ink(surface, f"방어구  {armor['name']} ({armor_bonus})", (gear.x + 12, gear.y + 52), 14)
+        self._ink(surface, f"무기  {weapon['name']} ({weapon['desc'] if weapon.get('element') else '공격 +' + str(weapon['attack'])})",
+                  (gear.x + 12, gear.y + 28), 13)
+        self._ink(surface, f"방어구  {armor['name']} (방어 +{armor['defense']})", (gear.x + 12, gear.y + 45), 13)
+        self._ink(surface, "장신구  " + (f"{accessory['name']} ({accessory['desc']})" if accessory else "없음"),
+                  (gear.x + 12, gear.y + 62), 13, soft=not accessory)
         ui.coin(surface, (gear.right - 90, gear.y + 15))
         self._ink(surface, f"{f.gold} G", (gear.right - 12, gear.y + 7), 16, right=True)
         self._ink(surface, f"회복약(소) {f.potions}/{POTION_CAP}   고급 회복약 {f.high_potions}/{POTION_CAP}",
-                  (gear.x + 12, gear.y + 74), 14)
+                  (gear.x + 12, gear.y + 80), 13)
         items = [ITEM_NAMES.get(item, item) for item in sorted(f.quest_items)]
-        self._ink(surface, "중요 물품  " + (", ".join(items) if items else "없음"), (gear.x + 12, gear.y + 94),
+        self._ink(surface, "중요 물품  " + (", ".join(items) if items else "없음"), (gear.x + 12, gear.y + 97),
                   13, soft=not items)
 
         # Right middle: skills.

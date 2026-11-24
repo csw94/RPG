@@ -97,7 +97,7 @@ class BattleEngine:
 
     def _hit_hero(self, events, raw, fixed=False, element="none", label="적의 공격"):
         field = self.field
-        if field.evasion_bonus > 0 and self.rng.random() < field.evasion_bonus / 100:
+        if field.evasion > 0 and self.rng.random() < field.evasion / 100:
             self._emit(events, type="miss", target="hero", text=f"{label}을(를) 회피했다!")
             return 0
         amount = raw if fixed else max(1, self._vary(raw - field.defense_power))
@@ -109,6 +109,9 @@ class BattleEngine:
         return amount
 
     def _apply_status(self, events, target, status, turns):
+        if target == "hero" and status in self.field.immunities:
+            self._emit(events, type="message", text=f"장비가 {STATUS_NAMES[status]}을(를) 막아냈다!")
+            return
         self.statuses[target][status] = turns
         who = "적" if target == "enemy" else "수호자"
         self._emit(events, type="status", target=target, status=status,
@@ -138,9 +141,18 @@ class BattleEngine:
             return events
         field = self.field
         if action == "attack":
-            crit = self.rng.random() < CRIT_CHANCE
+            weapon = field.weapon_info
+            crit = self.rng.random() < CRIT_CHANCE + weapon.get("crit", 0)
             self._emit(events, type="attack", actor="hero", text="검을 휘둘렀다.")
-            self._hit_enemy(events, field.attack_power - self.enemy["defense"], crit=crit)
+            self._hit_enemy(events, field.attack_power - self.enemy["defense"],
+                            element=weapon.get("element", "none"), crit=crit)
+            proc = weapon.get("proc")
+            if proc and self.enemy_hp > 0 and proc[0] not in self.statuses["enemy"]:
+                status, chance, turns = proc
+                if status == "stun" and self.is_boss:
+                    chance /= 2
+                if self.rng.random() < chance:
+                    self._apply_status(events, "enemy", status, turns)
         elif action == "skill":
             skill = SKILLS.get(skill_id)
             if not skill or skill["level"] > field.level:
@@ -259,7 +271,7 @@ class BattleEngine:
         self.result = "win"
         self.enemy_hp = 0
         self._emit(events, type="defeat", target="enemy", text=f"{self.enemy['name']} 격파!")
-        field.mp = min(field.max_mp, field.mp + VICTORY_MP)
+        field.mp = min(field.max_mp, field.mp + VICTORY_MP + field.accessory_info.get("victory_mp", 0))
         reward = field.resolve_battle_victory(self.enemy["id"])
         if self.enemy["id"] == "final_boss":
             field.pending_epilogue = True

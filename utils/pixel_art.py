@@ -137,7 +137,9 @@ def _hero_head(s, direction):
 def _hero_torso(s, direction, frame, weapon, armor):
     c = HERO
     swing = {1: -1, 3: 1}.get(frame, 0)  # arms swing opposite to the stepping leg
-    blade = (232, 239, 226) if weapon == "silver_sword" else (177, 193, 189)
+    blade = {"silver_sword": (232, 239, 226), "steel_longsword": (206, 216, 216), "wind_dagger": (168, 226, 196),
+             "earth_hammer": (176, 150, 112), "flame_blade": (244, 150, 96),
+             "star_sword": (252, 238, 156)}.get(weapon, (177, 193, 189))
     if direction == "down":
         _rect(s, c["mantle"], 2, 12, 12, 6)
         _rect(s, c["tunic"], 4, 12, 8, 6)
