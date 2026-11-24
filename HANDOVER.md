@@ -1,8 +1,8 @@
-# HANDOVER — Chronicles of Pixel (v0.22.0)
+# HANDOVER — Chronicles of Pixel (v0.23.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.22.0 (태그 `v0.22.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.22.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.23.0 (태그 `v0.23.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.23.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
 - 테스트 358개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
@@ -229,7 +229,20 @@
   - 무기·방어구: `equip`
   - 장신구: 장착 중이면 `unequip_accessory`, 아니면 장착함
 
+## 건물 실내와 회차 재조정 (v0.23.0)
+- 여관, 대장간, 도서관, 물약 상점에 실내(`village_inn`, `village_smithy`, `village_library`, `village_apothecary`)를 만듦
+  - `HouseInteriorScene`의 `LAYOUTS`, `HOUSES`, `KEEPERS`, `FLAVOUR`에 등록함
+  - 마을의 `DISTRICT` 항목은 `npc`·`sprite` 대신 `door`·`world`를 가짐. 문(지도 마커 `door`)에서 SPACE를 누르면 들어감. `HOUSE_EXITS`로 같은 문 앞에 나옴
+  - 주인 대화는 `FieldScene.visit_keeper(name)`으로 옮김(`RUMOURS`, `inn_price`, `inn_rumour`, `rest_at_inn` 포함). 마을과 실내가 함께 씀
+  - 여관 실내의 침대는 장식임. 휴식은 로사에게 돈을 내고 함
+  - 지도 그래프(`world_data`)와 마을 음악(`village_` 접두어)에도 반영함
+- 밸런스 시뮬레이터 `tools/balance_sim.py`
+  - 기본으로 대장간 강화와 마나 물약까지 사용함. `--basic`은 이전 방식, `--plus`는 2회차까지 측정함
+  - 1회차 결과는 변하지 않음(남는 골드가 거의 없어 강화를 못 함)
+  - 2회차는 너무 쉬웠음. 그래서 `CYCLE_STEP`을 적 HP +160%, 받는 피해 +60%로 올림. 이제 2회차 최종 보스 승률은 약 75%
+
 ## 릴리즈 기록
+- **v0.23.0:** 여관·대장간·도서관·물약 상점 실내 추가(주인이 안에서 기다림), 밸런스 시뮬레이터에 강화·마나 물약·2회차 반영, 회차 난이도 상향
 - **v0.22.0:** 가방 페이지(B 키). 필드에서 물약 사용, 어디서든 장비 교체, 장신구 해제, 아이템 상세 정보
 - **v0.21.0:** 마을 확장(44×30), 여관·대장간 강화·도서관·물약 상점, 전투 아이템 메뉴와 새 소모품, 새 주민 5명과 부탁 4개
 - **v0.20.0:** 업적 14개(달성 알림과 상태 화면 업적 페이지), 엔딩 후 회차 플레이(새 여정), 대화 글자 속도 설정과 Enter·Z 행동 키
