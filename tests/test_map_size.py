@@ -82,7 +82,7 @@ class VillageSizeTests(unittest.TestCase):
         self.village = VillageScene(FakeGame(), {"world": "village", "x": 15, "y": 15})
 
     def test_village_is_about_thirty_percent_bigger(self):
-        self.assertEqual((VillageScene.COLS, VillageScene.ROWS), (32, 21))
+        self.assertEqual((VillageScene.COLS, VillageScene.ROWS), (44, 30))
         self.assertEqual((ShrineClearingScene.COLS, ShrineClearingScene.ROWS), (32, 21))
 
     def test_start_position_is_free(self):

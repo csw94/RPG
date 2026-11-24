@@ -36,7 +36,7 @@ MAP_GRAPH = {
 FIELD_ROUTES = {
     "field_east": {
         "name": "바람 부는 숲길", "theme": "forest", "shrine": "shrine_wind",
-        "village_portal": (1, 16), "village_spawn": (2, 16), "return_village": (30, 10),
+        "village_portal": (1, 16), "village_spawn": (2, 16), "return_village": (42, 10),
         "dungeon_portal": (47, 6), "dungeon_spawn": (3, 14), "return_dungeon": (46, 6),
         "path": ((2, 16), (10, 13), (20, 14), (27, 10), (36, 10), (47, 6)),
         "groves": ((10, 3, 9, 7), (23, 3, 8, 5), (31, 13, 8, 7), (42, 2, 7, 3),
@@ -58,7 +58,7 @@ FIELD_ROUTES = {
     "field_south": {
         "name": "메마른 화산 기슭", "theme": "volcanic", "shrine": "shrine_fire",
         # Enter at the top (the village is to the north) and head downhill to the temple.
-        "village_portal": (16, 1), "village_spawn": (16, 3), "return_village": (15, 19),
+        "village_portal": (16, 1), "village_spawn": (16, 3), "return_village": (15, 28),
         "dungeon_portal": (29, 27), "dungeon_spawn": (21, 14), "return_dungeon": (29, 25),
         "path": ((16, 2), (14, 8), (21, 12), (17, 17), (23, 21), (29, 27)),
         "groves": (), "herbs": (),

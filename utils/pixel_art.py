@@ -952,6 +952,71 @@ def _npc_merchant():
     return _outline(s)
 
 
+def _npc_innkeeper():
+    """Rosa the innkeeper: auburn bun, cream blouse, green apron and a tankard."""
+    s = _canvas((16, 24))
+    _person_head(s, (170, 84, 54), (206, 120, 80))
+    _person_body(s, (236, 222, 190), (250, 240, 214), (90, 120, 80), kind="skirt")
+    _rect(s, (170, 84, 54), 6, 0, 4, 2)          # bun
+    _rect(s, (96, 140, 92), 5, 13, 6, 5)         # apron
+    _rect(s, (128, 170, 116), 6, 13, 4, 1)
+    _rect(s, (196, 160, 96), 12, 14, 3, 3)       # tankard
+    _rect(s, (250, 246, 230), 12, 13, 3, 1)
+    return _outline(s)
+
+
+def _npc_blacksmith():
+    """Bron the smith: soot-dark hair, broad beard, leather apron and a hammer."""
+    s = _canvas((16, 24))
+    _person_head(s, (58, 50, 50), (92, 80, 76))
+    _person_body(s, (150, 92, 64), (186, 120, 84), (70, 64, 60))
+    _beard(s, (70, 56, 50))
+    _rect(s, (98, 66, 46), 4, 13, 8, 6)          # leather apron
+    _rect(s, (126, 88, 60), 5, 13, 6, 1)
+    _rect(s, (120, 90, 62), 13, 11, 1, 7)        # hammer handle
+    _rect(s, (150, 156, 160), 12, 10, 3, 2)      # hammer head
+    return _outline(s)
+
+
+def _npc_librarian():
+    """Edel the librarian: silver hair, round glasses, a long blue robe and a book."""
+    s = _canvas((16, 24))
+    _person_head(s, (200, 204, 214), (232, 236, 244), style="long")
+    _person_body(s, (70, 92, 150), (104, 128, 186), (70, 92, 150), kind="robe")
+    _rect(s, (60, 50, 46), 5, 8, 3, 1)            # glasses frame
+    _rect(s, (60, 50, 46), 8, 8, 3, 1)
+    _rect(s, (150, 56, 48), 11, 14, 4, 4)         # red book
+    _rect(s, (236, 214, 150), 11, 15, 1, 2)
+    return _outline(s)
+
+
+def _npc_apothecary():
+    """Mira the apothecary: green hood, purple dress and a glowing flask."""
+    s = _canvas((16, 24))
+    _person_head(s, (86, 60, 50), (120, 88, 70))
+    _person_body(s, (122, 80, 140), (156, 112, 174), (96, 64, 112), kind="skirt")
+    _rect(s, (84, 128, 88), 3, 1, 10, 3)          # hood
+    _rect(s, (84, 128, 88), 2, 4, 2, 6)
+    _rect(s, (84, 128, 88), 12, 4, 2, 6)
+    _rect(s, (210, 236, 240), 12, 13, 3, 1)       # flask neck
+    _rect(s, (110, 220, 150), 11, 14, 4, 4)       # potion
+    _rect(s, (190, 250, 210), 12, 15, 1, 1)
+    return _outline(s)
+
+
+def _npc_child():
+    """Tomi, a village kid: messy hair, short and cheerful, with a wooden sword."""
+    s = _canvas((16, 24))
+    body = _canvas((16, 24))
+    _person_head(body, (150, 100, 60), (190, 140, 90))
+    _person_body(body, (220, 130, 70), (240, 170, 110), (80, 100, 140))
+    _rect(body, (170, 130, 90), 13, 12, 1, 6)     # wooden sword
+    _rect(body, (120, 86, 56), 12, 16, 3, 1)
+    # Children are drawn smaller: squash the 24px figure into the lower 20px.
+    s.blit(pygame.transform.scale(body, (16, 20)), (0, 4))
+    return _outline(s)
+
+
 def _npc_hunter():
     """Harn the highland hunter: fur-lined hood, thick coat, a bow over the shoulder."""
     s = _canvas((16, 24))
@@ -1608,6 +1673,11 @@ def sprite(name, size=(32, 32)):
             "abyss_lord": lambda: _abyssal(_golem(), (150, 60, 210), eyes=(255, 120, 230)),
             "frost_wolf": lambda: _frosted(pygame.transform.flip(_wolf(), True, False)),
             "hunter": _npc_hunter,
+            "innkeeper": _npc_innkeeper,
+            "blacksmith": _npc_blacksmith,
+            "librarian": _npc_librarian,
+            "apothecary": _npc_apothecary,
+            "child": _npc_child,
             "ice_slime": lambda: _frosted(_slime_v2()),
             "frost_wisp": _frost_wisp,
             "frost_lizard": lambda: _frosted(_lizardman(), eyes=(90, 210, 255)),

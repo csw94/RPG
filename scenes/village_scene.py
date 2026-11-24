@@ -13,20 +13,42 @@ ROOFS = {
     "cottage": ((72, 120, 126), (100, 152, 150), (54, 92, 104), (140, 190, 176)),
     "shop": ((166, 98, 62), (200, 130, 84), (128, 72, 50), (226, 164, 106)),
     "chief": ((160, 76, 62), (196, 106, 80), (122, 56, 50), (226, 140, 102)),
+    "inn": ((96, 128, 74), (128, 160, 98), (72, 100, 58), (170, 200, 128)),
+    "smithy": ((92, 96, 108), (122, 126, 138), (68, 70, 82), (160, 164, 176)),
+    "library": ((64, 82, 140), (92, 112, 172), (48, 60, 108), (136, 156, 210)),
+    "apothecary": ((128, 84, 144), (160, 112, 176), (98, 62, 112), (196, 150, 210)),
 }
 
 
 class VillageScene(FieldScene):
-    # The map is 32x21 tiles. The original 25x16 plaza ("core") sits in the middle, shifted
-    # by CORE_OFFSET; the ring around it holds an orchard, a pond and a vegetable garden.
-    COLS, ROWS = 32, 21
+    # The map is 44x30 tiles. The 32x21 village of v0.7-v0.20 keeps its coordinates in the
+    # top-left; the east district (inn, smithy) and the south district (library, apothecary,
+    # park) were added around it. Inside, the original 25x16 plaza ("core") is still shifted
+    # by CORE_OFFSET.
+    COLS, ROWS = 44, 30
     CORE_OFFSET = (3, 2)
     VILLAGER = (10, 10)
     CHIEF = (15, 9)
     FOUNTAIN = (15, 13)
-    GATE = (15, 20)
-    FIELD_GATES = {"field_west": (0, 10), "field_east": (31, 10), "field_south": (15, 20),
+    GATE = (15, 29)
+    FIELD_GATES = {"field_west": (0, 10), "field_east": (43, 10), "field_south": (15, 29),
                    "village_north_shrine": (15, 0)}
+    # New districts: each place is a 4x4 building with its keeper standing at the door.
+    DISTRICT = {
+        "inn": {"title": "여관 「졸린 곰」", "footprint": (35, 4, 4, 4), "npc": (37, 8), "sprite": "innkeeper",
+                "roof": "inn", "sign": "bed"},
+        "smithy": {"title": "브론의 대장간", "footprint": (35, 13, 4, 4), "npc": (37, 17), "sprite": "blacksmith",
+                   "roof": "smithy", "sign": "anvil"},
+        "library": {"title": "별빛 도서관", "footprint": (5, 22, 4, 4), "npc": (7, 26), "sprite": "librarian",
+                    "roof": "library", "sign": "book"},
+        "apothecary": {"title": "미라의 물약 상점", "footprint": (23, 22, 4, 4), "npc": (25, 26),
+                       "sprite": "apothecary", "roof": "apothecary", "sign": "flask"},
+    }
+    RESIDENTS = {
+        "tomi": {"pos": (35, 24), "sprite": "child",
+                 "lines": ["꼬마 토미: 나도 크면 수호 기사가 될 거예요! 이 나무 칼 보이죠?",
+                           "도서관 할머니가 그러는데, 적마다 약한 속성이 있대요!"]},
+    }
     QUEST_HOUSE_DOOR = (6, 9)
     KNIGHT_HOUSE_DOOR = (24, 9)
     # Solid footprint of each building (x, y, w, h). The side houses sit two tiles further
@@ -58,7 +80,7 @@ class VillageScene(FieldScene):
             and (x, y) not in self.FIELD_GATES.values()
         }
         # Buildings (core layout, shifted into the bigger map).
-        for bx, by, bw, bh in self.BUILDINGS.values():
+        for bx, by, bw, bh in [*self.BUILDINGS.values(), *(p["footprint"] for p in self.DISTRICT.values())]:
             self.walls.update((x, y) for x in range(bx, bx + bw) for y in range(by, by + bh))
         core_trees = {
             (2, 11), (3, 11), (4, 12), (6, 12), (7, 13), (3, 14),
@@ -70,11 +92,15 @@ class VillageScene(FieldScene):
             (27, 1), (29, 2), (30, 4), (29, 6), (30, 8),       # pines (north-east)
             (1, 13), (2, 15), (29, 13), (30, 15), (28, 17),    # flanks
             (11, 19), (20, 19), (30, 19),                      # south hedge line
+            (33, 2), (41, 2), (42, 5), (33, 8), (42, 15), (33, 18), (42, 18),   # east district
+            (1, 23), (2, 27), (12, 23), (18, 24), (30, 22), (31, 26),          # south district
+            (40, 22), (41, 25), (37, 27), (20, 28), (9, 28),
         }
         self.water = ({(x, 16) for x in range(3, 7)} | {(x, 17) for x in range(2, 8)}
                       | {(x, 18) for x in range(3, 7)})
         self.trees = ({(x + ox, y + oy) for x, y in core_trees} | outskirts) - self.water - self.road_tiles()
-        self.solid_npcs = {self.VILLAGER, self.LOGAN}
+        self.solid_npcs = {self.VILLAGER, self.LOGAN, *(p["npc"] for p in self.DISTRICT.values()),
+                           *(r["pos"] for r in self.RESIDENTS.values())}
         self.walls.update(self.LOGAN_CRATES)
         self.walls.update(self.trees)
         self.walls.update(self.water)
@@ -89,6 +115,8 @@ class VillageScene(FieldScene):
         markers = [("gate", p) for p in self.FIELD_GATES.values()]
         markers += [("door", p) for p in (self.QUEST_HOUSE_DOOR, self.KNIGHT_HOUSE_DOOR, self.CHIEF)]
         markers += [("shop", self.LOGAN), ("fountain", self.FOUNTAIN), ("npc", self.VILLAGER)]
+        markers += [("shop", place["npc"]) for place in self.DISTRICT.values()]
+        markers += [("npc", resident["pos"]) for resident in self.RESIDENTS.values()]
         return markers
 
     def _interact(self):
@@ -100,6 +128,13 @@ class VillageScene(FieldScene):
             self.game.enter_world("village_house_2", (12, 12))
         elif near(self.LOGAN, 1.4):
             self._interact_logan()
+        elif any(near(place["npc"], 1.2) for place in self.DISTRICT.values()):
+            name = min(self.DISTRICT, key=lambda key: (self.DISTRICT[key]["npc"][0] - x) ** 2
+                       + (self.DISTRICT[key]["npc"][1] - y) ** 2)
+            self._visit(name)
+        elif any(near(resident["pos"], 1.2) for resident in self.RESIDENTS.values()):
+            resident = min(self.RESIDENTS.values(), key=lambda r: (r["pos"][0] - x) ** 2 + (r["pos"][1] - y) ** 2)
+            self.show_dialogue(resident["lines"])
         elif any(near(gate) for gate in self.FIELD_GATES.values()):
             route_id, gate = min(self.FIELD_GATES.items(),
                                  key=lambda item: (item[1][0] - x) ** 2 + (item[1][1] - y) ** 2)
@@ -135,6 +170,16 @@ class VillageScene(FieldScene):
                                     "지치면 마르타 할머니 오두막 침대에서 쉬어 가세요. 공짜랍니다!"])
         else:
             self.message = "\uc8fc\ubcc0\uc5d0\ub294 \uc0c1\ud638\uc791\uc6a9\ud560 \ub300\uc0c1\uc774 \uc5c6\uc2b5\ub2c8\ub2e4."
+
+    def _visit(self, name):
+        """Talk to the keeper of a district building."""
+        greetings = {
+            "inn": ["여관 주인 로사: 어서 와요, 졸린 곰 여관이에요!", "따뜻한 수프와 푹신한 침대가 준비되어 있답니다."],
+            "smithy": ["대장장이 브론: 흠, 좋은 검이군. 언제든 두드려 주지.", "쇠는 뜨거울 때 쳐야 하는 법이야!"],
+            "library": ["사서 에델: 쉿, 도서관에서는 조용히 해 주세요.", "오크밸리의 오래된 기록들이 이곳에 잠들어 있답니다."],
+            "apothecary": ["약사 미라: 어서 오세요! 오늘 끓인 물약이 아주 잘 됐어요.", "모험에 필요한 물약은 여기서 챙겨 가세요."],
+        }
+        self.show_dialogue(greetings[name])
 
     def _interact_logan(self):
         ore = self.sub_quests["sq_magma_ore"]
@@ -186,18 +231,42 @@ class VillageScene(FieldScene):
             pygame.draw.line(surface, (177, 76, 63), (box.centerx, box.y), (box.centerx + 2, box.y - 5), 2)
             pygame.draw.line(surface, (237, 187, 92), (box.right - 5, box.y), (box.right - 7, box.y - 4), 2)
 
-    def _draw_house(self, surface, tile_x, tile_y, shop=False):
+    def _draw_sign(self, surface, place):
+        """A hanging wooden sign with a little picture of what is sold or offered."""
+        t = TILE_SIZE
+        bx, by, bw, _bh = place["footprint"]
+        x, y = (bx + bw) * t - 4, by * t + 70
+        pygame.draw.line(surface, OUTLINE, (x - 4, y - 10), (x + 22, y - 10), 3)
+        board = pygame.Rect(x, y - 6, 22, 18)
+        pygame.draw.rect(surface, OUTLINE, board.inflate(2, 2))
+        pygame.draw.rect(surface, (196, 150, 96), board)
+        cx, cy = board.center
+        kind = place["sign"]
+        if kind == "bed":
+            pygame.draw.rect(surface, (120, 70, 50), (cx - 7, cy, 14, 4))
+            pygame.draw.rect(surface, (240, 236, 220), (cx - 6, cy - 3, 5, 3))
+        elif kind == "anvil":
+            pygame.draw.rect(surface, (70, 72, 80), (cx - 7, cy - 3, 14, 4))
+            pygame.draw.rect(surface, (70, 72, 80), (cx - 3, cy + 1, 6, 4))
+        elif kind == "book":
+            pygame.draw.rect(surface, (60, 80, 150), (cx - 7, cy - 5, 14, 10))
+            pygame.draw.line(surface, (236, 226, 200), (cx, cy - 5), (cx, cy + 4), 2)
+        else:  # flask
+            pygame.draw.circle(surface, (110, 220, 150), (cx, cy + 2), 5)
+            pygame.draw.rect(surface, (220, 236, 240), (cx - 2, cy - 6, 4, 5))
+
+    def _draw_house(self, surface, tile_x, tile_y, shop=False, roof=None):
         x, y = tile_x * TILE_SIZE, tile_y * TILE_SIZE
         width = (7 if shop else 6) * TILE_SIZE
         bounds = pygame.Rect(x - 10, y - 10, width + 24, 214)
         layer = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        self._paint_house(layer, tile_x, tile_y, shop)
+        self._paint_house(layer, tile_x, tile_y, shop, roof)
         crop = layer.subsurface(bounds).copy()
         scaled = pygame.transform.smoothscale(crop, (round(bounds.width * 0.8), round(bounds.height * 0.8)))
         surface.blit(scaled, (round(bounds.centerx - scaled.get_width() / 2),
                               round(bounds.centery - scaled.get_height() / 2)))
 
-    def _paint_house(self, surface, tile_x, tile_y, shop=False):
+    def _paint_house(self, surface, tile_x, tile_y, shop=False, roof_key=None):
         """Paint the two plaza cottages as detailed timber buildings with steep tiled roofs."""
         x, y = tile_x * TILE_SIZE, tile_y * TILE_SIZE
         width = (7 if shop else 6) * TILE_SIZE
@@ -244,7 +313,7 @@ class VillageScene(FieldScene):
             apex_x = x + width // 2
             roof_points = [(x - 7, eaves_y + 12), (apex_x, y - 4),
                            (x + width + 7, eaves_y + 12)]
-        roof = ROOFS["shop" if shop else "cottage"]
+        roof = ROOFS[roof_key or ("shop" if shop else "cottage")]
         self._draw_shingles(surface, roof_points,
                             (x, y, width, eaves_y - y + 20), (roof[0], roof[1], roof[2]))
         pygame.draw.line(surface, roof[3], (x + 8, eaves_y + 10),
@@ -291,13 +360,20 @@ class VillageScene(FieldScene):
         road.update((15, y) for y in range(0, 3))
         road.update((15, y) for y in range(18, self.ROWS))
         road.update((x, 18) for x in range(9, 24))
+        # East district: a lane up to the inn door and round the smithy to its door.
+        road.update({(37, 9)})
+        road.update((40, y) for y in range(11, 18))
+        road.update((x, 18) for x in range(36, 41))
+        # South district: a high street linking the library, the apothecary and the park.
+        road.update((x, 27) for x in range(3, 40))
+        road.update((y_x, 26) for y_x in (7, 25))
         return road
 
     def ground_decals(self):
         """Walkable, purely visual ground details: flowers and pebbles off the road."""
         if self._decals is None:
             road = self.road_tiles()
-            blocked = (self.walls | road | set(self.trees) | self.water
+            blocked = (self.walls | road | set(self.trees) | self.water | self.solid_npcs
                        | {self.FOUNTAIN, self.VILLAGER, self.LOGAN})
             decals = {}
             for y in range(1, self.ROWS - 1):
@@ -352,6 +428,10 @@ class VillageScene(FieldScene):
         ox, oy = self.CORE_OFFSET
         self._draw_house(layer, *self.HOUSE_TILES["herb_cottage"])
         self._draw_house(layer, *self.HOUSE_TILES["general_store"], shop=True)
+        for place in self.DISTRICT.values():
+            bx, by, _bw, _bh = place["footprint"]
+            self._draw_house(layer, bx - 1, by - 1, roof=place["roof"])
+            self._draw_sign(layer, place)
         core = layer.subsurface(pygame.Rect(ox * t, oy * t, 25 * t, 16 * t))
         self._draw_chief_house(core)
         self._draw_logan_stall(core)
@@ -371,7 +451,10 @@ class VillageScene(FieldScene):
         cam_x, cam_y = (round(v) for v in self._camera())
         surface.fill((0, 0, 0), (0, 0, WIDTH, self.VIEW_HEIGHT))
         surface.blit(self._static, (0, 0), pygame.Rect(cam_x, cam_y, WIDTH, self.VIEW_HEIGHT))
-        for position, sprite_name in ((self.VILLAGER, "townsfolk"), (self.LOGAN, "shopkeeper")):
+        people = [(self.VILLAGER, "townsfolk"), (self.LOGAN, "shopkeeper")]
+        people += [(place["npc"], place["sprite"]) for place in self.DISTRICT.values()]
+        people += [(resident["pos"], resident["sprite"]) for resident in self.RESIDENTS.values()]
+        for position, sprite_name in people:
             sx, sy = position[0] * t - cam_x, position[1] * t - cam_y
             self._draw_shadow(surface, sx + t / 2, sy + t)
             surface.blit(npc_sprite(sprite_name, NPC_SIZE, self.portal_clock, position[0]), (sx, sy - 16))
