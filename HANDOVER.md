@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.13.0)
+# HANDOVER — Chronicles of Pixel (v0.14.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.13.0 (태그 `v0.13.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.13.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.14.0 (태그 `v0.14.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.14.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 169개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 186개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -89,7 +89,26 @@
   - 모니터에 들어가지 않는 창 크기는 `available_modes`가 목록에서 뺌
 - README를 현재 게임 내용에 맞게 다시 씀
 
+## 장비 다양화 (v0.14.0)
+- 데이터는 `gameplay/equipment.py`
+  - 무기: `element`(일반 공격에 속성 적용), `crit`(치명타 확률 추가), `proc`(상태, 확률, 턴). 보스는 기절 확률이 절반
+  - 방어구: `health`, `mp`, `immune`
+  - 장신구 `ACCESSORIES`: `attack`, `evasion`, `victory_mp`, `immune`
+  - 기존 ID(iron_sword, silver_sword, leather_armor, chainmail)는 예전 세이브를 위해 남겨 둠
+- 장신구 칸이 새로 생김: 세이브에 `accessory`, `owned_accessories` 추가. 예전 세이브는 장신구 없음(None)으로 시작함
+- `FieldScene`
+  - 장비 정보: `weapon_info`, `armor_info`, `accessory_info`
+  - 능력치: `attack_power`(장신구 공격력 포함), `evasion`(바람의 가호 + 장신구), `immunities`
+  - `equip(kind, id)`는 방어구의 최대 HP·MP 차이를 함께 반영함
+- 상점(`scenes/shop_scene.py`)
+  - 무기·방어구·장신구·소모품 탭으로 나뉨
+  - 파는 물건은 `shop_stock(정화한 제단 수, 종류)`로 정함. `tier`는 그 물건이 나오는 데 필요한 제단 수
+  - 이미 가진 장비는 무료로 다시 장착할 수 있음
+- 별빛의 검은 빛 속성. 주인공 그림의 칼날 색이 무기에 따라 바뀜(`_hero_torso`의 `blade`)
+- 시뮬레이터는 강철 장검과 흉갑만 사도록 되어 있음. 새 장비를 쓰면 시뮬레이션 결과보다 조금 쉬워짐
+
 ## 릴리즈 기록
+- **v0.14.0:** 장비 다양화. 속성 무기 3종, 방어구 2종, 장신구 칸과 장신구 4종, 탭으로 나뉜 상점, 제단 진행도에 따라 늘어나는 상품
 - **v0.13.0:** 타이틀의 조작법 화면, 설정 화면(음량·화면 크기·전체 화면), README 갱신
 - **v0.12.0:** 패배 후 다시 도전 선택지, 최종 보스 2페이즈(연출·전용 곡 포함)
 - **v0.11.0:** 침대 휴식, 상태 화면(I/Tab), 코드로 만든 효과음과 배경음악(M으로 음소거)
