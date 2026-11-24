@@ -102,7 +102,8 @@ class Game:
             # Legacy saves used a single combined field; resume them at the eastern route's entrance.
             x, y = FIELD_ROUTES["field_east"]["village_spawn"]
             state.update(world="field_east", x=float(x), y=float(y))
-        if state.get("world") in ("village_chief_house", "village_house_1", "village_house_2"):
+        from scenes.house_scene import HOUSES
+        if state.get("world") in HOUSES:
             return HouseInteriorScene(self, state)
         if state.get("world") == "village_north_shrine":
             return ShrineClearingScene(self, state)

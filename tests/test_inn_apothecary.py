@@ -61,12 +61,25 @@ def village(**state):
     return game, scene
 
 
-def talk_to(scene, name):
-    x, y = scene.DISTRICT[name]["npc"]
-    scene.player.update(x=float(x - 1), y=float(y))
-    scene._interact()
-    while scene.dialogue_lines:
-        scene._advance_dialogue()
+ROOMS = {"inn": "village_inn", "smithy": "village_smithy", "library": "village_library",
+         "apothecary": "village_apothecary"}
+
+
+def keeper_room(name, **state):
+    """The keeper now waits inside the building: open that room with the hero at the counter."""
+    from scenes.house_scene import HouseInteriorScene
+
+    game = FakeGame()
+    room = HouseInteriorScene(game, {"world": ROOMS[name], "x": 12, "y": 7, **state})
+    game.field = game.scene = room
+    return game, room
+
+
+def talk_keeper(room):
+    room.player.update(x=12.0, y=7.0)
+    room._interact()
+    while room.dialogue_lines:
+        room._advance_dialogue()
 
 
 class InnTests(unittest.TestCase):
@@ -76,8 +89,8 @@ class InnTests(unittest.TestCase):
         pygame.display.set_mode((1, 1))
 
     def test_paid_rest_restores_everything(self):
-        game, scene = village(gold=200, hp=10, mp=1, level=5)
-        talk_to(scene, "inn")
+        game, scene = keeper_room("inn", gold=200, hp=10, mp=1, level=5)
+        talk_keeper(scene)
         self.assertIsInstance(game.scene, ConfirmScene)
         game.scene.handle_events([key(pygame.K_LEFT), key(pygame.K_RETURN)])  # 예
         self.assertEqual((scene.hp, scene.mp), (scene.max_hp, scene.max_mp))
@@ -85,8 +98,8 @@ class InnTests(unittest.TestCase):
         self.assertEqual(scene.inn_price(), 10 + 2 * 5)
 
     def test_no_money_no_bed(self):
-        game, scene = village(gold=0, hp=10)
-        talk_to(scene, "inn")
+        game, scene = keeper_room("inn", gold=0, hp=10)
+        talk_keeper(scene)
         game.scene.handle_events([key(pygame.K_LEFT), key(pygame.K_RETURN)])
         self.assertEqual(scene.hp, 10)
         self.assertIn("모자라", " ".join(scene.dialogue_lines))
@@ -107,8 +120,8 @@ class ApothecaryTests(unittest.TestCase):
         pygame.display.set_mode((1, 1))
 
     def test_mira_opens_her_own_shop(self):
-        game, scene = village()
-        talk_to(scene, "apothecary")
+        game, scene = keeper_room("apothecary")
+        talk_keeper(scene)
         self.assertEqual(game.opened_shop, "mira")
 
     def test_her_stock_is_consumables_and_the_elixir_comes_later(self):

@@ -380,6 +380,61 @@ class FieldScene(BaseScene):
             markers.append(("npc", self.toby_position))
         return markers
 
+    # --- district keepers (inn, smithy, library, apothecary) ----------------------------
+    RUMOURS = (
+        "숲늑대는 불에 약하대요. 화염 참격이나 화염검을 써 보세요.",
+        "바위 골렘은 단단하지만 바람에는 약하다더군요.",
+        "서리 고원에 가려면 얼음 결계가 녹아야 해요. 제단 두 곳을 정화하면 된대요.",
+        "얼음 슬라임에게 얼면 한 턴을 쉬게 돼요. 따뜻한 목도리가 있으면 괜찮다던데요.",
+        "흑기사 말포스는 빛에 약하대요. 별빛의 검이라면...!",
+        "미라의 물약 상점에서 해독제를 사 두면 독 때문에 고생할 일이 없죠.",
+        "브론 아저씨가 장비를 두드려 주면 훨씬 튼튼해진대요.",
+        "도서관에는 제단에 얽힌 옛 기록이 있다더군요.",
+        "말포스를 쓰러뜨린 뒤 북쪽 제단에서 이상한 기운이 느껴진다는 소문이 있어요.",
+    )
+
+    def inn_price(self):
+        return 10 + 2 * self.level
+
+    def inn_rumour(self):
+        return self.RUMOURS[int(self.play_time // 60) % len(self.RUMOURS)]
+
+    def rest_at_inn(self):
+        price = self.inn_price()
+        if self.gold < price:
+            self.show_dialogue([f"여관 주인 로사: 어머, 금화가 {price - self.gold}G 모자라네요. 다음에 또 와요!"])
+            return
+        self.gold -= price
+        self.hp, self.mp = self.max_hp, self.max_mp
+        self.sfx("heal")
+        self.game.save_game()
+        self.show_dialogue(["포근한 이불 속에서 푹 잠들었다...", "HP와 MP가 모두 회복되었다. (저장 완료)"])
+
+    def visit_keeper(self, name):
+        """Talk to the keeper of a district building (now met inside it)."""
+        north_open = sum(1 for key in SHRINES if self.quest_flags.get(key)) >= 2
+        requests = {"inn": "sq_inn_stew", "smithy": "sq_smith_ore", "library": "sq_library"}
+        quest_id = requests.get(name)
+        if quest_id and self.quest_due(quest_id) and (name != "inn" or north_open):
+            self._offer_sidequest(quest_id)
+            return
+        if name == "library":
+            self.show_dialogue(["사서 에델: 쉿, 조용히 읽어 주세요. 오래된 기록들이 잠들어 있답니다."],
+                               action="open_library")
+            return
+        if name == "inn":
+            self.show_dialogue(["여관 주인 로사: 어서 와요, 졸린 곰 여관이에요!",
+                                f"요즘 손님들 사이에 이런 소문이 돌아요. \"{self.inn_rumour()}\""],
+                               action="inn_offer")
+            return
+        if name == "smithy":
+            self.show_dialogue(["대장장이 브론: 흠, 좋은 장비로군. 더 단단하게 두드려 주지."], action="open_smithy")
+            return
+        if name == "apothecary":
+            self.show_dialogue(["약사 미라: 어서 오세요! 오늘 끓인 물약이 아주 잘 됐어요."],
+                               action="open_apothecary")
+            return
+
     # --- consumables -------------------------------------------------------------------
     def item_count(self, item_id):
         attr = CONSUMABLES[item_id].get("attr")

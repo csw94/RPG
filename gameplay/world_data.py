@@ -7,7 +7,8 @@ SHRINES = ("shrine_wind", "shrine_earth", "shrine_fire", "shrine_ice")
 NORTH_UNLOCK = 2
 
 MAP_GRAPH = {
-    "village_square": ("village_chief_house", "village_house_1", "village_house_2",
+    "village_square": ("village_chief_house", "village_house_1", "village_house_2", "village_inn",
+                       "village_smithy", "village_library", "village_apothecary",
                        "village_north_shrine", "field_east", "field_west", "field_south"),
     "village_chief_house": ("village_square",),
     "village_north_shrine": ("village_square", "shrine_abyss_1f", "field_north"),
@@ -16,6 +17,10 @@ MAP_GRAPH = {
     "shrine_ice_2f": ("shrine_ice_1f",),
     "village_house_1": ("village_square",),
     "village_house_2": ("village_square",),
+    "village_inn": ("village_square",),
+    "village_smithy": ("village_square",),
+    "village_library": ("village_square",),
+    "village_apothecary": ("village_square",),
     "field_east": ("village_square", "shrine_wind_1f"),
     "shrine_wind_1f": ("field_east", "shrine_wind_2f"),
     "shrine_wind_2f": ("shrine_wind_1f",),

@@ -101,15 +101,15 @@ class SmithySceneTests(unittest.TestCase):
         self.assertIs(game.scene, field)
 
     def test_bron_opens_the_smithy(self):
+        from scenes.house_scene import HouseInteriorScene
+
         game = FakeGame()
-        village = VillageScene(game, {"world": "village", "x": 15, "y": 15,
-                                      "sub_quests": {"sq_smith_ore": {"status": "COMPLETED", "progress": 4}}})
-        game.field = game.scene = village
-        x, y = village.DISTRICT["smithy"]["npc"]
-        village.player.update(x=float(x + 1), y=float(y))
-        village._interact()
-        while village.dialogue_lines:
-            village._advance_dialogue()
+        room = HouseInteriorScene(game, {"world": "village_smithy", "x": 12, "y": 7,
+                                         "sub_quests": {"sq_smith_ore": {"status": "COMPLETED", "progress": 4}}})
+        game.field = game.scene = room
+        room._interact()
+        while room.dialogue_lines:
+            room._advance_dialogue()
         self.assertIsInstance(game.scene, SmithyScene)
 
 

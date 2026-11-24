@@ -33,16 +33,16 @@ class VillageScene(FieldScene):
     GATE = (15, 29)
     FIELD_GATES = {"field_west": (0, 10), "field_east": (43, 10), "field_south": (15, 29),
                    "village_north_shrine": (15, 0)}
-    # New districts: each place is a 4x4 building with its keeper standing at the door.
+    # New districts: each place is a 4x4 building; its keeper waits inside (HouseInteriorScene).
     DISTRICT = {
-        "inn": {"title": "여관 「졸린 곰」", "footprint": (35, 4, 4, 4), "npc": (37, 8), "sprite": "innkeeper",
+        "inn": {"title": "여관 「졸린 곰」", "footprint": (35, 4, 4, 4), "door": (37, 8), "world": "village_inn",
                 "roof": "inn", "sign": "bed"},
-        "smithy": {"title": "브론의 대장간", "footprint": (35, 13, 4, 4), "npc": (37, 17), "sprite": "blacksmith",
+        "smithy": {"title": "브론의 대장간", "footprint": (35, 13, 4, 4), "door": (37, 17), "world": "village_smithy",
                    "roof": "smithy", "sign": "anvil"},
-        "library": {"title": "별빛 도서관", "footprint": (5, 22, 4, 4), "npc": (7, 26), "sprite": "librarian",
+        "library": {"title": "별빛 도서관", "footprint": (5, 22, 4, 4), "door": (7, 26), "world": "village_library",
                     "roof": "library", "sign": "book"},
-        "apothecary": {"title": "미라의 물약 상점", "footprint": (23, 22, 4, 4), "npc": (25, 26),
-                       "sprite": "apothecary", "roof": "apothecary", "sign": "flask"},
+        "apothecary": {"title": "미라의 물약 상점", "footprint": (23, 22, 4, 4), "door": (25, 26),
+                       "world": "village_apothecary", "roof": "apothecary", "sign": "flask"},
     }
     RESIDENTS = {
         "tomi": {"pos": (35, 24), "sprite": "child",
@@ -60,7 +60,9 @@ class VillageScene(FieldScene):
     START = (15, 15)
     SHRINE_SPAWN = (15, 17)
     SHRINE_RETURN = (15, 1)
-    HOUSE_EXITS = {"village_house_1": (6, 10), "village_house_2": (24, 10), "village_chief_house": (15, 9)}
+    HOUSE_EXITS = {"village_house_1": (6, 10), "village_house_2": (24, 10), "village_chief_house": (15, 9),
+                   "village_inn": (37, 8), "village_smithy": (37, 17), "village_library": (7, 26),
+                   "village_apothecary": (25, 26)}
     GARDEN = tuple((x, y) for x in range(24, 29) for y in (18, 19))
 
     def __init__(self, game, state=None):
@@ -99,8 +101,7 @@ class VillageScene(FieldScene):
         self.water = ({(x, 16) for x in range(3, 7)} | {(x, 17) for x in range(2, 8)}
                       | {(x, 18) for x in range(3, 7)})
         self.trees = ({(x + ox, y + oy) for x, y in core_trees} | outskirts) - self.water - self.road_tiles()
-        self.solid_npcs = {self.VILLAGER, self.LOGAN, *(p["npc"] for p in self.DISTRICT.values()),
-                           *(r["pos"] for r in self.RESIDENTS.values())}
+        self.solid_npcs = {self.VILLAGER, self.LOGAN, *(r["pos"] for r in self.RESIDENTS.values())}
         self.walls.update(self.LOGAN_CRATES)
         self.walls.update(self.trees)
         self.walls.update(self.water)
@@ -115,7 +116,7 @@ class VillageScene(FieldScene):
         markers = [("gate", p) for p in self.FIELD_GATES.values()]
         markers += [("door", p) for p in (self.QUEST_HOUSE_DOOR, self.KNIGHT_HOUSE_DOOR, self.CHIEF)]
         markers += [("shop", self.LOGAN), ("fountain", self.FOUNTAIN), ("npc", self.VILLAGER)]
-        markers += [("shop", place["npc"]) for place in self.DISTRICT.values()]
+        markers += [("door", place["door"]) for place in self.DISTRICT.values()]
         markers += [("npc", resident["pos"]) for resident in self.RESIDENTS.values()]
         return markers
 
@@ -128,10 +129,9 @@ class VillageScene(FieldScene):
             self.game.enter_world("village_house_2", (12, 12))
         elif near(self.LOGAN, 1.4):
             self._interact_logan()
-        elif any(near(place["npc"], 1.2) for place in self.DISTRICT.values()):
-            name = min(self.DISTRICT, key=lambda key: (self.DISTRICT[key]["npc"][0] - x) ** 2
-                       + (self.DISTRICT[key]["npc"][1] - y) ** 2)
-            self._visit(name)
+        elif any(near(place["door"], 1.2) for place in self.DISTRICT.values()):
+            place = min(self.DISTRICT.values(), key=lambda p: (p["door"][0] - x) ** 2 + (p["door"][1] - y) ** 2)
+            self.game.enter_world(place["world"], (12, 12))
         elif any(near(resident["pos"], 1.2) for resident in self.RESIDENTS.values()):
             name = min(self.RESIDENTS, key=lambda key: (self.RESIDENTS[key]["pos"][0] - x) ** 2
                        + (self.RESIDENTS[key]["pos"][1] - y) ** 2)
@@ -174,67 +174,6 @@ class VillageScene(FieldScene):
                                     "지치면 마르타 할머니 오두막 침대에서 쉬어 가세요. 공짜랍니다!"])
         else:
             self.message = "\uc8fc\ubcc0\uc5d0\ub294 \uc0c1\ud638\uc791\uc6a9\ud560 \ub300\uc0c1\uc774 \uc5c6\uc2b5\ub2c8\ub2e4."
-
-    RUMOURS = (
-        "숲늑대는 불에 약하대요. 화염 참격이나 화염검을 써 보세요.",
-        "바위 골렘은 단단하지만 바람에는 약하다더군요.",
-        "서리 고원에 가려면 얼음 결계가 녹아야 해요. 제단 두 곳을 정화하면 된대요.",
-        "얼음 슬라임에게 얼면 한 턴을 쉬게 돼요. 따뜻한 목도리가 있으면 괜찮다던데요.",
-        "흑기사 말포스는 빛에 약하대요. 별빛의 검이라면...!",
-        "미라의 물약 상점에서 해독제를 사 두면 독 때문에 고생할 일이 없죠.",
-        "브론 아저씨가 장비를 두드려 주면 훨씬 튼튼해진대요.",
-        "도서관에는 제단에 얽힌 옛 기록이 있다더군요.",
-        "말포스를 쓰러뜨린 뒤 북쪽 제단에서 이상한 기운이 느껴진다는 소문이 있어요.",
-    )
-
-    def inn_price(self):
-        return 10 + 2 * self.level
-
-    def inn_rumour(self):
-        return self.RUMOURS[int(self.play_time // 60) % len(self.RUMOURS)]
-
-    def rest_at_inn(self):
-        price = self.inn_price()
-        if self.gold < price:
-            self.show_dialogue([f"여관 주인 로사: 어머, 금화가 {price - self.gold}G 모자라네요. 다음에 또 와요!"])
-            return
-        self.gold -= price
-        self.hp, self.mp = self.max_hp, self.max_mp
-        self.sfx("heal")
-        self.game.save_game()
-        self.show_dialogue(["포근한 이불 속에서 푹 잠들었다...", "HP와 MP가 모두 회복되었다. (저장 완료)"])
-
-    def _visit(self, name):
-        """Talk to the keeper of a district building."""
-        north_open = sum(1 for key in SHRINES if self.quest_flags.get(key)) >= 2
-        requests = {"inn": "sq_inn_stew", "smithy": "sq_smith_ore", "library": "sq_library"}
-        quest_id = requests.get(name)
-        if quest_id and self.quest_due(quest_id) and (name != "inn" or north_open):
-            self._offer_sidequest(quest_id)
-            return
-        if name == "library":
-            self.show_dialogue(["사서 에델: 쉿, 조용히 읽어 주세요. 오래된 기록들이 잠들어 있답니다."],
-                               action="open_library")
-            return
-        if name == "inn":
-            self.show_dialogue(["여관 주인 로사: 어서 와요, 졸린 곰 여관이에요!",
-                                f"요즘 손님들 사이에 이런 소문이 돌아요. \"{self.inn_rumour()}\""],
-                               action="inn_offer")
-            return
-        if name == "smithy":
-            self.show_dialogue(["대장장이 브론: 흠, 좋은 장비로군. 더 단단하게 두드려 주지."], action="open_smithy")
-            return
-        if name == "apothecary":
-            self.show_dialogue(["약사 미라: 어서 오세요! 오늘 끓인 물약이 아주 잘 됐어요."],
-                               action="open_apothecary")
-            return
-        greetings = {
-            "inn": ["여관 주인 로사: 어서 와요, 졸린 곰 여관이에요!", "따뜻한 수프와 푹신한 침대가 준비되어 있답니다."],
-            "smithy": ["대장장이 브론: 흠, 좋은 검이군. 언제든 두드려 주지.", "쇠는 뜨거울 때 쳐야 하는 법이야!"],
-            "library": ["사서 에델: 쉿, 도서관에서는 조용히 해 주세요.", "오크밸리의 오래된 기록들이 이곳에 잠들어 있답니다."],
-            "apothecary": ["약사 미라: 어서 오세요! 오늘 끓인 물약이 아주 잘 됐어요.", "모험에 필요한 물약은 여기서 챙겨 가세요."],
-        }
-        self.show_dialogue(greetings[name])
 
     def _interact_logan(self):
         ore = self.sub_quests["sq_magma_ore"]
@@ -507,7 +446,6 @@ class VillageScene(FieldScene):
         surface.fill((0, 0, 0), (0, 0, WIDTH, self.VIEW_HEIGHT))
         surface.blit(self._static, (0, 0), pygame.Rect(cam_x, cam_y, WIDTH, self.VIEW_HEIGHT))
         people = [(self.VILLAGER, "townsfolk"), (self.LOGAN, "shopkeeper")]
-        people += [(place["npc"], place["sprite"]) for place in self.DISTRICT.values()]
         people += [(resident["pos"], resident["sprite"]) for resident in self.RESIDENTS.values()]
         for position, sprite_name in people:
             sx, sy = position[0] * t - cam_x, position[1] * t - cam_y

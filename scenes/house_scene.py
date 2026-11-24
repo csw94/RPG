@@ -45,6 +45,51 @@ LAYOUTS = {
             _item("plant_pot", 5, 13), _item("barrel", 19, 13),
         ),
     },
+    "village_inn": {  # Rosa's Sleepy Bear: hearth, dining tables, a guest bed
+        "wall": "wall_cottage",
+        "items": (
+            _item("window", 9, 1, 1, 2, False), _item("window", 16, 1, 1, 2, False),
+            _item("fireplace", 5, 2, 3, 2), _item("bed_green", 18, 2, 2, 3),
+            _item("barrel", 14, 3), _item("barrel", 15, 3),
+            _item("table", 6, 8, 2, 2), _item("chair_right", 5, 8), _item("chair_left", 8, 8),
+            _item("table", 16, 8, 2, 2), _item("chair_right", 15, 8), _item("chair_left", 18, 8),
+            _item("rug_red_3x2", 11, 9, 3, 2, False),
+            _item("plant_pot", 5, 13), _item("plant_pot", 19, 13), _item("crate", 19, 11),
+        ),
+    },
+    "village_smithy": {  # Bron's forge: furnace, racks of blades and armour
+        "wall": "wall_stone",
+        "items": (
+            _item("fireplace", 5, 2, 3, 2), _item("weapon_rack", 8, 2, 2, 2),
+            _item("weapon_rack", 15, 2, 2, 2), _item("armor_stand", 18, 2, 1, 2), _item("armor_stand", 19, 2, 1, 2),
+            _item("worktable", 7, 6, 2, 2), _item("barrel", 5, 9), _item("barrel", 19, 9),
+            _item("crate", 5, 10), _item("crate", 19, 10), _item("chest", 17, 6),
+            _item("banner", 11, 1, 1, 2, False), _item("banner", 13, 1, 1, 2, False),
+        ),
+    },
+    "village_library": {  # Edel's library: shelves on every wall, a reading table
+        "wall": "wall_plaster",
+        "items": (
+            _item("bookshelf", 5, 2, 2, 2), _item("bookshelf", 7, 2, 2, 2),
+            _item("bookshelf", 15, 2, 2, 2), _item("bookshelf", 17, 2, 2, 2),
+            _item("desk", 11, 4, 3, 2), _item("globe", 6, 6), _item("plant_pot", 19, 5),
+            _item("map_table", 15, 9, 3, 2), _item("chair_right", 14, 9),
+            _item("bookshelf", 5, 9, 2, 2), _item("rug_blue_5x3", 10, 8, 5, 3, False),
+            _item("plant_pot", 5, 13), _item("plant_pot", 19, 13),
+        ),
+    },
+    "village_apothecary": {  # Mira's shop: herb shelves, a bubbling cauldron
+        "wall": "wall_cottage",
+        "items": (
+            _item("window", 10, 1, 1, 2, False),
+            _item("herb_shelf", 5, 2, 2, 2), _item("cabinet", 7, 2, 2, 2),
+            _item("herb_shelf", 15, 2, 2, 2), _item("herb_shelf", 17, 2, 2, 2),
+            _item("worktable", 11, 4, 2, 2), _item("cauldron", 7, 7), _item("jars", 5, 7), _item("jars", 5, 9),
+            _item("crate", 18, 9), _item("plant_pot", 19, 6),
+            _item("rug_green_3x2", 11, 10, 3, 2, False),
+            _item("plant_pot", 5, 13), _item("plant_pot", 19, 13),
+        ),
+    },
     "village_chief_house": {  # Chief Valen's office
         "wall": "wall_plaster",
         "items": (
@@ -65,6 +110,19 @@ HOUSES = {  # title, resident sprite
     "village_house_1": ("약초상의 오두막", "villager"),
     "village_house_2": ("노기사 가렌의 거처", "old_knight"),
     "village_chief_house": ("촌장 발렌의 집", "chief"),
+    "village_inn": ("여관 「졸린 곰」", "innkeeper"),
+    "village_smithy": ("브론의 대장간", "blacksmith"),
+    "village_library": ("별빛 도서관", "librarian"),
+    "village_apothecary": ("미라의 물약 상점", "apothecary"),
+}
+# The district shops: which keeper stands behind each counter (see FieldScene.visit_keeper).
+KEEPERS = {"village_inn": "inn", "village_smithy": "smithy", "village_library": "library",
+           "village_apothecary": "apothecary"}
+FLAVOUR = {
+    "village_inn": "벽난로가 따뜻하게 타오르는 여관 식당입니다.",
+    "village_smithy": "쇳물 냄새와 망치 소리가 가득한 대장간입니다.",
+    "village_library": "오래된 종이 냄새가 나는 조용한 도서관입니다.",
+    "village_apothecary": "약초와 물약 냄새가 은은하게 풍기는 가게입니다.",
 }
 
 
@@ -76,7 +134,7 @@ class HouseInteriorScene(FieldScene):
     def __init__(self, game, state=None):
         state = dict(state or {})
         self.house_id = state.get("world", "village_house_1")
-        if self.house_id not in ("village_chief_house", "village_house_1", "village_house_2"):
+        if self.house_id not in HOUSES:
             self.house_id = "village_house_1"
         state["world"] = self.house_id
         super().__init__(game, state)
@@ -152,8 +210,13 @@ class HouseInteriorScene(FieldScene):
             self.game.enter_world("village", self._outside_door())
             return
         near_npc = (x - self.npcs[0][0]) ** 2 + (y - self.npcs[0][1]) ** 2 <= 1.5
-        if not near_npc and self._near_bed():
+        if not near_npc and self._near_bed() and self.house_id in ("village_house_1", "village_house_2"):
             self._rest()
+        elif self.house_id in KEEPERS:
+            if near_npc:
+                self.visit_keeper(KEEPERS[self.house_id])
+            else:
+                self.message = FLAVOUR[self.house_id]
         elif self.house_id == "village_house_1":
             if near_npc:
                 self._offer_sidequest("sq_moon_herb")
@@ -174,7 +237,7 @@ class HouseInteriorScene(FieldScene):
 
     def map_markers(self):
         markers = [("door", self.DOOR)] + [("npc", p) for p in self.npcs]
-        if self.bed:
+        if self.bed and self.house_id in ("village_house_1", "village_house_2"):
             markers += [("bed", p) for p in self.solid_tiles(self.bed)]
         return markers
 

@@ -77,7 +77,7 @@ class LayoutTests(unittest.TestCase):
         reach = reachable(v, v.START)
         self.assertEqual(set(v.DISTRICT), {"inn", "smithy", "library", "apothecary"})
         for name, place in v.DISTRICT.items():
-            self.assertTrue(next_to(place["npc"], reach), name)
+            self.assertIn(place["door"], reach, name)
             bx, by, bw, bh = place["footprint"]
             for tx in range(bx, bx + bw):
                 for ty in range(by, by + bh):
@@ -87,22 +87,25 @@ class LayoutTests(unittest.TestCase):
         for gate in v.FIELD_GATES.values():
             self.assertTrue(next_to(gate, reach) or gate in reach, gate)
 
-    def test_new_people_are_on_the_map_page(self):
-        kinds = [kind for kind, _ in self.village.map_markers()]
-        self.assertGreaterEqual(kinds.count("npc") + kinds.count("shop"), 2 + 4 + len(VillageScene.RESIDENTS))
+    def test_new_places_and_people_are_on_the_map_page(self):
+        markers = self.village.map_markers()
+        doors = {position for kind, position in markers if kind == "door"}
+        for place in VillageScene.DISTRICT.values():
+            self.assertIn(place["door"], doors)
+        people = [kind for kind, _ in markers if kind in ("npc", "shop")]
+        self.assertGreaterEqual(len(people), 2 + len(VillageScene.RESIDENTS))
 
-    def test_talking_to_each_new_person_says_something(self):
+    def test_each_door_leads_inside_and_tomi_talks(self):
         v = self.village
-        for place in list(v.DISTRICT.values()) + list(v.RESIDENTS.values()):
-            position = place.get("npc") or place.get("pos")
-            v.dialogue_lines = []
-            v.game.scene = None
-            v.player.update(x=float(position[0]), y=float(position[1] + 1))
-            if v._blocked(position[0], position[1] + 1):
-                v.player.update(x=float(position[0] - 1), y=float(position[1]))
+        for place in v.DISTRICT.values():
+            v.player.update(x=float(place["door"][0]), y=float(place["door"][1]))
             v._interact()
-            self.assertTrue(v.dialogue_lines or v.game.destination or getattr(v.game, "scene", None),
-                            position)
+            self.assertEqual(v.game.destination, (place["world"], (12, 12)))
+            self.assertEqual(v.HOUSE_EXITS[place["world"]], place["door"])
+        tomi = v.RESIDENTS["tomi"]["pos"]
+        v.player.update(x=float(tomi[0] - 1), y=float(tomi[1]))
+        v._interact()
+        self.assertTrue(v.dialogue_lines)
 
     def test_draws_the_whole_town(self):
         surface = pygame.Surface((800, 600))

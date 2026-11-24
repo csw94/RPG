@@ -48,6 +48,27 @@ def village(**state):
     return game, scene
 
 
+ROOMS = {"inn": "village_inn", "smithy": "village_smithy", "library": "village_library",
+         "apothecary": "village_apothecary"}
+
+
+def keeper_room(name, **state):
+    """The keeper now waits inside the building: open that room with the hero at the counter."""
+    from scenes.house_scene import HouseInteriorScene
+
+    game = FakeGame()
+    room = HouseInteriorScene(game, {"world": ROOMS[name], "x": 12, "y": 7, **state})
+    game.field = game.scene = room
+    return game, room
+
+
+def talk_keeper(room):
+    room.player.update(x=12.0, y=7.0)
+    room._interact()
+    while room.dialogue_lines:
+        room._advance_dialogue()
+
+
 def talk(scene, position):
     scene.player.update(x=float(position[0] - 1), y=float(position[1]))
     if scene._blocked(position[0] - 1, position[1]):
@@ -88,8 +109,8 @@ class LibraryTests(unittest.TestCase):
         self.assertEqual(scene.serialize()["books_read"], sorted(BOOKS))
 
     def test_edel_opens_the_library_when_no_request_is_due(self):
-        game, scene = village(sub_quests={"sq_library": {"status": "COMPLETED", "progress": 12}})
-        talk(scene, scene.DISTRICT["library"]["npc"])
+        game, scene = keeper_room("library", sub_quests={"sq_library": {"status": "COMPLETED", "progress": 12}})
+        talk_keeper(scene)
         self.assertIsInstance(game.scene, LibraryScene)
         game.scene.handle_events([key(pygame.K_ESCAPE)])
         self.assertIs(game.scene, scene)
@@ -105,30 +126,30 @@ class RequestTests(unittest.TestCase):
         cases = (("sq_smith_ore", "smithy", "scorpion", {}),
                  ("sq_inn_stew", "inn", "snow_wolf", {"quest_flags": {"shrine_wind": 1, "shrine_earth": 1}}),)
         for quest_id, place, enemy, state in cases:
-            game, scene = village(**state)
-            talk(scene, scene.DISTRICT[place]["npc"])
+            game, scene = keeper_room(place, **state)
+            talk_keeper(scene)
             self.assertEqual(scene.sub_quests[quest_id]["status"], "IN_PROGRESS", quest_id)
             for _ in range(QUESTS[quest_id]["target"]):
                 scene.resolve_battle_victory(enemy)
-            talk(scene, scene.DISTRICT[place]["npc"])
+            talk_keeper(scene)
             self.assertEqual(scene.sub_quests[quest_id]["status"], "COMPLETED", quest_id)
         game, scene = village()
         talk(scene, scene.RESIDENTS["tomi"]["pos"])
         self.assertEqual(scene.sub_quests["sq_tomi"]["status"], "IN_PROGRESS")
 
     def test_rosa_waits_until_the_north_is_open(self):
-        game, scene = village()
-        talk(scene, scene.DISTRICT["inn"]["npc"])
+        game, scene = keeper_room("inn")
+        talk_keeper(scene)
         self.assertEqual(scene.sub_quests["sq_inn_stew"]["status"], "NOT_STARTED")
 
     def test_library_request_counts_the_bestiary(self):
-        game, scene = village()
-        talk(scene, scene.DISTRICT["library"]["npc"])
+        game, scene = keeper_room("library")
+        talk_keeper(scene)
         quest = scene.sub_quests["sq_library"]
         self.assertEqual(quest["status"], "IN_PROGRESS")
         scene.bestiary.update({enemy: 1 for enemy in list(ENEMIES)[:12]})
         game.scene = scene
-        talk(scene, scene.DISTRICT["library"]["npc"])
+        talk_keeper(scene)
         self.assertEqual(quest["status"], "COMPLETED")
         self.assertIn("sage_glasses", scene.owned_accessories)
 
