@@ -50,6 +50,53 @@ class ShrineClearingScene(FieldScene):
         else:
             self.message = "제단으로 이어지는 작은 숲길입니다."
 
+    # --- depth-sorted props -----------------------------------------------------------
+    PILLARS = (("pillar_back_left", -52, -22), ("pillar_back_right", 52, -22),
+               ("pillar_front_left", -52, 30), ("pillar_front_right", 52, 30))
+    HERO_ZONE = pygame.Rect(11, 4, 9, 6)  # tiles around the altar where props can overlap the hero
+
+    def _depth_items(self):
+        """(name, foot y in world pixels, draw(view, cam_x, cam_y)) for every overlapping prop."""
+        t = TILE_SIZE
+        ax, ay = self.ALTAR
+        cx, cy = ax * t + t // 2, ay * t + t // 2
+        items = []
+        for name, dx, dy in self.PILLARS:
+            items.append((name, cy + dy + 4, self._pillar_drawer(cx + dx, cy + dy)))
+        items.append(("altar", (ay + 1) * t, lambda view, cam_x, cam_y: view.blit(
+            sprite("star_fountain", (48, 64)), (ax * t - 8 - cam_x, ay * t - 32 - cam_y))))
+        gx, gy = self.portal_position
+        items.append(("gate", (gy + 1) * t, lambda view, cam_x, cam_y: view.blit(
+            sprite("gate_arch", (48, 64)), (gx * t - 8 - cam_x, gy * t - 32 - cam_y))))
+        px, py = self.player["x"], self.player["y"]
+        near_altar = self.HERO_ZONE.collidepoint(round(px), round(py))
+        near_gate = abs(px - gx) <= 1.5 and py >= gy - 2
+        below_top_fence = py < 2  # the top fence row is repainted after the field layer
+        if near_altar or near_gate or below_top_fence:
+            # Ties go to the hero (+0.5) so stepping onto a prop's row puts the hero in front.
+            items.append(("hero", (py + 1) * t + 0.5, self._draw_hero))
+        return items
+
+    def depth_order(self):
+        return [name for name, _feet, _draw in sorted(self._depth_items(), key=lambda item: item[1])]
+
+    @staticmethod
+    def _pillar_drawer(wx, wy):
+        def draw(view, cam_x, cam_y):
+            px, py = wx - cam_x, wy - cam_y
+            pygame.draw.rect(view, (64, 60, 58), (px - 6, py - 30, 12, 34))
+            pygame.draw.rect(view, (148, 142, 128), (px - 4, py - 28, 8, 30))
+            pygame.draw.circle(view, (126, 190, 235), (px, py - 34), 5)
+            pygame.draw.circle(view, (222, 242, 255), (px, py - 34), 2)
+        return draw
+
+    def _draw_hero(self, view, cam_x, cam_y):
+        t = TILE_SIZE
+        px = round(self.player["x"] * t + t / 2) - cam_x
+        py = round((self.player["y"] + 1) * t) - cam_y
+        view.blit(hero_sprite(self.weapon, self.armor, (t, t + 16), self.facing,
+                              walk_frame(self.walk_clock)), (px - t // 2, py - t - 16))
+
     def draw(self, surface):
         super().draw(surface)
         cam_x, cam_y = (round(v) for v in self._camera())
@@ -63,24 +110,12 @@ class ShrineClearingScene(FieldScene):
                     fence = "fence" if y in (0, self.ROWS - 1) else "fence_v"
                     view.blit(sprite(fence, (t, t)), position)
         altar = self.altar_positions["shrine_wind"]
-        # A two-step stone dais with four glowing pillars marks the old star altar.
+        # The dais is flat ground: always under the hero.
         center = (altar[0] * t + t // 2 - cam_x, altar[1] * t + t // 2 - cam_y)
         for radius, color in ((62, (78, 74, 70)), (56, (132, 126, 114)), (40, (98, 94, 88)), (35, (162, 156, 140))):
             pygame.draw.ellipse(view, color, pygame.Rect(0, 0, radius * 2, radius * 1.3).move(
                 center[0] - radius, center[1] - radius * 0.65 + 8))
-        for dx, dy in ((-52, -22), (52, -22), (-52, 30), (52, 30)):
-            px, py = center[0] + dx, center[1] + dy
-            pygame.draw.rect(view, (64, 60, 58), (px - 6, py - 30, 12, 34))
-            pygame.draw.rect(view, (148, 142, 128), (px - 4, py - 28, 8, 30))
-            pygame.draw.circle(view, (126, 190, 235), (px, py - 34), 5)
-            pygame.draw.circle(view, (222, 242, 255), (px, py - 34), 2)
-        view.blit(sprite("star_fountain", (48, 64)), (altar[0] * t - 8 - cam_x, altar[1] * t - 32 - cam_y))
-        view.blit(sprite("gate_arch", (48, 64)),
-                  (self.portal_position[0] * t - 8 - cam_x, self.portal_position[1] * t - 32 - cam_y))
-        if self.player["y"] <= altar[1] + 1:
-            # Keep the hero visible when standing behind the dais.
-            px = round(self.player["x"] * t + t / 2) - cam_x
-            py = round((self.player["y"] + 1) * t) - cam_y
-            view.blit(hero_sprite(self.weapon, self.armor, (t, t + 16), self.facing,
-                                  walk_frame(self.walk_clock)), (px - t // 2, py - t - 16))
+        # Pillars, the altar fountain, the gate arch and the hero: back to front by their feet.
+        for _name, _feet, draw in sorted(self._depth_items(), key=lambda item: item[1]):
+            draw(view, cam_x, cam_y)
         self._draw_dialogue(surface)

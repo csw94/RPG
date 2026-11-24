@@ -4,7 +4,7 @@
 - **최신 릴리즈:** v0.14.0 (태그 `v0.14.0`)
   - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.14.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 186개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 186개 모두 통과 (미릴리즈 변경 포함 시 194개): `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -179,6 +179,13 @@
   - 크기 25×16은 손으로 짠 미로 구조라 그대로 유지
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
+
+## 미릴리즈 변경 (다음 릴리즈에 포함)
+- 북쪽 제단 공터의 그리는 순서를 고침(`ShrineClearingScene`)
+  - 고치기 전에는 제단 받침·기둥·분수·아치를 주인공 위에 무조건 덮어 그려서, 제단 앞에 선 주인공이 가려졌음
+  - 지금은 받침(바닥)을 먼저 깔고, 기둥 4개·분수·남쪽 아치·주인공을 발 위치 기준으로 뒤에서 앞 순서로 그림(`_depth_items`, `depth_order`)
+  - 주인공은 제단 주변(`HERO_ZONE`), 남쪽 문 근처, 맨 위 울타리 바로 아래에 있을 때만 다시 그림
+  - 테스트: `tests/test_shrine_clearing_depth.py`
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
