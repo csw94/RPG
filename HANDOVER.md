@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.11.0)
+# HANDOVER — Chronicles of Pixel (v0.12.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.11.0 (태그 `v0.11.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.11.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.12.0 (태그 `v0.12.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.12.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 144개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 154개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -61,12 +61,23 @@
   - 효과음 21종(`SFX`)
     - 장면에서는 `BaseScene.sfx(name)`으로 재생함. `game.audio`가 없으면 조용히 넘어감
     - 전투 효과음은 `BattleScene._cue`가 이벤트 종류에 맞춰 고름
-  - 배경음악 6곡(`MUSIC`: title, village, field, dungeon, battle, boss)
+  - 배경음악 7곡(`MUSIC`: title, village, field, dungeon, battle, boss, final)
     - 직접 작곡한 짧은 반복곡이고, 시작할 때 백그라운드 스레드에서 미리 만들어 둠
     - 곡 선택은 `music_for(scene_name, enemy_id)`가 하고, 매 프레임 `Game.run`에서 갱신함. 상점·상태 화면에서는 원래 곡을 유지함
   - M 키로 음소거. 오디오 장치가 없으면 소리 없이 그대로 진행됨
 
+## 패배 후 선택·최종 보스 2페이즈 (v0.12.0)
+- 패배 화면에서 "다시 도전"과 "마을로 돌아가기" 중 고름
+  - `BattleScene.snapshot`은 전투 시작 직전의 `field.serialize()`임
+  - 다시 도전하면 `Game.retry_battle(snapshot, enemy_id)`가 그 상태를 복원하고 같은 적과 다시 싸우게 함
+- 최종 보스 2페이즈(`BattleEngine.phase`, `_check_phase`)
+  - 흑기사 말포스의 HP가 절반 이하가 되면 한 번만 발동함. 상태이상 해제, 암흑 베기 +8, 어둠의 파동이 2턴마다 24 피해
+  - 연출: 화면 번쩍임, 보랏빛 하늘, 보스 뒤의 기운, 효과음 `phase`, 전용 곡 `final`
+  - `BattleScene.music_track`이 장면 기본 곡을 덮어씀(`Game.run`)
+  - 시뮬레이터 결과: 지역당 4회 싸웠을 때 최종 보스 승률 약 81%, 5회 이상이면 100%
+
 ## 릴리즈 기록
+- **v0.12.0:** 패배 후 다시 도전 선택지, 최종 보스 2페이즈(연출·전용 곡 포함)
 - **v0.11.0:** 침대 휴식, 상태 화면(I/Tab), 코드로 만든 효과음과 배경음악(M으로 음소거)
 - **v0.10.0:** 전투 밸런스를 다시 조정함. 제단 보너스는 고유 효과만 남김, 승리 시 MP +2, 던전별 적 구성, 보스 강화. `tools/balance_sim.py` 추가
 - **v0.9.2:** 예전 세이브의 위치를 현재 맵에 맞게 자동 보정. 세이브에 `layout_version`을 저장함
@@ -139,12 +150,17 @@
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
 - 선택 과제
-  - 전투 연출(타격 흔들림, 데미지 숫자)이나 캐릭터 걷기 애니메이션 보강
+  - 직접 플레이한 뒤의 피드백 반영: 소리 음량·곡 분위기(`SFX_VOLUME`, `MUSIC_VOLUME`, `MUSIC`), 난이도(`tools/balance_sim.py`로 다시 측정)
 
 ## 핵심 파일
 | 파일 | 내용 |
 |---|---|
 | `utils/pixel_art.py` | 바깥 타일·소품, 캐릭터·적, 던전 타일, `tile_noise`, `fit_sprite` |
+| `gameplay/combat.py` | 전투 규칙 `BattleEngine`(이벤트 반환), 스킬, 레벨업, 최종 보스 페이즈 |
+| `gameplay/save_migration.py` | 예전 세이브의 좌표를 현재 맵 구조로 변환 |
+| `utils/audio.py` | 코드로 만든 효과음과 배경음악, `music_for` |
+| `scenes/status_scene.py` | 상태 화면(I/Tab) |
+| `tools/balance_sim.py` | 전투 밸런스 시뮬레이터 |
 | `utils/interior_art.py` | 실내 스프라이트. `interior_sprite(name, scale=2)`, 러그는 `rug_<색>_<w>x<h>` 형식 |
 | `utils/ui.py` | 공용 UI: 프레임, 막대, 버튼, 판자 띠 |
 | `utils/battle_art.py` | 전투 배경 `backdrop(kind)`, 발판 위치 상수 |
