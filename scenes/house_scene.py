@@ -124,9 +124,8 @@ class HouseInteriorScene(FieldScene):
                     self.message = "진행 상황을 저장했습니다."
 
     def _outside_door(self):
-        if self.house_id == "village_chief_house":
-            return (12, 7)
-        return (5, 8) if self.house_id == "village_house_1" else (19, 8)
+        from scenes.village_scene import VillageScene
+        return VillageScene.HOUSE_EXITS[self.house_id]
 
     def _interact(self):
         x, y = self.player["x"], self.player["y"]

@@ -36,14 +36,14 @@ def epilogue_lines(field):
 
 
 class EpilogueScene:
-    HERO = (12, 13)
+    HERO = (15, 15)
     CROWD = {
-        "촌장 발렌": ((10, 12), "chief"),
-        "약초상 마르타": ((9, 13), "villager"),
-        "노기사 가렌": ((14, 12), "old_knight"),
-        "떠돌이 상인 토비": ((15, 13), "merchant"),
+        "촌장 발렌": ((13, 14), "chief"),
+        "약초상 마르타": ((12, 15), "villager"),
+        "노기사 가렌": ((17, 14), "old_knight"),
+        "떠돌이 상인 토비": ((18, 15), "merchant"),
     }
-    SPEAKER_SPOTS = {"흑기사 말포스": (12, 9), "잡화상 로건": (16, 10)}
+    SPEAKER_SPOTS = {"흑기사 말포스": (15, 11), "잡화상 로건": (19, 12)}
     CHEER_FROM = 3
 
     def __init__(self, game):
@@ -108,8 +108,9 @@ class EpilogueScene:
         self._draw_dialogue(surface)
 
     def _draw_light(self, surface):
+        cam_x, cam_y = self.field._camera()
         fx, fy = self.field.FOUNTAIN
-        cx, base = fx * TILE_SIZE + TILE_SIZE // 2, fy * TILE_SIZE - 12
+        cx, base = fx * TILE_SIZE + TILE_SIZE // 2 - cam_x, fy * TILE_SIZE - 12 - cam_y
         darkness = 120 if self.index == 0 else max(0, 90 - self.index * 30)
         if darkness:
             shade = pygame.Surface((WIDTH, 512), pygame.SRCALPHA)
@@ -118,7 +119,7 @@ class EpilogueScene:
         if self.index == 0:
             knight = sprite("dark_knight", (40, 60))
             mx, my = self.SPEAKER_SPOTS["흑기사 말포스"]
-            surface.blit(knight, (mx * TILE_SIZE - 4, my * TILE_SIZE - 28))
+            surface.blit(knight, (mx * TILE_SIZE - 4 - cam_x, my * TILE_SIZE - 28 - cam_y))
             return
         glow = pygame.Surface((WIDTH, 512), pygame.SRCALPHA)
         pulse = 0.5 + 0.5 * math.sin(self.clock * 3)
@@ -139,14 +140,16 @@ class EpilogueScene:
         surface.blit(glow, (0, 0))
 
     def _draw_crowd(self, surface):
+        cam_x, cam_y = self.field._camera()
         cheering = self.index >= self.CHEER_FROM
         speaker = self.lines[self.index][0]
         for order, (name, ((x, y), sprite_name)) in enumerate(self.CROWD.items()):
             hop = abs(math.sin(self.clock * 6 + order)) * 6 if cheering else 0
-            surface.blit(sprite(sprite_name, NPC_SIZE), (x * TILE_SIZE, y * TILE_SIZE - 16 - hop))
+            surface.blit(sprite(sprite_name, NPC_SIZE), (x * TILE_SIZE - cam_x, y * TILE_SIZE - 16 - hop - cam_y))
         spot = self.CROWD.get(speaker, (self.SPEAKER_SPOTS.get(speaker),))[0]
         if spot:
-            ax, ay = spot[0] * TILE_SIZE + TILE_SIZE // 2, spot[1] * TILE_SIZE - 14 - 4 * abs(math.sin(self.clock * 4))
+            ax = spot[0] * TILE_SIZE + TILE_SIZE // 2 - cam_x
+            ay = spot[1] * TILE_SIZE - 30 - cam_y - 4 * abs(math.sin(self.clock * 4))
             if speaker == "흑기사 말포스":
                 ay -= 30
             pygame.draw.polygon(surface, self.game.colors["gold"], [(ax - 7, ay - 9), (ax + 7, ay - 9), (ax, ay)])

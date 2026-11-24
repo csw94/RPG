@@ -51,6 +51,13 @@ PALETTE = {
     "ink": (35, 42, 48),
 }
 
+def tile_noise(x, y, seed=0):
+    """Deterministic, pattern-free value in [0, 1) for a map tile (no visible stripes)."""
+    h = (x * 73856093) ^ (y * 19349663) ^ (seed * 83492791)
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xFFFFFFFF
+    return ((h ^ (h >> 16)) & 0xFFFF) / 65536
+
+
 NPC_SIZE = (32, 48)  # NPCs share the hero's 16x24 chibi proportions, drawn at 2x.
 
 _BASE = {}
@@ -468,6 +475,20 @@ def _gate_arch():
         _rect(surface, PALETTE["leaf"], 2, y, 2, 2)
         surface.set_at((2, y), PALETTE["leaf_light"])
     surface.set_at((3, 17), (236, 150, 168))
+    return surface
+
+
+def _crops():
+    """Tilled garden bed with two rows of round cabbages."""
+    surface = _canvas()
+    surface.fill((150, 104, 70))
+    for y in (3, 11):
+        _rect(surface, (120, 80, 56), 0, y + 3, 16, 1)
+    for y in (2, 10):
+        for x in (3, 11):
+            pygame.draw.circle(surface, PALETTE["outline"], (x, y + 1), 3)
+            pygame.draw.circle(surface, PALETTE["leaf"], (x, y + 1), 2)
+            surface.set_at((x - 1, y), PALETTE["leaf_glint"])
     return surface
 
 
@@ -979,6 +1000,7 @@ def sprite(name, size=(32, 32)):
             "fence_v": lambda: _fence(True),
             "barrel": _barrel,
             "gate_arch": _gate_arch,
+            "crops": _crops,
             "rock": _rock,
             "tuft": lambda: _tuft_decal("green"),
             "dry_tuft": lambda: _tuft_decal("dry"),

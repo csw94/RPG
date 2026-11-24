@@ -55,7 +55,7 @@ class Game:
         self.notice = ""
         self.active_slot = slot
         state = {
-            "world": "village", "x": 12, "y": 13,
+            "world": "village", "x": 15, "y": 15,
             "level": 1, "hp": 100, "max_hp": 100, "atk": 15, "defense": 5,
             "mp": 10, "max_mp": 10, "gold": 0, "potions": 0, "high_potions": 0,
             "weapon": "rusty_sword", "armor": "traveler_clothes",

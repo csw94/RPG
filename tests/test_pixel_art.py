@@ -79,7 +79,7 @@ class VillageDecorTests(unittest.TestCase):
             def font(self, size):
                 return pygame.font.Font(None, size)
 
-        self.village = VillageScene(FakeGame(), {"world": "village", "x": 12, "y": 13})
+        self.village = VillageScene(FakeGame(), {"world": "village", "x": 15, "y": 15})
 
     def test_walkable_decals_never_sit_on_walls_or_road(self):
         decals = self.village.ground_decals()

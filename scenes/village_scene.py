@@ -4,7 +4,7 @@ import pygame
 from scenes.field_scene import FieldScene
 from gameplay.world_data import FIELD_ROUTES
 from settings import TILE_SIZE, WIDTH
-from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite
+from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite, tile_noise
 
 OUTLINE = PALETTE["outline"]
 # One cozy roof family: each building gets its own hue at the same softness and value.
@@ -17,17 +17,25 @@ ROOFS = {
 
 
 class VillageScene(FieldScene):
-    COLS, ROWS = 25, 16
-    VILLAGER = (7, 8)
-    CHIEF = (12, 7)
-    FOUNTAIN = (12, 11)
-    GATE = (12, 15)
-    FIELD_GATES = {"field_west": (0, 8), "field_east": (24, 8), "field_south": (12, 15),
-                   "village_north_shrine": (12, 0)}
-    QUEST_HOUSE_DOOR = (5, 7)
-    KNIGHT_HOUSE_DOOR = (19, 7)
-    LOGAN = (16, 10)
-    LOGAN_CRATES = ((15, 10), (17, 10))
+    # The map is 32x21 tiles. The original 25x16 plaza ("core") sits in the middle, shifted
+    # by CORE_OFFSET; the ring around it holds an orchard, a pond and a vegetable garden.
+    COLS, ROWS = 32, 21
+    CORE_OFFSET = (3, 2)
+    VILLAGER = (10, 10)
+    CHIEF = (15, 9)
+    FOUNTAIN = (15, 13)
+    GATE = (15, 20)
+    FIELD_GATES = {"field_west": (0, 10), "field_east": (31, 10), "field_south": (15, 20),
+                   "village_north_shrine": (15, 0)}
+    QUEST_HOUSE_DOOR = (8, 9)
+    KNIGHT_HOUSE_DOOR = (22, 9)
+    LOGAN = (19, 12)
+    LOGAN_CRATES = ((18, 12), (20, 12))
+    START = (15, 15)
+    SHRINE_SPAWN = (15, 17)
+    SHRINE_RETURN = (15, 1)
+    HOUSE_EXITS = {"village_house_1": (8, 10), "village_house_2": (22, 10), "village_chief_house": (15, 9)}
+    GARDEN = tuple((x, y) for x in range(24, 29) for y in (18, 19))
 
     def __init__(self, game, state=None):
         state = dict(state or {})
@@ -37,25 +45,40 @@ class VillageScene(FieldScene):
         self.encounter_rate = 0
         self.message = "광장 중앙 촌장 집과 북쪽 제단 길을 살펴보세요."
         self.chests = {}
+        self._static = None
+        self._decals = None
+        ox, oy = self.CORE_OFFSET
         self.walls = {
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)
             if (x in (0, self.COLS - 1) or y in (0, self.ROWS - 1))
             and (x, y) not in self.FIELD_GATES.values()
         }
-        self.walls.update((x, y) for x in range(3, 7) for y in range(3, 7))
-        self.walls.update((x, y) for x in range(17, 23) for y in range(3, 7))
-        self.walls.update((x, y) for x in range(8, 17) for y in range(2, 7))
-        self.trees = {
+        # Buildings (core layout, shifted into the bigger map).
+        self.walls.update((x + ox, y + oy) for x in range(3, 7) for y in range(3, 7))
+        self.walls.update((x + ox, y + oy) for x in range(17, 23) for y in range(3, 7))
+        self.walls.update((x + ox, y + oy) for x in range(8, 17) for y in range(2, 7))
+        core_trees = {
             (2, 11), (3, 11), (4, 12), (6, 12), (7, 13), (3, 14),
             (21, 11), (22, 11), (20, 12), (22, 13), (19, 14),
             (9, 13), (15, 13),
         }
+        outskirts = {
+            (2, 2), (4, 1), (1, 4), (3, 5), (1, 7),            # orchard (north-west)
+            (27, 1), (29, 2), (30, 4), (28, 6), (30, 7),       # pines (north-east)
+            (1, 13), (2, 15), (29, 13), (30, 15), (28, 17),    # flanks
+            (11, 19), (20, 19), (30, 19),                      # south hedge line
+        }
+        self.water = ({(x, 16) for x in range(3, 7)} | {(x, 17) for x in range(2, 8)}
+                      | {(x, 18) for x in range(3, 7)})
+        self.trees = ({(x + ox, y + oy) for x, y in core_trees} | outskirts) - self.water - self.road_tiles()
         self.solid_npcs = {self.VILLAGER, self.LOGAN}
         self.walls.update(self.LOGAN_CRATES)
         self.walls.update(self.trees)
+        self.walls.update(self.water)
+        self.walls.update(self.GARDEN)
         self.walls.add(self.FOUNTAIN)
-        self.walls.difference_update({self.GATE, self.VILLAGER, self.CHIEF, (12, 1), (7, 1)})
-        self.position_recovered = self._restore_player_position((12, 13)) or self.position_recovered
+        self.walls.difference_update({self.GATE, self.VILLAGER, self.CHIEF})
+        self.position_recovered = self._restore_player_position(self.START) or self.position_recovered
         if self.position_recovered:
             self.message = "저장 위치를 마을 입구로 복구했습니다."
 
@@ -71,7 +94,7 @@ class VillageScene(FieldScene):
         elif any(near(gate) for gate in self.FIELD_GATES.values()):
             route_id, gate = min(self.FIELD_GATES.items(),
                                  key=lambda item: (item[1][0] - x) ** 2 + (item[1][1] - y) ** 2)
-            spawn = FIELD_ROUTES[route_id]["village_spawn"] if route_id in FIELD_ROUTES else (12, 12)
+            spawn = FIELD_ROUTES[route_id]["village_spawn"] if route_id in FIELD_ROUTES else self.SHRINE_SPAWN
             self.game.enter_world(route_id, spawn)
         elif near(self.CHIEF):
             self.game.enter_world("village_chief_house", (12, 12))
@@ -231,36 +254,45 @@ class VillageScene(FieldScene):
         pygame.draw.rect(surface, (191, 163, 111), (door_x - 6, wall_bottom - 5, door_width + 12, 7))
 
     def road_tiles(self):
-        road = {(12, y) for y in range(9, 16)}
-        road.update({(12, 9), (11, 9), (10, 9), (9, 8), (8, 8), (7, 8), (6, 8), (5, 8), (4, 8), (3, 8)})
-        road.update({(13, 9), (14, 9), (15, 9), (16, 8), (17, 8), (18, 8), (19, 8), (20, 8), (21, 8)})
-        road.update((x, 8) for x in range(0, 4))
-        road.update((x, 8) for x in range(21, self.COLS))
-        road.update((7, y) for y in range(1, 10))
-        road.update((x, 1) for x in range(7, 13))
-        road.update({(18, 9), (18, 10), (18, 11), (19, 11), (12, 7), (12, 8)})
+        ox, oy = self.CORE_OFFSET
+        core = {(12, y) for y in range(9, 16)}
+        core.update({(11, 9), (10, 9), (9, 8), (8, 8), (7, 8), (6, 8), (5, 8), (4, 8), (3, 8)})
+        core.update({(13, 9), (14, 9), (15, 9), (16, 8), (17, 8), (18, 8), (19, 8), (20, 8), (21, 8)})
+        core.update((x, 8) for x in range(0, 4))
+        core.update((x, 8) for x in range(21, 25))
+        core.update((7, y) for y in range(1, 10))
+        core.update((x, 1) for x in range(7, 13))
+        core.update({(18, 9), (18, 10), (18, 11), (19, 11), (12, 7), (12, 8)})
+        road = {(x + ox, y + oy) for x, y in core}
+        # Roads continue out to the gates on the new map edges, plus a lane past the pond
+        # and the vegetable garden.
+        road.update((x, 10) for x in range(0, 3))
+        road.update((x, 10) for x in range(28, self.COLS))
+        road.update((15, y) for y in range(0, 3))
+        road.update((15, y) for y in range(18, self.ROWS))
+        road.update((x, 18) for x in range(9, 24))
         return road
 
     def ground_decals(self):
         """Walkable, purely visual ground details: flowers and pebbles off the road."""
-        if getattr(self, "_decals", None) is None:
+        if self._decals is None:
             road = self.road_tiles()
-            blocked = self.walls | road | set(self.trees) | {self.FOUNTAIN, self.VILLAGER, self.LOGAN}
+            blocked = (self.walls | road | set(self.trees) | self.water
+                       | {self.FOUNTAIN, self.VILLAGER, self.LOGAN})
             decals = {}
             for y in range(1, self.ROWS - 1):
                 for x in range(1, self.COLS - 1):
                     if (x, y) in blocked:
                         continue
-                    roll = (x * 73 + y * 151 + x * y * 17) % 23
-                    if roll in (0, 7):
-                        decals[(x, y)] = "flower_patch" if (x + y) % 2 else "flower_patch_1"
-                    elif roll == 13:
+                    roll = tile_noise(x, y, 51)
+                    if roll < 0.08:
+                        decals[(x, y)] = "flower_patch" if roll < 0.04 else "flower_patch_1"
+                    elif roll < 0.11:
                         decals[(x, y)] = "pebbles"
             self._decals = decals
         return self._decals
 
     def _draw_border(self, surface, x, y, rect):
-        surface.blit(sprite(f"grass_{(x * 7 + y * 13) % 16}", (TILE_SIZE, TILE_SIZE)), rect)
         if y in (0, self.ROWS - 1):
             surface.blit(sprite("fence", (TILE_SIZE, TILE_SIZE)), rect)
         else:
@@ -269,58 +301,71 @@ class VillageScene(FieldScene):
     def _draw_shadow(self, surface, center_x, bottom_y, width=26):
         surface.blit(sprite("shadow", (width, 10)), (round(center_x - width / 2), round(bottom_y - 7)))
 
-    def draw(self, surface):
-        # Reuse the common HUD and player state, then paint this map over the field.
-        super().draw(surface)
-        road = self.road_tiles()
-        decals = self.ground_decals()
+    def _mask(self, tiles, x, y):
+        return ((1 if (x, y - 1) in tiles else 0) | (2 if (x + 1, y) in tiles else 0)
+                | (4 if (x, y + 1) in tiles else 0) | (8 if (x - 1, y) in tiles else 0)
+                | (16 if (x + 1, y - 1) in tiles else 0) | (32 if (x + 1, y + 1) in tiles else 0)
+                | (64 if (x - 1, y + 1) in tiles else 0) | (128 if (x - 1, y - 1) in tiles else 0))
+
+    def _paint_static(self):
+        """Everything that never moves, painted once into a map-sized layer."""
+        t = TILE_SIZE
+        layer = pygame.Surface((self.COLS * t, self.ROWS * t))
+        road, decals = self.road_tiles(), self.ground_decals()
         for y in range(self.ROWS):
             for x in range(self.COLS):
-                rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-                if x in (0, self.COLS - 1) or y in (0, self.ROWS - 1):
-                    self._draw_border(surface, x, y, rect)
-                else:
-                    surface.blit(sprite(f"grass_{(x * 7 + y * 13) % 16}", (TILE_SIZE, TILE_SIZE)), rect)
-                    if (x, y) in road:
-                        mask = ((1 if (x, y - 1) in road else 0)
-                                | (2 if (x + 1, y) in road else 0)
-                                | (4 if (x, y + 1) in road else 0)
-                                | (8 if (x - 1, y) in road else 0)
-                                | (16 if (x + 1, y - 1) in road else 0)
-                                | (32 if (x + 1, y + 1) in road else 0)
-                                | (64 if (x - 1, y + 1) in road else 0)
-                                | (128 if (x - 1, y - 1) in road else 0))
-                        surface.blit(sprite(f"trail_{mask}_{(x + y) % 3}", (TILE_SIZE, TILE_SIZE)), rect)
-                    elif (x, y) in decals:
-                        surface.blit(sprite(decals[(x, y)], (TILE_SIZE, TILE_SIZE)), rect)
+                rect = pygame.Rect(x * t, y * t, t, t)
+                layer.blit(sprite(self.ground_tile(x, y), (t, t)), rect)
+                if (x, y) in self.water:
+                    layer.blit(sprite(f"water_edge_{self._mask(self.water, x, y)}_{(x + y) % 2}", (t, t)), rect)
+                elif (x, y) in road:
+                    layer.blit(sprite(f"trail_{self._mask(road, x, y)}_{(x + y) % 3}", (t, t)), rect)
+                elif (x, y) in self.GARDEN:
+                    layer.blit(sprite("crops", (t, t)), rect)
+                elif (x, y) in decals:
+                    layer.blit(sprite(decals[(x, y)], (t, t)), rect)
+                if (x in (0, self.COLS - 1) or y in (0, self.ROWS - 1)) and (x, y) not in road:
+                    self._draw_border(layer, x, y, rect)
         for tx, ty in sorted(self.trees, key=lambda p: p[1]):
-            surface.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * TILE_SIZE - 8, ty * TILE_SIZE - 32))
-        self._draw_house(surface, 2, 2)
-        self._draw_house(surface, 16, 2, shop=True)
-        self._draw_chief_house(surface)
-        self._draw_logan_stall(surface)
+            layer.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * t - 8, ty * t - 32))
+        # The plaza buildings keep their hand-painted core coordinates.
+        ox, oy = self.CORE_OFFSET
+        core = layer.subsurface(pygame.Rect(ox * t, oy * t, 25 * t, 16 * t))
+        self._draw_house(core, 2, 2)
+        self._draw_house(core, 16, 2, shop=True)
+        self._draw_chief_house(core)
+        self._draw_logan_stall(core)
         fx, fy = self.FOUNTAIN
-        self._draw_shadow(surface, fx * TILE_SIZE + TILE_SIZE / 2, (fy + 1) * TILE_SIZE, 40)
-        surface.blit(sprite("star_fountain", (48, 64)), (fx * TILE_SIZE - 8, fy * TILE_SIZE - 32))
-        for gate_id, (gx, gy) in self.FIELD_GATES.items():
+        self._draw_shadow(layer, fx * t + t / 2, (fy + 1) * t, 40)
+        layer.blit(sprite("star_fountain", (48, 64)), (fx * t - 8, fy * t - 32))
+        for gx, gy in self.FIELD_GATES.values():
             draw_x = min(max(gx, 1), self.COLS - 2)
-            draw_y = 1 if gate_id == "village_north_shrine" else gy
-            name = "gate_arch"
-            surface.blit(sprite(name, (48, 64)), (draw_x * TILE_SIZE - 8, draw_y * TILE_SIZE - 32))
+            draw_y = min(max(gy, 1), self.ROWS - 1)
+            layer.blit(sprite("gate_arch", (48, 64)), (draw_x * t - 8, draw_y * t - 32))
+        return layer
+
+    def draw(self, surface):
+        t = TILE_SIZE
+        if self._static is None:
+            self._static = self._paint_static()
+        cam_x, cam_y = (round(v) for v in self._camera())
+        surface.fill((0, 0, 0), (0, 0, WIDTH, self.VIEW_HEIGHT))
+        surface.blit(self._static, (0, 0), pygame.Rect(cam_x, cam_y, WIDTH, self.VIEW_HEIGHT))
         for position, sprite_name in ((self.VILLAGER, "townsfolk"), (self.LOGAN, "shopkeeper")):
-            self._draw_shadow(surface, position[0] * TILE_SIZE + TILE_SIZE / 2, (position[1] + 1) * TILE_SIZE)
-            surface.blit(sprite(sprite_name, NPC_SIZE),
-                         (position[0] * TILE_SIZE, position[1] * TILE_SIZE - 16))
-        px = round(self.player["x"] * TILE_SIZE + TILE_SIZE / 2)
-        py = round((self.player["y"] + 1) * TILE_SIZE)
+            sx, sy = position[0] * t - cam_x, position[1] * t - cam_y
+            self._draw_shadow(surface, sx + t / 2, sy + t)
+            surface.blit(sprite(sprite_name, NPC_SIZE), (sx, sy - 16))
+        px = round(self.player["x"] * t + t / 2) - cam_x
+        py = round((self.player["y"] + 1) * t) - cam_y
         self._draw_shadow(surface, px, py)
-        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16),
+        surface.blit(hero_sprite(self.weapon, self.armor, (t, t + 16),
                                  self.facing, int(self.walk_clock) % 2 if self.walk_clock else 0),
-                     (px - TILE_SIZE // 2, py - TILE_SIZE - 16))
+                     (px - t // 2, py - t - 16))
         for tx, ty in self.trees:
             if self.player["y"] < ty <= self.player["y"] + 1.2:
-                surface.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * TILE_SIZE - 8, ty * TILE_SIZE - 32))
+                surface.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * t - 8 - cam_x, ty * t - 32 - cam_y))
         self._draw_dialogue(surface)
+        self._draw_hud(surface)
 
     def _draw_chief_house(self, surface):
         """Paint the chief's hall: steep red tile roof, half-timbered gable, striped awning and planters."""
@@ -427,7 +472,8 @@ class VillageScene(FieldScene):
         top = 10 * t - 26
         for post_x in (left + 4, right - 8):
             pygame.draw.rect(surface, (74, 50, 36), (post_x, top, 5, t + 30))
-        for cx, cy in self.LOGAN_CRATES:
+        ox, oy = self.CORE_OFFSET
+        for cx, cy in ((x - ox, y - oy) for x, y in self.LOGAN_CRATES):
             box = pygame.Rect(cx * t + 2, cy * t + 8, t - 4, t - 8)
             pygame.draw.rect(surface, OUTLINE, box.inflate(2, 2))
             pygame.draw.rect(surface, (152, 102, 60), box)

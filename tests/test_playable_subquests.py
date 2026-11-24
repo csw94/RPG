@@ -27,9 +27,9 @@ class FakeGame:
 class PlayableSubquestTests(unittest.TestCase):
     def test_house_doors_lead_to_marta_and_garen_and_logan_runs_the_plaza_stall(self):
         game = FakeGame()
-        village = VillageScene(game, {"world": "village", "x": 12, "y": 13})
-        village.player.update(x=5, y=7)
-        self.assertFalse(village._blocked(5, 7))
+        village = VillageScene(game, {"world": "village", "x": 15, "y": 15})
+        village.player.update(x=8, y=9)
+        self.assertFalse(village._blocked(8, 9))
         village._interact()
         self.assertEqual(game.destination[0], "village_house_1")
 
@@ -38,9 +38,9 @@ class PlayableSubquestTests(unittest.TestCase):
         cottage._interact()
         self.assertEqual(cottage.dialogue_action, "accept_subquest:sq_moon_herb")
 
-        village.player.update(x=19, y=8)
-        self.assertFalse(village._blocked(19, 7))
-        self.assertFalse(village._blocked(19, 8))
+        village.player.update(x=22, y=10)
+        self.assertFalse(village._blocked(22, 9))
+        self.assertFalse(village._blocked(22, 10))
         village._interact()
         self.assertEqual(game.destination[0], "village_house_2")
         quarters = HouseInteriorScene(game, {"world": "village_house_2"})
@@ -50,8 +50,8 @@ class PlayableSubquestTests(unittest.TestCase):
         self.assertEqual(quarters.dialogue_action, "accept_subquest:sq_old_sword")
         self.assertEqual(cottage.npcs, ((7, 6),))
 
-        village.player.update(x=16, y=11)
-        self.assertFalse(village._blocked(16, 11))
+        village.player.update(x=19, y=13)
+        self.assertFalse(village._blocked(19, 13))
         village._interact()
         self.assertEqual(village.dialogue_action, "open_shop")
         village.dialogue_index = len(village.dialogue_lines) - 1
@@ -60,12 +60,12 @@ class PlayableSubquestTests(unittest.TestCase):
 
     def test_final_boss_victory_queues_epilogue_and_fountain_replays_it(self):
         game = FakeGame()
-        village = VillageScene(game, {"world": "village", "x": 12, "y": 13,
+        village = VillageScene(game, {"world": "village", "x": 15, "y": 15,
                                       "quest_flags": {"star_sword_awakened": 1}})
         village.resolve_battle_victory("final_boss")
         self.assertEqual(village.quest_flags["final_boss"], 1)
 
-        village.player.update(x=12, y=12)
+        village.player.update(x=15, y=14)
         village._interact()
         self.assertEqual(village.dialogue_action, "epilogue")
         village.dialogue_index = len(village.dialogue_lines) - 1
@@ -85,12 +85,12 @@ class PlayableSubquestTests(unittest.TestCase):
 
     def test_northern_shrine_and_new_central_chief_house_are_accessible(self):
         game = FakeGame()
-        village = VillageScene(game, {"world": "village", "x": 12, "y": 13})
-        village.player.update(x=12, y=7)
-        self.assertFalse(village._blocked(12, 7))
+        village = VillageScene(game, {"world": "village", "x": 15, "y": 15})
+        village.player.update(x=15, y=9)
+        self.assertFalse(village._blocked(15, 9))
         village._interact()
         self.assertEqual(game.destination[0], "village_chief_house")
-        village.player.update(x=12, y=1)
+        village.player.update(x=15, y=1)
         village._interact()
         self.assertEqual(game.destination[0], "village_north_shrine")
 

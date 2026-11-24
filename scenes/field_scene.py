@@ -8,14 +8,14 @@ import pygame
 from scenes.base_scene import BaseScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils import ui
-from utils.pixel_art import NPC_SIZE, hero_sprite, sprite
+from utils.pixel_art import NPC_SIZE, hero_sprite, sprite, tile_noise
 from gameplay.equipment import ARMORS, WEAPONS
 from gameplay.world_data import FIELD_ROUTES
 
 
 class FieldScene(BaseScene):
     # The overworld is larger than the view; town and dungeon scenes override these.
-    COLS, ROWS = 40, 24
+    COLS, ROWS = 52, 31
     VIEW_HEIGHT = 512
     PLAYER_RADIUS = 0.25
     NPC_RADIUS = 0.70
@@ -96,7 +96,7 @@ class FieldScene(BaseScene):
             if self.toby_position:
                 self.solid_npcs.add(self.toby_position)
                 self.walls.discard(self.toby_position)
-        safe_spawns = {"field": (2, 2), "village": (12, 13), "dungeon": (3, 14)}
+        safe_spawns = {"field": (2, 2), "village": (15, 15), "dungeon": (3, 14)}
         safe_spawns.update({map_id: data["village_spawn"] for map_id, data in FIELD_ROUTES.items()})
         self.position_recovered = self._restore_player_position(safe_spawns.get(self.world, (2, 2)))
         if self.position_recovered:
@@ -175,30 +175,58 @@ class FieldScene(BaseScene):
             landmarks.add(data["toby"])
         rng = random.Random({"field_east": 1103, "field_west": 2207, "field_south": 3301}[self.world])
         if data["theme"] == "forest":
+            self.water = self._blob(11, 6, 3.2, 1.8, 1) | self._blob(40, 19, 3.4, 1.8, 2)
+            self.water -= self.path | landmarks
             for gx, gy, gw, gh in data["groves"]:
                 for ty in range(gy, min(gy + gh, self.ROWS - 1)):
                     for tx in range(gx, min(gx + gw, self.COLS - 1)):
-                        if (tx, ty) not in self.path and (tx, ty) not in landmarks and rng.random() < 0.42:
+                        if ((tx, ty) not in self.path and (tx, ty) not in landmarks
+                                and (tx, ty) not in self.water and rng.random() < 0.42):
                             self.trees.add((tx, ty))
-            self.water = {(7, 4), (8, 4), (9, 4), (9, 5), (10, 5), (10, 6),
-                          (29, 14), (30, 14), (31, 14), (31, 15), (32, 15)} - self.path
         elif data["theme"] == "canyon":
-            self.rocks = {(8, y) for y in range(2, 8)} | {(15, y) for y in range(13, 21)}
-            self.rocks |= {(x, 3) for x in range(10, 18)} | {(x, 19) for x in range(24, 33)}
+            ridges = {(10, y) for y in range(3, 10)} | {(20, y) for y in range(17, 27)}
+            ridges |= {(x, 4) for x in range(13, 23)} | {(x, 25) for x in range(31, 42)}
+            ridges |= {(x, 6) for x in range(44, 50)} | {(8, y) for y in range(20, 28)}
+            # Ridges get a ragged second row so they read as rock walls, not fences.
+            self.rocks = set(ridges)
+            for x, y in ridges:
+                if tile_noise(x, y, 21) < 0.45:
+                    self.rocks.add((x + 1, y) if tile_noise(x, y, 22) < 0.5 else (x, y + 1))
+            for cx, cy, rx, ry, seed in ((29, 5.5, 1.8, 1.2, 8), (37, 8, 1.6, 1, 9), (46, 24.5, 1.8, 1.2, 10),
+                                         (25, 21.5, 1.4, 1, 11), (4, 14, 1.5, 1.2, 12), (14, 27, 1.5, 1, 13),
+                                         (40, 28, 1.5, 1, 14), (31, 9.5, 1.3, 1, 15)):
+                self.rocks |= {p for p in self._blob(cx, cy, rx, ry, seed) if tile_noise(*p, 23) < 0.8}
             self.rocks -= self.path | landmarks
         else:
-            self.lava = {(x, y) for x in range(5, 10) for y in range(7, 11)}
-            self.lava |= {(x, y) for x in range(24, 30) for y in range(12, 16)}
-            self.lava |= {(17, 3), (18, 3), (18, 4), (19, 4)}
+            self.lava = (self._blob(9, 11, 3.8, 2.6, 3) | self._blob(34.5, 18, 4.4, 2.6, 4)
+                         | self._blob(23.5, 4.6, 2.2, 1.1, 5) | self._blob(42, 5.5, 2.8, 2.2, 6)
+                         | self._blob(7.5, 24.5, 2.4, 2.1, 7))
             self.lava -= self.path | landmarks
-            self.rocks = {(x, 5) for x in range(5, 10)} | {(x, 18) for x in range(30, 37)}
-            self.rocks -= self.path | landmarks
+            self.rocks = {(x, 7) for x in range(6, 13)} | {(x, 23) for x in range(39, 48)}
+            self.rocks |= {(39, 9), (40, 9), (45, 9), (46, 10), (27, 24), (28, 24), (11, 17), (12, 18)}
+            self.rocks -= self.path | landmarks | self.lava
         self.walls.update(self.trees)
         self.walls.update(self.rocks)
         self.walls.update(self.water)
         self.walls.update(self.lava)
         self.chests = dict(data["chests"])
         self.herb_positions = set(data["herbs"])
+
+    def _blob(self, cx, cy, rx, ry, seed):
+        """Organic, wobbly ellipse of tiles for ponds, lava pools and boulder clusters."""
+        rng = random.Random(seed)
+        p1, p2 = rng.uniform(0, math.tau), rng.uniform(0, math.tau)
+        tiles = set()
+        for y in range(math.floor(cy - ry - 1), math.ceil(cy + ry + 2)):
+            for x in range(math.floor(cx - rx - 1), math.ceil(cx + rx + 2)):
+                if not (0 < x < self.COLS - 1 and 0 < y < self.ROWS - 1):
+                    continue
+                dx, dy = (x - cx) / rx, (y - cy) / ry
+                angle = math.atan2(dy, dx)
+                limit = 1 + 0.18 * math.sin(3 * angle + p1) + 0.1 * math.sin(5 * angle + p2)
+                if math.hypot(dx, dy) <= limit:
+                    tiles.add((x, y))
+        return tiles
 
     def _add_path(self, points, radius):
         for start, end in zip(points, points[1:]):
@@ -220,11 +248,11 @@ class FieldScene(BaseScene):
 
     def ground_tile(self, tx, ty):
         prefix = {"canyon": "canyon", "volcanic": "ash"}.get(self.theme, "grass")
-        return f"{prefix}_{(tx * 17 + ty * 23) % 16}"
+        return f"{prefix}_{int(tile_noise(tx, ty, 5) * 16)}"
 
     def tree_kind(self, position):
         x, y = position
-        return ("tree_round", "tree_round", "tree_fruit", "tree_pine")[(x * 5 + y * 3) % 4]
+        return ("tree_round", "tree_round", "tree_fruit", "tree_pine")[int(tile_noise(x, y, 31) * 4)]
 
     def rock_kind(self, position):
         x, y = position
@@ -250,9 +278,8 @@ class FieldScene(BaseScene):
                 for x in range(1, self.COLS - 1):
                     if (x, y) in busy:
                         continue
-                    roll = (x * 73 + y * 151 + x * y * 17) % 19
-                    if roll in (0, 11):
-                        decals[(x, y)] = names[(x * 3 + y) % len(names)]
+                    if tile_noise(x, y, 11) < 0.09:
+                        decals[(x, y)] = names[int(tile_noise(x, y, 12) * len(names))]
             self._decals = decals
         return self._decals
 
