@@ -213,8 +213,8 @@ class StatusScene(BaseScene):
         skills = ui.frame(surface, pygame.Rect(286, 204, 474, 146), "parchment")
         self._ink(surface, "기술", (skills.x + 12, skills.y + 6), 16)
         for index, skill in enumerate(self.skill_rows()):
-            col, row = index % 2, index // 2
-            x, y = skills.x + 12 + col * 230, skills.y + 28 + row * 38
+            col, row = index % 3, index // 3
+            x, y = skills.x + 12 + col * 152, skills.y + 28 + row * 38
             if skill["learned"]:
                 self._ink(surface, f"{skill['name']}  {skill['mp']}MP", (x, y), 14)
                 self._ink(surface, skill["desc"], (x, y + 18), 12, soft=True)

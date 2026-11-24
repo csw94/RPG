@@ -58,7 +58,8 @@ class SkillAndLevelTests(unittest.TestCase):
         self.assertIn("heal_light", names(2))
         self.assertIn("wind_slash", names(4))
         self.assertNotIn("earth_smash", names(5))
-        self.assertEqual(len(names(8)), len(SKILLS))
+        self.assertEqual(len(names(12)), len(SKILLS))
+        self.assertEqual(len(names(8)), len(SKILLS) - 2)  # Lv.10 and Lv.12 skills come later
 
     def test_xp_levels_up_and_reports_new_skills(self):
         field = hero(1)

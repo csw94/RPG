@@ -30,6 +30,10 @@ SKILLS = {
                     "power": 18, "element": "earth", "desc": "대지 속성 · 기절 확률"},
     "flame_slash": {"id": "flame_slash", "name": "화염 참격", "mp": 6, "level": 8, "kind": "attack",
                     "power": 16, "element": "fire", "desc": "화염 속성 · 화상"},
+    "star_storm": {"id": "star_storm", "name": "별빛 폭풍", "mp": 10, "level": 10, "kind": "attack",
+                   "power": 30, "element": "light", "desc": "빛 속성 · 가장 강한 공격"},
+    "holy_prayer": {"id": "holy_prayer", "name": "성스러운 기도", "mp": 12, "level": 12, "kind": "heal",
+                    "power": 160, "element": "light", "desc": "HP 크게 회복 · 상태이상 해제"},
 }
 STATUS_NAMES = {"poison": "독", "burn": "화상", "stun": "기절"}
 CRIT_CHANCE = 0.08

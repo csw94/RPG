@@ -243,7 +243,7 @@ class BattleScene(BaseScene):
         return [pygame.Rect(250 + i * 160, 470, 140, 44) for i in range(2)]
 
     def _skill_buttons(self):
-        return [pygame.Rect(36 + (i % 3) * 248, 446 + (i // 3) * 56, 236, 46)
+        return [pygame.Rect(26 + (i % 4) * 188, 446 + (i // 4) * 56, 180, 46)
                 for i in range(len(self.skill_list()))]
 
     def _offset(self, side, direction):
@@ -347,7 +347,7 @@ class BattleScene(BaseScene):
             for index, (skill, rect) in enumerate(zip(skills, self._skill_buttons())):
                 usable = field.mp >= skill["mp"]
                 label = f"{skill['name']}  {skill['mp']}MP"
-                self.button(surface, rect, label if usable else f"({label})", index == self.skill_index, 20)
+                self.button(surface, rect, label if usable else f"({label})", index == self.skill_index, 17)
             chosen = skills[self.skill_index]
             footer = f"{chosen['desc']}   ·   MP {field.mp}/{field.max_mp}   ·   Esc: 뒤로"
         elif self.mode == "done" and self.engine.result == "lose":
