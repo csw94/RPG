@@ -123,7 +123,8 @@ class VillageScene(FieldScene):
             if self.quest_flags["final_boss"]:
                 self.show_dialogue(["광장 주민: 수호 기사님! 아이들이 모두 기사님 흉내를 내며 놀아요."])
             else:
-                self.show_dialogue(["광장 주민: 동쪽 숲길이 가장 순해요. 서쪽 협곡과 남쪽 화산은 조심하세요."])
+                self.show_dialogue(["광장 주민: 동쪽 숲길이 가장 순해요. 서쪽 협곡과 남쪽 화산은 조심하세요.",
+                                    "지치면 마르타 할머니 오두막 침대에서 쉬어 가세요. 공짜랍니다!"])
         else:
             self.message = "\uc8fc\ubcc0\uc5d0\ub294 \uc0c1\ud638\uc791\uc6a9\ud560 \ub300\uc0c1\uc774 \uc5c6\uc2b5\ub2c8\ub2e4."
 

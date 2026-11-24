@@ -88,6 +88,8 @@ class HouseInteriorScene(FieldScene):
         self.layout = LAYOUTS[self.house_id]["items"]
         for item in self.layout:
             self.walls.update(self.solid_tiles(item))
+        # Beds are free resting spots (Marta's cottage and Garen's quarters).
+        self.bed = next((item for item in self.layout if item["sprite"].startswith("bed_")), None)
         self.walls.difference_update({(12, 13), *self.npcs})
         self._restore_player_position((12, 12))
 
@@ -134,7 +136,9 @@ class HouseInteriorScene(FieldScene):
             self.game.enter_world("village", self._outside_door())
             return
         near_npc = (x - self.npcs[0][0]) ** 2 + (y - self.npcs[0][1]) ** 2 <= 1.5
-        if self.house_id == "village_house_1":
+        if not near_npc and self._near_bed():
+            self._rest()
+        elif self.house_id == "village_house_1":
             if near_npc:
                 self._offer_sidequest("sq_moon_herb")
             else:
@@ -148,6 +152,21 @@ class HouseInteriorScene(FieldScene):
             self._interact_chief()
         else:
             self.message = "마을 지도와 기록이 쌓인 촌장의 집무실입니다."
+
+    def _near_bed(self):
+        if not self.bed:
+            return False
+        x, y = self.player["x"], self.player["y"]
+        return any((x - bx) ** 2 + (y - by) ** 2 <= 1.6 for bx, by in self.solid_tiles(self.bed))
+
+    def _rest(self):
+        healed = self.hp < self.max_hp or self.mp < self.max_mp
+        self.hp, self.mp = self.max_hp, self.max_mp
+        self.game.save_game()
+        if healed:
+            self.show_dialogue(["포근한 침대에서 잠시 눈을 붙였다.", "HP와 MP가 모두 회복되었다. (저장 완료)"])
+        else:
+            self.show_dialogue(["아직은 피곤하지 않다. 침대는 언제든 쉬어 갈 수 있다."])
 
     def _interact_garen(self):
         quest = self.sub_quests["sq_old_sword"]

@@ -272,6 +272,6 @@ class BattleEngine:
         self.statuses["hero"].clear()
         field.player.update(x=float(VillageScene.START[0]), y=float(VillageScene.START[1]))
         field.world = "village"
-        field.message = "힘겹게 깨어나 오크밸리로 돌아왔다."
+        field.message = "힘겹게 깨어나 오크밸리로 돌아왔다. 마을 집의 침대에서 쉬면 회복된다."
         self._emit(events, type="lose", text="의식을 잃었다...")
         return events
