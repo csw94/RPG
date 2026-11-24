@@ -102,7 +102,8 @@ class SmithySceneTests(unittest.TestCase):
 
     def test_bron_opens_the_smithy(self):
         game = FakeGame()
-        village = VillageScene(game, {"world": "village", "x": 15, "y": 15})
+        village = VillageScene(game, {"world": "village", "x": 15, "y": 15,
+                                      "sub_quests": {"sq_smith_ore": {"status": "COMPLETED", "progress": 4}}})
         game.field = game.scene = village
         x, y = village.DISTRICT["smithy"]["npc"]
         village.player.update(x=float(x + 1), y=float(y))

@@ -133,8 +133,12 @@ class VillageScene(FieldScene):
                        + (self.DISTRICT[key]["npc"][1] - y) ** 2)
             self._visit(name)
         elif any(near(resident["pos"], 1.2) for resident in self.RESIDENTS.values()):
-            resident = min(self.RESIDENTS.values(), key=lambda r: (r["pos"][0] - x) ** 2 + (r["pos"][1] - y) ** 2)
-            self.show_dialogue(resident["lines"])
+            name = min(self.RESIDENTS, key=lambda key: (self.RESIDENTS[key]["pos"][0] - x) ** 2
+                       + (self.RESIDENTS[key]["pos"][1] - y) ** 2)
+            if name == "tomi" and self.sub_quests["sq_tomi"]["status"] != "COMPLETED":
+                self._offer_sidequest("sq_tomi")
+            else:
+                self.show_dialogue(self.RESIDENTS[name]["lines"])
         elif any(near(gate) for gate in self.FIELD_GATES.values()):
             route_id, gate = min(self.FIELD_GATES.items(),
                                  key=lambda item: (item[1][0] - x) ** 2 + (item[1][1] - y) ** 2)
@@ -202,6 +206,16 @@ class VillageScene(FieldScene):
 
     def _visit(self, name):
         """Talk to the keeper of a district building."""
+        north_open = sum(1 for key in SHRINES if self.quest_flags.get(key)) >= 2
+        requests = {"inn": "sq_inn_stew", "smithy": "sq_smith_ore", "library": "sq_library"}
+        quest_id = requests.get(name)
+        if quest_id and self.quest_due(quest_id) and (name != "inn" or north_open):
+            self._offer_sidequest(quest_id)
+            return
+        if name == "library":
+            self.show_dialogue(["사서 에델: 쉿, 조용히 읽어 주세요. 오래된 기록들이 잠들어 있답니다."],
+                               action="open_library")
+            return
         if name == "inn":
             self.show_dialogue(["여관 주인 로사: 어서 와요, 졸린 곰 여관이에요!",
                                 f"요즘 손님들 사이에 이런 소문이 돌아요. \"{self.inn_rumour()}\""],

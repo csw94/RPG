@@ -52,6 +52,10 @@ ACCESSORIES = {
     "guardian_medal": {"name": "수호자의 훈장", "price": 0, "defense": 5, "desc": "방어력 +5"},
     "frost_heart": {"name": "얼음 심장", "price": 0, "immune": "stun", "attack": 2,
                     "desc": "빙결·기절에 걸리지 않음 · 공격력 +2"},
+    "smith_ring": {"name": "대장장이 반지", "price": 0, "attack": 2, "defense": 2,
+                   "desc": "공격력 +2 · 방어력 +2"},
+    "sage_glasses": {"name": "현자의 안경", "price": 0, "victory_mp": 2, "evasion": 3,
+                     "desc": "승리 시 MP +2 · 회피 +3%"},
     # Starlight Abyss rewards (not sold).
     "star_amulet": {"name": "별의 목걸이", "price": 0, "attack": 3, "evasion": 6, "victory_mp": 2,
                     "desc": "공격력 +3 · 회피 +6% · 승리 시 MP +2"},

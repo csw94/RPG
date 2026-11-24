@@ -64,6 +64,8 @@ class FieldScene(BaseScene):
         self.stats = {key: int(saved_stats.get(key, 0)) for key in ("wins", "losses", "flees")}
         self.potions = int(state.get("potions", 0))
         self.high_potions = int(state.get("high_potions", 0))
+        from gameplay.library import BOOKS
+        self.books_read = {book for book in state.get("books_read", ()) if book in BOOKS}
         # Smithy upgrades: item id -> +level (1-3), kept per item.
         self.upgrades = {key: max(1, min(3, int(value))) for key, value in (state.get("upgrades") or {}).items()
                          if (key in WEAPONS or key in ARMORS) and int(value) > 0}
@@ -352,6 +354,7 @@ class FieldScene(BaseScene):
                 "play_time": round(self.play_time, 1), "stats": dict(self.stats), "difficulty": self.difficulty, "cycle": self.cycle,
                 "bestiary": dict(self.bestiary), "achievements": sorted(self.achievements),
                 "items": dict(self.items), "upgrades": dict(self.upgrades),
+                "books_read": sorted(self.books_read),
                 "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
                 "potions": self.potions, "high_potions": self.high_potions, "gold": self.gold,
@@ -502,6 +505,7 @@ class FieldScene(BaseScene):
         if action and action.startswith("accept_subquest:"):
             quest_id = action.split(":", 1)[1]
             self.sub_quests[quest_id]["status"] = "IN_PROGRESS"
+            self.sync_quest_progress()
             self.game.save_game()
             return
         if action and action.startswith("complete_subquest:"):
@@ -525,6 +529,9 @@ class FieldScene(BaseScene):
         elif action == "open_smithy":
             from scenes.smithy_scene import SmithyScene
             self.game.scene, self.game.scene_name = SmithyScene(self.game, self), "smithy"
+        elif action == "open_library":
+            from scenes.library_scene import LibraryScene
+            self.game.scene, self.game.scene_name = LibraryScene(self.game, self), "library"
         elif action == "open_apothecary":
             self.game.open_shop("mira")
         elif action == "inn_offer":
@@ -538,8 +545,23 @@ class FieldScene(BaseScene):
         elif action == "epilogue":
             self.game.start_epilogue()
 
+    def sync_quest_progress(self):
+        """Requests that count something the save already tracks (e.g. the bestiary)."""
+        for quest_id, info in QUESTS.items():
+            quest = self.sub_quests[quest_id]
+            if info.get("count") == "bestiary" and quest["status"] == "IN_PROGRESS":
+                quest["progress"] = min(quest["target"], len(self.bestiary))
+
+    def quest_due(self, quest_id):
+        """True when the giver has something to say: an offer or a hand-in."""
+        self.sync_quest_progress()
+        quest = self.sub_quests[quest_id]
+        return quest["status"] == "NOT_STARTED" or (quest["status"] == "IN_PROGRESS"
+                                                   and quest["progress"] >= quest["target"])
+
     def _offer_sidequest(self, quest_id):
         """Offer, report on or hand in a request; texts and rewards come from QUESTS."""
+        self.sync_quest_progress()
         quest, info = self.sub_quests[quest_id], QUESTS[quest_id]
         status, progress, target = quest["status"], quest["progress"], quest["target"]
         if status == "NOT_STARTED":

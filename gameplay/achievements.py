@@ -15,6 +15,11 @@ def _flags(field):
     return field.quest_flags
 
 
+def _books():
+    from gameplay.library import BOOKS
+    return BOOKS
+
+
 ACHIEVEMENTS = {
     "first_win": {"name": "첫 승리", "desc": "전투에서 처음 이겼다",
                   "check": lambda f: f.stats.get("wins", 0) >= 1},
@@ -28,7 +33,7 @@ ACHIEVEMENTS = {
                "check": lambda f: bool(_flags(f).get("final_boss"))},
     "abyss": {"name": "심연을 걷는 자", "desc": "심연의 군주 녹스를 물리쳤다",
               "check": lambda f: bool(_flags(f).get("abyss_lord"))},
-    "helper": {"name": "마을의 해결사", "desc": "마을 사람들의 부탁을 모두 들어주었다",
+    "helper": {"name": "마을의 해결사", "desc": "마을 부탁을 모두 들어주었다",
                "check": lambda f: all(q["status"] == "COMPLETED" for q in f.sub_quests.values())},
     "bestiary": {"name": "도감 완성", "desc": "모든 적을 만나 보았다",
                  "check": lambda f: set(ENEMIES) <= set(getattr(f, "bestiary", {}))},
@@ -42,6 +47,8 @@ ACHIEVEMENTS = {
                  "check": lambda f: bool(_flags(f).get("final_boss")) and f.play_time <= 3600},
     "rich": {"name": "오크밸리의 부자", "desc": "금화 1000G를 모았다",
              "check": lambda f: f.gold >= 1000},
+    "scholar": {"name": "도서관의 학자", "desc": "도서관의 책을 모두 읽었다",
+                "check": lambda f: set(_books()) <= set(getattr(f, "books_read", ()))},
     "ng_plus": {"name": "다시 별빛 아래", "desc": "2회차 모험을 시작했다",
                 "check": lambda f: getattr(f, "cycle", 1) >= 2},
 }

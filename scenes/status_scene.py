@@ -43,6 +43,7 @@ class StatusScene(BaseScene):
         return [{**skill, "learned": skill["level"] <= self.field.level} for skill in SKILLS.values()]
 
     def quest_rows(self):
+        self.field.sync_quest_progress()
         rows = []
         for quest_id, name in QUEST_NAMES.items():
             quest = self.field.sub_quests[quest_id]
@@ -111,14 +112,14 @@ class StatusScene(BaseScene):
         self.text(surface, "업적", (210, 44), 28, colors["gold"], True)
         self.text(surface, f"달성 {len(unlocked)}/{len(ACHIEVEMENTS)}", (400, 80), 15, colors["cream"], True)
         for index, (achievement_id, achievement) in enumerate(ACHIEVEMENTS.items()):
-            col, row = index % 2, index // 2
-            cell = pygame.Rect(46 + col * 358, 98 + row * 60, 350, 54)
+            col, row = index % 3, index // 3
+            cell = pygame.Rect(40 + col * 242, 100 + row * 82, 236, 74)
             done = achievement_id in unlocked
             body = ui.frame(surface, cell, "parchment", done)
             star = self.game.font(22).render("★" if done else "·", True, (200, 150, 40) if done else ui.INK_SOFT)
             surface.blit(star, star.get_rect(center=(body.x + 18, body.centery)))
-            self._ink(surface, achievement["name"], (body.x + 36, body.y + 5), 15, soft=not done)
-            self._ink(surface, achievement["desc"], (body.x + 36, body.y + 25), 12, soft=True)
+            self._ink(surface, achievement["name"], (body.x + 36, body.y + 12), 15, soft=not done)
+            self._ink(surface, achievement["desc"], (body.x + 36, body.y + 36), 12, soft=True)
 
     # --- bestiary page ----------------------------------------------------------------
     def bestiary_rows(self):
@@ -306,9 +307,10 @@ class StatusScene(BaseScene):
         self._ink(surface, "마을 사람들의 부탁", (quests.x + 12, quests.y + 54), 15)
         for index, (name, text) in enumerate(self.quest_rows()):
             col, row = divmod(index, 4)
-            x, y = quests.x + 12 + col * 232, quests.y + 76 + row * 17
-            self._ink(surface, name, (x, y), 13)
-            self._ink(surface, text, (x + 212, y), 13, right=True, soft=text == "미수락")
+            x, y = quests.x + 10 + col * 153, quests.y + 76 + row * 17
+            self._ink(surface, name, (x, y), 12)
+            short = text.replace("진행 중 ", "").replace(" · 보고하기", " 보고")
+            self._ink(surface, short, (x + 146, y), 12, right=True, soft=text == "미수락")
 
 
     def _ink(self, surface, value, pos, size, right=False, soft=False):

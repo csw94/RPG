@@ -21,7 +21,7 @@ class FakeGame:
 
 class QuestTableTests(unittest.TestCase):
     def test_every_request_is_fully_described(self):
-        self.assertEqual(len(QUESTS), 7)
+        self.assertEqual(len(QUESTS), 11)
         for quest_id, quest in QUESTS.items():
             self.assertTrue(quest_id.startswith("sq_"))
             self.assertTrue(quest["name"], quest_id)
