@@ -5,7 +5,7 @@ import pygame
 from scenes.field_scene import FieldScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils.interior_art import interior_sprite
-from utils.pixel_art import PALETTE, hero_sprite, sprite
+from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite
 
 
 def _item(name, x, y, w=1, h=1, solid=True):
@@ -253,7 +253,7 @@ class HouseInteriorScene(FieldScene):
                 surface.blit(interior_sprite(data["sprite"]), (data["x"] * t, data["y"] * t))
             elif kind == "npc":
                 surface.blit(sprite("shadow", (26, 10)), (data[0] * t + 3, (data[1] + 1) * t - 7))
-                surface.blit(sprite(npc_sprite, (t, t)), (data[0] * t, data[1] * t))
+                surface.blit(sprite(npc_sprite, NPC_SIZE), (data[0] * t, data[1] * t - 16))
             else:
                 px = round(self.player["x"] * t + t / 2)
                 py = round((self.player["y"] + 1) * t)

@@ -4,7 +4,7 @@ import pygame
 from scenes.field_scene import FieldScene
 from gameplay.world_data import FIELD_ROUTES
 from settings import TILE_SIZE, WIDTH
-from utils.pixel_art import PALETTE, hero_sprite, sprite
+from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite
 
 OUTLINE = PALETTE["outline"]
 # One cozy roof family: each building gets its own hue at the same softness and value.
@@ -241,10 +241,6 @@ class VillageScene(FieldScene):
         road.update({(18, 9), (18, 10), (18, 11), (19, 11), (12, 7), (12, 8)})
         return road
 
-    def tree_kind(self, position):
-        x, y = position
-        return ("tree_round", "tree_round", "tree_fruit", "tree_pine")[(x * 5 + y * 3) % 4]
-
     def ground_decals(self):
         """Walkable, purely visual ground details: flowers and pebbles off the road."""
         if getattr(self, "_decals", None) is None:
@@ -313,8 +309,8 @@ class VillageScene(FieldScene):
             surface.blit(sprite(name, (48, 64)), (draw_x * TILE_SIZE - 8, draw_y * TILE_SIZE - 32))
         for position, sprite_name in ((self.VILLAGER, "villager"), (self.LOGAN, "shopkeeper")):
             self._draw_shadow(surface, position[0] * TILE_SIZE + TILE_SIZE / 2, (position[1] + 1) * TILE_SIZE)
-            surface.blit(sprite(sprite_name, (TILE_SIZE, TILE_SIZE)),
-                         (position[0] * TILE_SIZE, position[1] * TILE_SIZE))
+            surface.blit(sprite(sprite_name, NPC_SIZE),
+                         (position[0] * TILE_SIZE, position[1] * TILE_SIZE - 16))
         px = round(self.player["x"] * TILE_SIZE + TILE_SIZE / 2)
         py = round((self.player["y"] + 1) * TILE_SIZE)
         self._draw_shadow(surface, px, py)

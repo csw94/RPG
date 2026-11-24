@@ -7,7 +7,7 @@ import pygame
 
 from scenes.base_scene import BaseScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
-from utils.pixel_art import hero_sprite, sprite
+from utils.pixel_art import NPC_SIZE, hero_sprite, sprite
 from gameplay.equipment import ARMORS, WEAPONS
 from gameplay.world_data import FIELD_ROUTES
 
@@ -212,6 +212,48 @@ class FieldScene(BaseScene):
                         if (x - cx) ** 2 + (y - cy) ** 2 <= radius * radius + 0.4:
                             if 0 < x < self.COLS - 1 and 0 < y < self.ROWS - 1:
                                 self.path.add((x, y))
+
+    @property
+    def theme(self):
+        return self.route_data["theme"] if self.route_data else "forest"
+
+    def ground_tile(self, tx, ty):
+        prefix = {"canyon": "canyon", "volcanic": "ash"}.get(self.theme, "grass")
+        return f"{prefix}_{(tx * 17 + ty * 23) % 16}"
+
+    def tree_kind(self, position):
+        x, y = position
+        return ("tree_round", "tree_round", "tree_fruit", "tree_pine")[(x * 5 + y * 3) % 4]
+
+    def rock_kind(self, position):
+        x, y = position
+        prefix = {"volcanic": "basalt", "canyon": "rock"}.get(self.theme, "mossrock")
+        return f"{prefix}_{(x * 7 + y * 5) % 3}"
+
+    def field_decals(self):
+        """Walkable ground details per theme, kept off everything the player interacts with."""
+        if getattr(self, "_decals", None) is None:
+            busy = (self.walls | self.path | set(self.chests) | self.herb_positions
+                    | self.water | self.lava | self.bridge | set(self.altar_positions.values()))
+            if self.route_data:
+                busy |= {self.route_data["village_portal"], self.route_data["dungeon_portal"]}
+            if self.toby_position:
+                busy.add(self.toby_position)
+            names = {
+                "forest": ("flower_patch", "tuft", "flower_patch_1", "tuft", "pebbles"),
+                "canyon": ("dry_tuft", "dry_tuft", "dry_tuft"),
+                "volcanic": ("ember", "ember", "pebbles"),
+            }[self.theme]
+            decals = {}
+            for y in range(1, self.ROWS - 1):
+                for x in range(1, self.COLS - 1):
+                    if (x, y) in busy:
+                        continue
+                    roll = (x * 73 + y * 151 + x * y * 17) % 19
+                    if roll in (0, 11):
+                        decals[(x, y)] = names[(x * 3 + y) % len(names)]
+            self._decals = decals
+        return self._decals
 
     def serialize(self):
         opened_by_world = {
@@ -532,18 +574,18 @@ class FieldScene(BaseScene):
             for tx in range(start_x, end_x):
                 position = (tx, ty)
                 rect = pygame.Rect(round(tx * TILE_SIZE - camera_x), round(ty * TILE_SIZE - camera_y), TILE_SIZE, TILE_SIZE)
-                if self.route_data and self.route_data["theme"] == "canyon":
-                    surface.blit(sprite("dirt", (TILE_SIZE, TILE_SIZE)), rect)
-                elif self.route_data and self.route_data["theme"] == "volcanic":
-                    surface.blit(sprite(f"dungeon_floor_{(tx + ty) % 2}", (TILE_SIZE, TILE_SIZE)), rect)
-                else:
-                    surface.blit(sprite(f"grass_{(tx * 17 + ty * 23) % 16}", (TILE_SIZE, TILE_SIZE)), rect)
+                surface.blit(sprite(self.ground_tile(tx, ty), (TILE_SIZE, TILE_SIZE)), rect)
                 if position in self.lava:
-                    pygame.draw.rect(surface, (119, 39, 31), rect)
-                    pygame.draw.line(surface, (238, 101, 42), (rect.left + 2, rect.centery),
-                                     (rect.right - 2, rect.centery + ((tx + ty) % 3) - 1), 3)
-                    pygame.draw.line(surface, (247, 173, 54), (rect.left + 8, rect.top + 8),
-                                     (rect.left + 20, rect.top + 8), 2)
+                    mask = ((1 if (tx, ty - 1) in self.lava else 0)
+                            | (2 if (tx + 1, ty) in self.lava else 0)
+                            | (4 if (tx, ty + 1) in self.lava else 0)
+                            | (8 if (tx - 1, ty) in self.lava else 0)
+                            | (16 if (tx + 1, ty - 1) in self.lava else 0)
+                            | (32 if (tx + 1, ty + 1) in self.lava else 0)
+                            | (64 if (tx - 1, ty + 1) in self.lava else 0)
+                            | (128 if (tx - 1, ty - 1) in self.lava else 0))
+                    surface.blit(sprite(f"lava_edge_{mask}_{(tx + ty + int(self.portal_clock * 2)) % 2}",
+                                        (TILE_SIZE, TILE_SIZE)), rect)
                 elif position in self.water:
                     mask = ((1 if (tx, ty - 1) in self.water else 0)
                             | (2 if (tx + 1, ty) in self.water else 0)
@@ -569,6 +611,8 @@ class FieldScene(BaseScene):
                             | (64 if (tx - 1, ty + 1) in self.path else 0)
                             | (128 if (tx - 1, ty - 1) in self.path else 0))
                     surface.blit(sprite(f"trail_{mask}_{(tx * 3 + ty) % 3}", (TILE_SIZE, TILE_SIZE)), rect)
+                elif position in self.field_decals():
+                    surface.blit(sprite(self.field_decals()[position], (TILE_SIZE, TILE_SIZE)), rect)
 
     def _draw_dialogue(self, surface):
         if not self.dialogue_lines:
@@ -623,9 +667,9 @@ class FieldScene(BaseScene):
                 continue
             sx, sy = round(x * TILE_SIZE - camera_x), round(y * TILE_SIZE - camera_y)
             if kind == "tree":
-                surface.blit(sprite("tree", (48, 64)), (sx - 8, sy - 32))
+                surface.blit(sprite(self.tree_kind((x, y)), (48, 64)), (sx - 8, sy - 32))
             elif kind == "rock":
-                surface.blit(sprite("rock", (TILE_SIZE, TILE_SIZE)), (sx, sy))
+                surface.blit(sprite(self.rock_kind((x, y)), (TILE_SIZE, TILE_SIZE)), (sx, sy))
             elif kind == "chest":
                 name = "chest_open" if (x, y) in self.opened else "chest"
                 surface.blit(sprite(name, (TILE_SIZE, TILE_SIZE)), (sx, sy))
@@ -635,21 +679,22 @@ class FieldScene(BaseScene):
             elif kind == "moon_herb":
                 surface.blit(sprite("flower_yellow", (TILE_SIZE, TILE_SIZE)), (sx, sy))
             elif kind == "toby":
-                surface.blit(sprite("merchant", (TILE_SIZE, TILE_SIZE)), (sx, sy))
+                surface.blit(sprite("shadow", (26, 10)), (sx + 3, sy + TILE_SIZE - 7))
+                surface.blit(sprite("merchant", NPC_SIZE), (sx, sy - 16))
             else:
-                portal_name = "portal_town" if kind == "portal_town" else f"portal_dungeon_{int(self.portal_clock * 3) % 2}"
+                portal_name = "gate_arch" if kind == "portal_town" else f"portal_dungeon_{int(self.portal_clock * 3) % 2}"
                 surface.blit(sprite(portal_name, (48, 64)), (sx - 8, sy - 32))
 
         foot_x = round(self.player["x"] * TILE_SIZE + TILE_SIZE / 2 - camera_x)
         foot_y = round((self.player["y"] + 1) * TILE_SIZE - camera_y)
-        pygame.draw.ellipse(surface, (35, 61, 47), (foot_x - 11, foot_y - 4, 22, 8))
+        surface.blit(sprite("shadow", (26, 10)), (foot_x - 13, foot_y - 7))
         frame = int(self.walk_clock) % 2 if self.walk_clock else 0
         surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16), self.facing, frame),
                      (foot_x - TILE_SIZE // 2, foot_y - TILE_SIZE - 16))
         for tx, ty in self.trees:
             if self.player["y"] < ty <= self.player["y"] + 1.2 and start_x <= tx < end_x and start_y <= ty < end_y:
                 sx, sy = round(tx * TILE_SIZE - camera_x), round(ty * TILE_SIZE - camera_y)
-                surface.blit(sprite("tree", (48, 64)), (sx - 8, sy - 32))
+                surface.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (sx - 8, sy - 32))
 
         # Keep quest herbs visible even when the player or a foreground canopy overlaps them.
         for hx, hy in self.herb_positions - self.collected_herbs:

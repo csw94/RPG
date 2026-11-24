@@ -51,6 +51,8 @@ PALETTE = {
     "ink": (35, 42, 48),
 }
 
+NPC_SIZE = (32, 48)  # NPCs share the hero's 16x24 chibi proportions, drawn at 2x.
+
 _BASE = {}
 _SCALED = {}
 _HERO_SCALED = {}
@@ -154,7 +156,7 @@ def _player(weapon="rusty_sword", armor="traveler_clothes", direction="down", fr
         _rect(surface, PALETTE["skin_shadow"], 9, 11, 3, 1)
         if direction == "left":
             surface = pygame.transform.flip(surface, True, False)
-    return surface
+    return _outline(surface)
 
 
 def _slime():
@@ -189,7 +191,7 @@ def _chest(opened=False):
         _rect(surface, PALETTE["wood_light"], 3, 4, 10, 2)
         _rect(surface, PALETTE["wood"], 3, 3, 10, 2)
         _rect(surface, PALETTE["gold"], 7, 5, 2, 3)
-    return surface
+    return _outline(surface)
 
 
 def _tuft(surface, x, y, light=True):
@@ -244,13 +246,18 @@ def _water(variant=0):
     return surface
 
 
-def _terrain_overlay(mask, water=False, variant=0):
+def _terrain_overlay(mask, kind="path", variant=0):
     """Transparent, connected pixel patch for organic trail and shoreline edges."""
     surface = _canvas()
+    water = kind == "water"
     if water:
-        fill = (48, 111, 132)
-        accents = ((58, 134, 148), (76, 150, 157), (37, 96, 125))
-        rim = (176, 216, 204)
+        fill = (72, 140, 180)
+        accents = ((96, 164, 200), (60, 124, 166), (112, 180, 210))
+        rim = (206, 234, 236)
+    elif kind == "lava":
+        fill = (212, 88, 48)
+        accents = ((240, 148, 64), (184, 64, 42), (248, 188, 92))
+        rim = LAVA_RIM
     else:
         fill = PALETTE["path"]
         accents = (PALETTE["path_light"], PALETTE["path_dark"], PALETTE["path_light"])
@@ -273,7 +280,7 @@ def _terrain_overlay(mask, water=False, variant=0):
         pygame.draw.polygon(surface, fill, ((0, 8), (8, 16), (0, 16)))
     if mask & 128:
         pygame.draw.polygon(surface, fill, ((0, 0), (8, 0), (0, 8)))
-    rng = random.Random(mask * 101 + variant + (550 if water else 0))
+    rng = random.Random(mask * 101 + variant + {"path": 0, "water": 550, "lava": 880}[kind])
     for _ in range(9):
         x, y = rng.randrange(1, 15), rng.randrange(1, 15)
         if surface.get_at((x, y)).a:
@@ -290,8 +297,16 @@ def _terrain_overlay(mask, water=False, variant=0):
                     surface.set_at((x, y), rim)
                     break
     if water:
-        _rect(surface, (139, 190, 176), 5, 5, 2, 1)
-        _rect(surface, (119, 176, 166), 10, 10, 2, 1)
+        _rect(surface, (220, 240, 244), 5, 5, 2, 1)
+        _rect(surface, (180, 220, 232), 10, 10, 2, 1)
+    elif kind == "lava":
+        # Cooling crust plates break up the flat orange and tie it to the ash ground.
+        for _ in range(2):
+            x, y = rng.randrange(2, 11), rng.randrange(2, 12)
+            if solid[y][x] and solid[y + 1][x + 3]:
+                _rect(surface, (120, 62, 54), x, y, 4, 2)
+                _rect(surface, (152, 80, 62), x, y, 4, 1)
+                _rect(surface, (252, 206, 110), x - 1, y + 2, 2, 1)
     return surface
 
 
@@ -468,16 +483,6 @@ def _barrel():
     return surface
 
 
-def _rock():
-    surface = _canvas()
-    points = [(2, 12), (3, 7), (6, 5), (7, 2), (12, 3), (14, 7), (14, 12), (11, 14), (4, 14)]
-    pygame.draw.polygon(surface, (81, 91, 92), points)
-    _rect(surface, (140, 150, 139), 6, 5, 5, 2)
-    _rect(surface, (104, 119, 117), 4, 8, 8, 2)
-    _rect(surface, (57, 69, 74), 4, 12, 8, 2)
-    return surface
-
-
 def _portal(kind="dungeon", frame=0):
     """Small overgrown stone gateway with a distinct warm or enchanted opening."""
     surface = _canvas((24, 32))
@@ -508,82 +513,7 @@ def _portal(kind="dungeon", frame=0):
     _rect(surface, (104, 161, 76), 2, 16, 2, 2)
     _rect(surface, (115, 168, 82), 19, 19, 2, 2)
     _rect(surface, glow_light, 10 + frame % 2, 10, 2, 1)
-    return surface
-
-
-def _chief():
-    surface = _canvas()
-    _rect(surface, (225, 217, 189), 4, 2, 8, 4)
-    _rect(surface, (237, 220, 177), 5, 5, 6, 5)
-    _rect(surface, (250, 235, 201), 6, 5, 4, 2)
-    _rect(surface, PALETTE["ink"], 6, 7, 1, 1)
-    _rect(surface, PALETTE["ink"], 9, 7, 1, 1)
-    _rect(surface, (235, 234, 218), 6, 9, 4, 3)
-    _rect(surface, (61, 76, 108), 3, 11, 10, 4)
-    _rect(surface, (89, 109, 140), 5, 11, 6, 4)
-    _rect(surface, PALETTE["gold"], 7, 11, 2, 4)
-    _rect(surface, PALETTE["boot"], 4, 15, 3, 1)
-    _rect(surface, PALETTE["boot"], 9, 15, 3, 1)
-    return surface
-
-
-def _old_knight():
-    """Retired knight Garen: grey hair and beard, dented cuirass and a faded red cape."""
-    surface = _canvas()
-    _rect(surface, (122, 36, 38), 3, 8, 10, 7)
-    _rect(surface, (186, 184, 176), 4, 1, 8, 3)
-    _rect(surface, (160, 158, 150), 3, 3, 2, 4)
-    _rect(surface, (160, 158, 150), 11, 3, 2, 4)
-    _rect(surface, PALETTE["skin"], 5, 3, 6, 4)
-    _rect(surface, PALETTE["skin_shadow"], 5, 6, 6, 1)
-    _rect(surface, PALETTE["ink"], 6, 4, 1, 1)
-    _rect(surface, PALETTE["ink"], 9, 4, 1, 1)
-    _rect(surface, (214, 212, 204), 5, 6, 6, 3)
-    _rect(surface, (186, 184, 176), 7, 9, 2, 1)
-    _rect(surface, (128, 138, 142), 4, 9, 8, 5)
-    _rect(surface, (176, 186, 186), 5, 9, 3, 4)
-    _rect(surface, PALETTE["gold"], 7, 11, 2, 1)
-    _rect(surface, (92, 64, 44), 4, 13, 8, 1)
-    _rect(surface, PALETTE["pants"], 5, 14, 2, 1)
-    _rect(surface, PALETTE["pants"], 9, 14, 2, 1)
-    _rect(surface, PALETTE["boot"], 4, 15, 3, 1)
-    _rect(surface, PALETTE["boot"], 9, 15, 3, 1)
-    return surface
-
-
-def _merchant():
-    """Wandering merchant Toby: wide travel hat, green scarf, an overstuffed pack and a walking staff."""
-    surface = _canvas()
-    # Backpack bulging out behind both shoulders, with a bedroll on top.
-    _rect(surface, (112, 74, 46), 1, 6, 14, 7)
-    _rect(surface, (146, 100, 60), 2, 7, 12, 5)
-    _rect(surface, (176, 160, 120), 2, 4, 12, 2)
-    _rect(surface, (138, 122, 88), 2, 5, 12, 1)
-    _rect(surface, (204, 72, 60), 2, 4, 1, 2)
-    _rect(surface, (204, 72, 60), 13, 4, 1, 2)
-    # Wide-brimmed hat with a feather.
-    _rect(surface, (98, 64, 40), 3, 2, 10, 1)
-    _rect(surface, (122, 82, 50), 5, 0, 6, 2)
-    _rect(surface, (176, 58, 50), 5, 1, 6, 1)
-    _rect(surface, (238, 220, 150), 11, 0, 2, 1)
-    # Face and grin.
-    _rect(surface, PALETTE["skin"], 5, 3, 6, 4)
-    _rect(surface, PALETTE["ink"], 6, 4, 1, 1)
-    _rect(surface, PALETTE["ink"], 9, 4, 1, 1)
-    _rect(surface, PALETTE["skin_shadow"], 7, 6, 2, 1)
-    # Green scarf, travel coat, belt pouch and walking staff.
-    _rect(surface, (70, 140, 86), 4, 7, 8, 2)
-    _rect(surface, (108, 92, 64), 4, 9, 8, 5)
-    _rect(surface, (138, 118, 82), 5, 9, 2, 4)
-    _rect(surface, (64, 44, 34), 4, 12, 8, 1)
-    _rect(surface, PALETTE["gold"], 9, 12, 2, 2)
-    _rect(surface, (120, 84, 50), 14, 3, 1, 12)
-    _rect(surface, (164, 120, 70), 14, 2, 1, 1)
-    _rect(surface, PALETTE["pants"], 5, 14, 2, 1)
-    _rect(surface, PALETTE["pants"], 9, 14, 2, 1)
-    _rect(surface, PALETTE["boot"], 4, 15, 3, 1)
-    _rect(surface, PALETTE["boot"], 9, 15, 3, 1)
-    return surface
+    return _outline(surface)
 
 
 def _fountain():
@@ -618,7 +548,7 @@ def _altar(kind):
     _rect(surface, (242, 225, 167), 7, 7, 1, 2)
     _rect(surface, seal, 4, 10, 2, 1)
     _rect(surface, seal, 10, 10, 2, 1)
-    return surface
+    return _outline(surface)
 
 
 def _dark_knight():
@@ -678,7 +608,7 @@ def _flower(color):
     _rect(surface, color, 6, 5, 4, 3)
     _rect(surface, PALETTE["white"], 7, 4, 2, 1)
     _rect(surface, PALETTE["gold"], 7, 6, 2, 1)
-    return surface
+    return _outline(surface)
 
 
 def _torch():
@@ -732,30 +662,6 @@ def _well():
     return surface
 
 
-def _shopkeeper():
-    surface = _canvas()
-    _rect(surface, (65, 45, 35), 4, 2, 8, 3)
-    _rect(surface, (141, 89, 55), 3, 4, 10, 2)
-    _rect(surface, PALETTE["skin"], 5, 5, 6, 4)
-    _rect(surface, PALETTE["ink"], 6, 6, 1, 1)
-    _rect(surface, PALETTE["ink"], 9, 6, 1, 1)
-    _rect(surface, (80, 111, 67), 3, 9, 10, 5)
-    _rect(surface, PALETTE["gold"], 6, 9, 4, 1)
-    _rect(surface, PALETTE["boot"], 4, 14, 3, 2)
-    _rect(surface, PALETTE["boot"], 9, 14, 3, 2)
-    return surface
-
-
-def _villager():
-    surface = _shopkeeper()
-    for y in range(16):
-        for x in range(16):
-            if tuple(surface.get_at((x, y))[:3]) == (80, 111, 67):
-                surface.set_at((x, y), (66, 91, 132))
-    _rect(surface, PALETTE["gold"], 6, 11, 4, 1)
-    return surface
-
-
 def _skeleton():
     surface = _canvas()
     _rect(surface, PALETTE["bone"], 5, 2, 6, 5)
@@ -770,14 +676,268 @@ def _skeleton():
     return surface
 
 
+LAVA_RIM = (74, 52, 56)
+
+
+def _outline(surface, color=None):
+    """Add a 1px outline around every solid pixel (soft shadows are left alone)."""
+    color = color or PALETTE["outline"]
+    w, h = surface.get_size()
+    solid = [[surface.get_at((x, y)).a >= 200 for x in range(w)] for y in range(h)]
+    for y in range(h):
+        for x in range(w):
+            if solid[y][x]:
+                continue
+            for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if 0 <= nx < w and 0 <= ny < h and solid[ny][nx]:
+                    surface.set_at((x, y), color)
+                    break
+    return surface
+
+
+# --- Hero-sized NPCs (16x24, same chibi proportions as the player) -------------------
+
+def _person_head(s, hair, hair_light, style="short"):
+    skin, shade = PALETTE["skin"], PALETTE["skin_shadow"]
+    if style == "long":
+        _rect(s, hair, 2, 7, 3, 9)
+        _rect(s, hair, 11, 7, 3, 9)
+    _rect(s, hair, 4, 1, 8, 2)
+    _rect(s, hair, 2, 3, 12, 2)
+    _rect(s, hair, 2, 5, 12, 3)
+    _rect(s, hair, 3, 7, 2, 3)
+    _rect(s, hair, 11, 7, 2, 3)
+    _rect(s, skin, 4, 6, 8, 6)
+    _rect(s, shade, 4, 6, 8, 1)
+    _rect(s, hair, 4, 5, 8, 1)
+    _rect(s, hair, 4, 6, 2, 1)
+    _rect(s, hair, 10, 6, 2, 1)
+    _rect(s, hair_light, 4, 2, 4, 1)
+    _rect(s, hair_light, 9, 3, 3, 1)
+    _rect(s, PALETTE["ink"], 6, 8, 1, 2)
+    _rect(s, PALETTE["ink"], 9, 8, 1, 2)
+    _rect(s, (220, 126, 113), 5, 10, 1, 1)
+    _rect(s, (220, 126, 113), 10, 10, 1, 1)
+    _rect(s, shade, 7, 11, 2, 1)
+
+
+def _person_body(s, top, top_light, bottom, kind="pants"):
+    skin = PALETTE["skin"]
+    _rect(s, top, 2, 12, 2, 5)
+    _rect(s, top, 12, 12, 2, 5)
+    _rect(s, skin, 2, 17, 2, 1)
+    _rect(s, skin, 12, 17, 2, 1)
+    _rect(s, top, 4, 12, 8, 6)
+    _rect(s, top_light, 5, 12, 6, 1)
+    if kind == "robe":
+        _rect(s, top, 4, 18, 8, 2)
+        _rect(s, top, 3, 20, 10, 2)
+        _rect(s, top_light, 4, 20, 2, 2)
+        _rect(s, PALETTE["boot"], 4, 22, 3, 2)
+        _rect(s, PALETTE["boot"], 9, 22, 3, 2)
+    elif kind == "skirt":
+        _rect(s, bottom, 4, 17, 8, 2)
+        _rect(s, bottom, 3, 19, 10, 2)
+        _rect(s, (70, 60, 64), 5, 21, 2, 1)
+        _rect(s, (70, 60, 64), 9, 21, 2, 1)
+        _rect(s, PALETTE["boot"], 4, 22, 3, 2)
+        _rect(s, PALETTE["boot"], 9, 22, 3, 2)
+    else:
+        _rect(s, bottom, 5, 18, 6, 2)
+        _rect(s, bottom, 5, 20, 2, 2)
+        _rect(s, bottom, 9, 20, 2, 2)
+        _rect(s, PALETTE["boot"], 4, 22, 4, 2)
+        _rect(s, PALETTE["boot"], 9, 22, 4, 2)
+        _rect(s, (150, 104, 66), 4, 22, 4, 1)
+        _rect(s, (150, 104, 66), 9, 22, 4, 1)
+
+
+def _beard(s, color, long=False):
+    _rect(s, color, 4, 10, 8, 2)
+    _rect(s, color, 5, 12, 6, 1)
+    if long:
+        _rect(s, color, 5, 13, 6, 2)
+        _rect(s, color, 6, 15, 4, 1)
+    _rect(s, PALETTE["skin_shadow"], 7, 10, 2, 1)
+
+
+def _npc_herbalist():
+    """Marta: long auburn hair, sage dress, cream apron and a herb sprig."""
+    s = _canvas((16, 24))
+    _person_head(s, (156, 84, 62), (200, 124, 86), "long")
+    _person_body(s, (104, 148, 96), (140, 182, 122), (86, 126, 82), "skirt")
+    _rect(s, (238, 226, 196), 5, 14, 6, 6)
+    _rect(s, (214, 198, 164), 5, 19, 6, 1)
+    _rect(s, (236, 150, 168), 12, 16, 2, 1)
+    _rect(s, PALETTE["leaf_light"], 13, 15, 1, 1)
+    return _outline(s)
+
+
+def _npc_shopkeeper():
+    """Logan: short dark hair, trimmed beard, cream shirt under a leather apron."""
+    s = _canvas((16, 24))
+    _person_head(s, (88, 58, 44), (130, 90, 62))
+    _beard(s, (98, 64, 48))
+    _person_body(s, (226, 210, 170), (246, 236, 206), (80, 84, 104))
+    _rect(s, (150, 98, 62), 5, 14, 6, 6)
+    _rect(s, (186, 130, 82), 5, 14, 6, 1)
+    _rect(s, PALETTE["gold"], 7, 16, 2, 1)
+    return _outline(s)
+
+
+def _npc_chief():
+    """Chief Valen: white hair, a long white beard and a gold-trimmed blue robe."""
+    s = _canvas((16, 24))
+    _person_head(s, (226, 222, 210), (252, 250, 242))
+    _person_body(s, (70, 98, 150), (102, 132, 182), (70, 98, 150), "robe")
+    _rect(s, PALETTE["gold"], 7, 16, 2, 6)
+    _beard(s, (238, 236, 226), long=True)
+    return _outline(s)
+
+
+def _npc_old_knight():
+    """Garen: grey hair and beard, a steel cuirass with pauldrons over a faded red cape."""
+    s = _canvas((16, 24))
+    _rect(s, (150, 60, 56), 2, 12, 12, 10)
+    _person_head(s, (168, 168, 164), (210, 210, 204))
+    _person_body(s, (138, 148, 156), (190, 198, 202), (70, 74, 90))
+    _rect(s, (190, 198, 202), 2, 12, 3, 2)
+    _rect(s, (190, 198, 202), 11, 12, 3, 2)
+    _rect(s, PALETTE["gold"], 7, 15, 2, 1)
+    _rect(s, (150, 60, 56), 1, 14, 1, 7)
+    _rect(s, (150, 60, 56), 14, 14, 1, 7)
+    _beard(s, (190, 190, 184))
+    return _outline(s)
+
+
+def _npc_merchant():
+    """Toby: wide travel hat with a feather, green scarf and an overstuffed backpack."""
+    s = _canvas((16, 24))
+    _rect(s, (146, 100, 60), 1, 10, 14, 9)
+    _rect(s, (176, 160, 120), 1, 8, 14, 2)
+    _rect(s, (204, 72, 60), 1, 8, 1, 2)
+    _rect(s, (204, 72, 60), 14, 8, 1, 2)
+    _person_head(s, (110, 76, 52), (150, 106, 70))
+    _person_body(s, (108, 92, 64), (140, 120, 84), (80, 84, 104))
+    _rect(s, (70, 140, 86), 4, 12, 8, 2)
+    _rect(s, (110, 180, 120), 5, 12, 3, 1)
+    _rect(s, (98, 64, 40), 1, 4, 14, 2)
+    _rect(s, (122, 82, 50), 4, 0, 8, 4)
+    _rect(s, (176, 58, 50), 4, 3, 8, 1)
+    _rect(s, (238, 220, 150), 12, 0, 2, 2)
+    _rect(s, (120, 84, 50), 15, 6, 1, 17)
+    return _outline(s)
+
+
+# --- Field terrain ------------------------------------------------------------------
+
+def _ground(base, darker, lighter, variant, seed, extra=None):
+    surface = _canvas()
+    surface.fill(base)
+    rng = random.Random(variant * 7919 + seed)
+    for _ in range(3):
+        x, y = rng.randrange(15), rng.randrange(16)
+        _rect(surface, darker if rng.random() < 0.55 else lighter, x, y, 2, 1)
+    if extra:
+        extra(surface, rng, variant)
+    return surface
+
+
+def _canyon(variant):
+    def strata(surface, rng, v):
+        if v % 3 == 0:
+            y = rng.randrange(3, 13)
+            _rect(surface, (204, 142, 100), rng.randrange(0, 6), y, rng.randrange(5, 9), 1)
+        if v % 4 == 1:
+            x, y = rng.randrange(2, 13), rng.randrange(2, 13)
+            _rect(surface, (214, 190, 160), x, y, 2, 1)
+            _rect(surface, (140, 90, 66), x, y + 1, 2, 1)
+    return _ground((186, 118, 82), (166, 102, 72), (204, 140, 98), variant, 611, strata)
+
+
+def _ash(variant):
+    def cracks(surface, rng, v):
+        if v % 3 == 0:
+            x, y = rng.randrange(2, 10), rng.randrange(3, 13)
+            for step in range(4):
+                surface.set_at((x + step, y + (step % 2)), (62, 52, 58))
+            if v % 2 == 0:
+                surface.set_at((x + 1, y), (232, 128, 64))
+    return _ground((98, 86, 90), (84, 72, 78), (118, 106, 108), variant, 977, cracks)
+
+
+ROCK_TONES = {
+    "rock": ((176, 126, 100), (214, 168, 134), (136, 90, 74)),     # red canyon sandstone
+    "basalt": ((82, 74, 84), (122, 112, 120), (58, 50, 60)),       # volcanic
+    "mossrock": ((146, 146, 136), (188, 188, 174), (106, 108, 104)),  # forest / grassland
+}
+
+
+def _rock(variant=0, tone="rock"):
+    base, light, dark = ROCK_TONES[tone]
+    basalt = tone == "basalt"
+    surface = _canvas()
+    pygame.draw.ellipse(surface, (34, 30, 36, 80), (1, 11, 14, 5))
+    shapes = (
+        ((2, 13), (2, 8), (4, 5), (8, 3), (12, 4), (14, 8), (14, 13)),
+        ((1, 13), (2, 9), (5, 7), (8, 9), (8, 13)),
+        ((3, 13), (4, 4), (7, 2), (11, 3), (13, 7), (13, 13)),
+    )
+    shape = shapes[variant % 3]
+    pygame.draw.polygon(surface, base, shape)
+    if variant % 3 == 1:
+        pygame.draw.polygon(surface, base, ((8, 13), (9, 6), (12, 4), (15, 7), (15, 13)))
+        _rect(surface, light, 10, 6, 3, 1)
+    _rect(surface, light, shape[2][0] + 1, shape[2][1] + 1, 4, 1)
+    _rect(surface, light, shape[2][0], shape[2][1] + 2, 2, 2)
+    _rect(surface, dark, 3, 11, 10, 2)
+    if basalt and variant % 2 == 0:
+        _rect(surface, (232, 128, 64), 7, 9, 1, 2)
+    if tone == "mossrock":
+        _rect(surface, PALETTE["leaf"], shape[2][0], shape[2][1], 4, 1)
+        _rect(surface, PALETTE["leaf_light"], shape[2][0] + 1, shape[2][1], 2, 1)
+    return _outline(surface)
+
+
+def _tuft_decal(kind):
+    surface = _canvas()
+    if kind == "dry":
+        blades, base = (214, 184, 120), (160, 120, 80)
+    else:
+        blades, base = PALETTE["grass_light"], PALETTE["grass_dark"]
+    for x, y in ((4, 8), (9, 10)):
+        _rect(surface, blades, x, y, 1, 2)
+        _rect(surface, blades, x + 2, y - 1, 1, 3)
+        _rect(surface, blades, x + 4, y, 1, 2)
+        _rect(surface, base, x, y + 2, 5, 1)
+    return surface
+
+
+def _ember():
+    surface = _canvas()
+    for x, y in ((4, 6), (10, 11)):
+        _rect(surface, (62, 52, 58), x, y, 3, 1)
+        _rect(surface, (62, 52, 58), x + 2, y + 1, 2, 1)
+        surface.set_at((x + 1, y), (240, 140, 70))
+    surface.set_at((8, 3), (250, 190, 100))
+    return surface
+
+
 def sprite(name, size=(32, 32)):
     """Return a cached pixel sprite, enlarged with nearest-neighbor sampling."""
     if name not in _BASE and name.startswith(("trail_", "water_edge_")):
         parts = name.split("_")
         mask, variant = int(parts[-2]), int(parts[-1])
-        _BASE[name] = _terrain_overlay(mask, name.startswith("water_edge_"), variant)
-    elif name not in _BASE and name.startswith("grass_"):
-        _BASE[name] = _grass(int(name.rsplit("_", 1)[1]))
+        kind = "water" if name.startswith("water_edge_") else "path"
+        _BASE[name] = _terrain_overlay(mask, kind, variant)
+    elif name not in _BASE and name.startswith("lava_edge_"):
+        parts = name.split("_")
+        _BASE[name] = _terrain_overlay(int(parts[-2]), "lava", int(parts[-1]))
+    elif name not in _BASE and name.startswith(("grass_", "canyon_", "ash_", "rock_", "basalt_", "mossrock_")):
+        prefix, number = name.rsplit("_", 1)
+        builder = {"grass": _grass, "canyon": _canyon, "ash": _ash, "rock": _rock,
+                   "basalt": lambda v: _rock(v, "basalt"), "mossrock": lambda v: _rock(v, "mossrock")}[prefix]
+        _BASE[name] = builder(int(number))
     if name not in _BASE:
         builders = {
             "player": _player,
@@ -805,13 +965,16 @@ def sprite(name, size=(32, 32)):
             "barrel": _barrel,
             "gate_arch": _gate_arch,
             "rock": _rock,
+            "tuft": lambda: _tuft_decal("green"),
+            "dry_tuft": lambda: _tuft_decal("dry"),
+            "ember": _ember,
             "portal_town": lambda: _portal("town"),
             "portal_dungeon": lambda: _portal("dungeon"),
             "portal_dungeon_0": lambda: _portal("dungeon", 0),
             "portal_dungeon_1": lambda: _portal("dungeon", 1),
-            "chief": _chief,
-            "old_knight": _old_knight,
-            "merchant": _merchant,
+            "chief": _npc_chief,
+            "old_knight": _npc_old_knight,
+            "merchant": _npc_merchant,
             "star_fountain": _fountain,
             "altar_wind": lambda: _altar("wind"),
             "altar_earth": lambda: _altar("earth"),
@@ -827,8 +990,8 @@ def sprite(name, size=(32, 32)):
             "dungeon_floor_1": lambda: _dungeon_floor(1),
             "stairs": _stairs,
             "well": _well,
-            "shopkeeper": _shopkeeper,
-            "villager": _villager,
+            "shopkeeper": _npc_shopkeeper,
+            "villager": _npc_herbalist,
             "skeleton": _skeleton,
         }
         _BASE[name] = builders[name]()

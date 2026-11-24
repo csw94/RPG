@@ -47,7 +47,10 @@ class ShrineClearingScene(FieldScene):
         for x in range(self.COLS):
             for y in range(self.ROWS):
                 if x in (0, self.COLS - 1) or y in (0, self.ROWS - 1):
-                    surface.blit(sprite("stone", (TILE_SIZE, TILE_SIZE)), (x * TILE_SIZE, y * TILE_SIZE))
+                    position = (x * TILE_SIZE, y * TILE_SIZE)
+                    surface.blit(sprite(self.ground_tile(x, y), (TILE_SIZE, TILE_SIZE)), position)
+                    fence = "fence" if y in (0, self.ROWS - 1) else "fence_v"
+                    surface.blit(sprite(fence, (TILE_SIZE, TILE_SIZE)), position)
         altar = self.altar_positions["shrine_wind"]
         # A two-step stone dais with four glowing pillars marks the old star altar.
         center = (altar[0] * TILE_SIZE + TILE_SIZE // 2, altar[1] * TILE_SIZE + TILE_SIZE // 2)
@@ -62,6 +65,6 @@ class ShrineClearingScene(FieldScene):
             pygame.draw.circle(surface, (222, 242, 255), (px, py - 34), 2)
         surface.blit(sprite("star_fountain", (48, 64)),
                      (altar[0] * TILE_SIZE - 8, altar[1] * TILE_SIZE - 32))
-        surface.blit(sprite("portal_town", (48, 64)),
+        surface.blit(sprite("gate_arch", (48, 64)),
                      (self.portal_position[0] * TILE_SIZE - 8,
                       self.portal_position[1] * TILE_SIZE - 32))

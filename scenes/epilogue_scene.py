@@ -5,7 +5,7 @@ import math
 import pygame
 
 from settings import HEIGHT, TILE_SIZE, WIDTH
-from utils.pixel_art import sprite
+from utils.pixel_art import NPC_SIZE, sprite
 
 
 SEAL_COLORS = ((124, 214, 168), (214, 164, 92), (236, 96, 66))
@@ -141,7 +141,7 @@ class EpilogueScene:
         speaker = self.lines[self.index][0]
         for order, (name, ((x, y), sprite_name)) in enumerate(self.CROWD.items()):
             hop = abs(math.sin(self.clock * 6 + order)) * 6 if cheering else 0
-            surface.blit(sprite(sprite_name, (TILE_SIZE, TILE_SIZE)), (x * TILE_SIZE, y * TILE_SIZE - hop))
+            surface.blit(sprite(sprite_name, NPC_SIZE), (x * TILE_SIZE, y * TILE_SIZE - 16 - hop))
         spot = self.CROWD.get(speaker, (self.SPEAKER_SPOTS.get(speaker),))[0]
         if spot:
             ax, ay = spot[0] * TILE_SIZE + TILE_SIZE // 2, spot[1] * TILE_SIZE - 14 - 4 * abs(math.sin(self.clock * 4))
