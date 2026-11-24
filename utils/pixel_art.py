@@ -1171,6 +1171,7 @@ DUNGEON_TONES = {
     "wind": ((150, 166, 164), (124, 140, 140), (118, 140, 142), (160, 180, 178), (70, 84, 90), (120, 206, 220)),
     "earth": ((146, 108, 78), (118, 86, 62), (112, 84, 64), (150, 116, 86), (64, 48, 42), (250, 200, 110)),
     "fire": ((76, 64, 70), (58, 50, 56), (120, 54, 48), (156, 76, 62), (52, 34, 36), (250, 150, 64)),
+    "abyss": ((54, 46, 72), (40, 34, 56), (66, 50, 98), (96, 78, 136), (28, 22, 40), (186, 140, 255)),
 }
 
 
@@ -1325,6 +1326,31 @@ def _skeleton_warrior():
     pygame.draw.ellipse(s, (104, 82, 62), (0, 9, 5, 6))
     _rect(s, (160, 130, 90), 2, 11, 1, 2)
     return _outline(s)
+
+
+def _abyssal(surface, tint=(110, 70, 170), eyes=(255, 190, 120)):
+    """Abyss-touched recolour: darken toward ``tint``, keep the outline, light up the eyes.
+
+    The brightest few pixels (eyes, gems, highlights) become glowing ``eyes`` colour."""
+    surface = surface.copy()
+    outline = PALETTE["outline"]
+    w, h = surface.get_size()
+    pixels = [(x, y) for y in range(h) for x in range(w) if surface.get_at((x, y)).a >= 200]
+    lum = {p: sum(tuple(surface.get_at(p))[:3]) for p in pixels}
+    upper = sorted(v for p, v in lum.items() if p[1] < h * 0.5)
+    bright = upper[-max(2, len(upper) // 25)] if upper else 999
+    for p in pixels:
+        r, g, b, a = surface.get_at(p)
+        if (r, g, b) == outline:
+            continue
+        vivid = max(r, g, b) - min(r, g, b) > 70 or lum[p] > 650  # eyes/gems, not grey fur
+        if lum[p] >= bright and lum[p] > 300 and vivid and p[1] < h * 0.5:  # glow only on the head
+            surface.set_at(p, (*eyes, a))
+            continue
+        k = lum[p] / 765
+        surface.set_at(p, (int(tint[0] * (0.25 + 0.6 * k)), int(tint[1] * (0.25 + 0.6 * k)),
+                           int(tint[2] * (0.3 + 0.7 * k)), a))
+    return surface
 
 
 def _dfloor(style, variant):
@@ -1483,6 +1509,10 @@ def sprite(name, size=(32, 32)):
             "villager": _npc_herbalist,
             "townsfolk": _npc_townsfolk,
             "skeleton": _skeleton,
+            "shadow_wolf": lambda: _abyssal(pygame.transform.flip(_wolf(), True, False)),
+            "void_slime": lambda: _abyssal(_slime_v2(), (60, 150, 170)),
+            "abyss_knight": lambda: _abyssal(_dark_knight(), (120, 70, 190)),
+            "abyss_lord": lambda: _abyssal(_golem(), (150, 60, 210), eyes=(255, 120, 230)),
             "wolf": lambda: pygame.transform.flip(_wolf(), True, False),
             "mushroom": _mushroom,
             "scorpion": _scorpion,

@@ -14,7 +14,7 @@ import random
 from gameplay.enemies import ENEMIES
 
 ELEMENTS = ("none", "light", "wind", "earth", "fire", "dark")
-BOSS_PATTERNS = ("gust", "earthquake", "enrage", "dark_arts")
+BOSS_PATTERNS = ("gust", "earthquake", "enrage", "dark_arts", "abyss")
 
 SKILLS = {
     "light_bolt": {"id": "light_bolt", "name": "빛의 탄", "mp": 3, "level": 1, "kind": "attack",
@@ -246,6 +246,8 @@ class BattleEngine:
             self._emit(events, type="message", text="화염 리자드맨이 광폭화했다! ATK +5")
         elif pattern == "dark_arts" and self.turn % (2 if self.phase == 2 else 3) == 0:
             self._hit_hero(events, 24 if self.phase == 2 else 18, fixed=True, element="dark", label="어둠의 파동")
+        elif pattern == "abyss" and self.turn % 3 == 0:
+            self._hit_hero(events, 52, fixed=True, element="dark", label="심연의 폭풍")
         elif pattern == "howl" and self.turn % 3 == 0:
             self.howl += 3
             self._emit(events, type="message", text="숲늑대가 울부짖었다! 공격력이 올랐다.")

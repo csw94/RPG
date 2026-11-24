@@ -180,7 +180,8 @@ def music_for(scene_name, enemy_id):
     if scene_name == "title":
         return "title"
     if scene_name == "battle":
-        return "boss" if enemy_id in ("shrine_wind", "shrine_earth", "shrine_fire", "final_boss") else "battle"
+        bosses = ("shrine_wind", "shrine_earth", "shrine_fire", "final_boss", "abyss_lord")
+        return "boss" if enemy_id in bosses else "battle"
     if scene_name in ("village", "village_north_shrine", "epilogue") or scene_name.startswith("village_house") \
             or scene_name == "village_chief_house":
         return "village"

@@ -31,6 +31,21 @@ SHRINE_DUNGEONS = {
 }
 
 
+# After the ending, the north altar opens onto a deeper, three-floor dungeon.
+# Here EXIT always leads up a floor (or outside) and STAIRS always lead down.
+POSTGAME_DUNGEONS = {
+    "shrine_abyss": {
+        "boss": "abyss_lord", "name": "별빛 심연", "floors": 3,
+        "field": "village_north_shrine", "return_pos": (15, 9), "spawn": (3, 14),
+        "exit": (2, 14), "stairs": (22, 2), "boss_pos": (12, 5),
+        "floor_chests": {1: {(20, 10): "high_potion"}, 2: {(3, 2): "accessory:star_amulet"}},
+        "style": "abyss", "encounter_rate": 0.1,
+        "monsters": ("shadow_wolf", "void_slime", "abyss_knight"),
+    },
+}
+DUNGEONS = {**SHRINE_DUNGEONS, **POSTGAME_DUNGEONS}
+
+
 class DungeonScene(FieldScene):
     COLS, ROWS = 25, 16
     ENTRY = (2, 13)
@@ -49,30 +64,33 @@ class DungeonScene(FieldScene):
         self.map_id = map_id
         self.shrine_key, floor = map_id.rsplit("_", 1)
         self.floor = int(floor[0])
-        shrine = SHRINE_DUNGEONS[self.shrine_key]
+        shrine = DUNGEONS[self.shrine_key]
+        self.dungeon = shrine
+        self.floors = shrine.get("floors", 2)
         self.boss_id = shrine["boss"]
         self.dungeon_name = shrine["name"]
         self.field_id = shrine["field"]
-        self.route_data = FIELD_ROUTES[self.field_id]
+        self.route_data = FIELD_ROUTES.get(self.field_id)
         self.EXIT = shrine["exit"]
         self.STAIRS = shrine["stairs"]
         self.boss_position = shrine["boss_pos"]
-        self.encounter_rate = 0.08 if self.floor == 1 else 0
+        self.encounter_rate = shrine.get("encounter_rate", 0.08) if self.floor < self.floors else 0
         self.enemy_pool = shrine["monsters"]
-        self.chests = {shrine["chest_pos"]: shrine["chest"]} if self.floor == 1 else {}
+        floor_chests = shrine.get("floor_chests") or {1: {shrine["chest_pos"]: shrine["chest"]}}
+        self.chests = dict(floor_chests.get(self.floor, {}))
         self.walls = {
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)
             if x in (0, self.COLS - 1) or y in (0, self.ROWS - 1)
         }
         self.style = shrine["style"]
         self._build_shrine_layout(shrine["style"])
-        self.walls.difference_update({self.EXIT, self.STAIRS, self.boss_position,
-                                      shrine["chest_pos"], self.ENTRY})
+        self.walls.difference_update({self.EXIT, self.STAIRS, self.boss_position, self.ENTRY,
+                                      *self.chests, *(c for f in floor_chests.values() for c in f)})
         fallback = (self.EXIT[0] + (1 if self.EXIT[0] < 12 else -1), 14) if self.floor == 1 else (3, 14)
         self.position_recovered = self._restore_player_position(fallback) or self.position_recovered
         self.message = f"{self.dungeon_name} {self.floor}층 · 계단과 보물상자를 찾아보세요."
-        if self.floor == 2:
-            self.message = f"{self.dungeon_name} 2층 · 제단의 수호자가 기다리고 있습니다."
+        if self.floor == self.floors:
+            self.message = f"{self.dungeon_name} {self.floor}층 · 깊은 곳의 수호자가 기다리고 있습니다."
 
     def _build_shrine_layout(self, style):
         """Hand-place a different corridor plan for each shrine and each floor."""
@@ -98,6 +116,21 @@ class DungeonScene(FieldScene):
                 self.walls.update((x, 7) for x in range(5, 20) if x != 12)
                 self.walls.update((6, y) for y in range(2, 13) if y in (3, 4, 10, 11))
                 self.walls.update((18, y) for y in range(2, 13) if y in (3, 4, 10, 11))
+        elif style == "abyss":
+            # Abyss: zigzag terraces, then a column maze, then a pillared throne hall.
+            if self.floor == 1:
+                self.walls.update((x, 4) for x in range(2, 21) if x not in (6, 14))
+                self.walls.update((x, 8) for x in range(4, 23) if x not in (10, 18))
+                self.walls.update((x, 12) for x in range(2, 21) if x not in (7, 15))
+            elif self.floor == 2:
+                self.walls.update((6, y) for y in range(1, 12) if y != 3)
+                self.walls.update((12, y) for y in range(4, 15) if y != 9)
+                self.walls.update((18, y) for y in range(1, 12) if y != 6)
+                self.walls.update((x, 8) for x in range(7, 12) if x != 9)
+                self.walls.update((x, 5) for x in range(13, 18) if x != 15)
+            else:
+                self.walls.update({(6, 4), (6, 8), (18, 4), (18, 8), (9, 3), (15, 3)})
+                self.walls.update((x, 11) for x in range(2, 23) if x not in (11, 12, 13))
         else:
             # Fire: a symmetrical temple with a long central nave and side chapels.
             self.walls.update((6, y) for y in range(2, 14) if y not in (7, 11))
@@ -112,7 +145,8 @@ class DungeonScene(FieldScene):
 
     @staticmethod
     def map_ids():
-        return tuple(f"{shrine}_{floor}f" for shrine in SHRINE_DUNGEONS for floor in (1, 2))
+        return tuple(f"{key}_{floor}f" for key, cfg in DUNGEONS.items()
+                     for floor in range(1, cfg.get("floors", 2) + 1))
 
     @classmethod
     def is_dungeon_map(cls, map_id):
@@ -127,24 +161,33 @@ class DungeonScene(FieldScene):
         x, y = self.STAIRS
         return (x + 1 if x <= 12 else x - 1, y)
 
+    def _exit_spawn(self):
+        return (self.EXIT[0] + (1 if self.EXIT[0] < 12 else -1), self.EXIT[1])
+
+    def _leave_dungeon(self):
+        outside = self.route_data["return_dungeon"] if self.route_data else self.dungeon["return_pos"]
+        self.game.enter_world(self.field_id, outside)
+
     def _interact(self):
         x, y = self.player["x"], self.player["y"]
         near = lambda point: (x - point[0]) ** 2 + (y - point[1]) ** 2 <= 1.1
-        if self.floor == 2 and near(self.boss_position):
-            if self.quest_flags[self.boss_id]:
-                self.message = "수호자는 쓰러졌고 제단의 봉인이 정화되었습니다."
+        deep = self.floors > 2  # EXIT goes up, STAIRS go down
+        if self.floor == self.floors and near(self.boss_position):
+            if self.quest_flags.get(self.boss_id):
+                self.message = "수호자는 쓰러졌고 깊은 곳에 고요가 찾아왔습니다."
             else:
                 self.game.start_battle(self.boss_id)
         elif near(self.EXIT):
             if self.floor == 1:
-                self.game.enter_world(self.field_id, self.route_data["return_dungeon"])
+                self._leave_dungeon()
             else:
-                self.game.enter_world(f"{self.shrine_key}_1f", self._stair_spawn())
+                self.game.enter_world(f"{self.shrine_key}_{self.floor - 1}f", self._stair_spawn())
         elif near(self.STAIRS):
-            if self.floor == 1:
-                self.game.enter_world(f"{self.shrine_key}_2f", self._stair_spawn())
+            if self.floor < self.floors:
+                arrive = self._exit_spawn() if deep else self._stair_spawn()
+                self.game.enter_world(f"{self.shrine_key}_{self.floor + 1}f", arrive)
             else:
-                self.game.enter_world(f"{self.shrine_key}_1f", self._stair_spawn())
+                self.game.enter_world(f"{self.shrine_key}_{self.floor - 1}f", self._stair_spawn())
         else:
             nearest = min(self.chests, key=lambda point: (point[0] - x) ** 2 + (point[1] - y) ** 2,
                           default=None)
@@ -179,7 +222,7 @@ class DungeonScene(FieldScene):
 
     def dungeon_decals(self):
         if getattr(self, "_decals", None) is None:
-            name = {"wind": "tuft", "earth": "pebbles", "fire": "ember"}[self.style]
+            name = {"wind": "tuft", "earth": "pebbles", "fire": "ember", "abyss": "pebbles"}[self.style]
             special = {self.EXIT, self.STAIRS, self.boss_position, self.ENTRY, *self.chests}
             self._decals = {(x, y): name for x in range(self.COLS) for y in range(self.ROWS)
                             if (x, y) not in self.walls and (x, y) not in special
@@ -217,7 +260,7 @@ class DungeonScene(FieldScene):
         ex, ey = self.EXIT
         surface.blit(sprite(f"portal_dungeon_{int(self.portal_clock * 3) % 2}", (48, 64)),
                      (ex * t - cam_x - 8, ey * t - cam_y - 32))
-        if self.floor == 2 and not self.quest_flags[self.boss_id]:
+        if self.floor == self.floors and not self.quest_flags.get(self.boss_id):
             bx, by = self.boss_position
             boss, bob = enemy_idle(ENEMIES[self.boss_id]["sprite"], (48, 48), self.portal_clock)
             surface.blit(sprite("shadow", (36, 12)), (bx * t + t // 2 - 18 - cam_x, (by + 1) * t - 8 - cam_y))

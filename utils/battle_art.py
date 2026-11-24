@@ -11,7 +11,8 @@ import pygame
 
 from utils.pixel_art import PALETTE
 
-KINDS = ("forest", "canyon", "volcanic", "village", "dungeon_wind", "dungeon_earth", "dungeon_fire")
+KINDS = ("forest", "canyon", "volcanic", "village", "dungeon_wind", "dungeon_earth", "dungeon_fire",
+         "dungeon_abyss")
 W, H = 400, 187
 HERO_SPOT, ENEMY_SPOT, FEET_Y = 119, 299, 152
 _CACHE = {}
@@ -32,6 +33,7 @@ DUNGEON = {
     "dungeon_wind": ((118, 140, 142), (154, 176, 174), (86, 104, 108), (150, 166, 164), (124, 140, 140), (120, 206, 220)),
     "dungeon_earth": ((112, 84, 64), (146, 112, 84), (80, 58, 46), (140, 104, 76), (116, 84, 62), (250, 200, 110)),
     "dungeon_fire": ((112, 50, 46), (146, 70, 58), (76, 34, 34), (72, 62, 68), (56, 48, 54), (250, 150, 64)),
+    "dungeon_abyss": ((58, 44, 86), (84, 66, 120), (38, 28, 58), (46, 38, 66), (34, 28, 50), (186, 140, 255)),
 }
 
 

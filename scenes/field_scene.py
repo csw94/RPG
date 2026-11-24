@@ -42,7 +42,8 @@ class FieldScene(BaseScene):
         self.defense = int(state.get("defense", state.get("def", 5)))
         self.evasion_bonus = int(state.get("evasion_bonus", 0))
         self.quest_flags = {key: int(value) for key, value in state.get("quest_flags", {}).items()}
-        for key in ("prologue_done", "shrine_wind", "shrine_earth", "shrine_fire", "star_sword_awakened", "final_boss"):
+        for key in ("prologue_done", "shrine_wind", "shrine_earth", "shrine_fire", "star_sword_awakened", "final_boss",
+                    "abyss_lord"):
             self.quest_flags.setdefault(key, 0)
         quest_targets = {"sq_moon_herb": 3, "sq_old_sword": 1, "sq_goblin_hunt": 5}
         saved_quests = state.get("sub_quests", {})
@@ -380,7 +381,10 @@ class FieldScene(BaseScene):
         if action and action.startswith("complete_subquest:"):
             self._complete_sidequest(action.split(":", 1)[1])
             return
-        if action == "open_shop":
+        if action == "enter_abyss":
+            from scenes.dungeon_scene import POSTGAME_DUNGEONS
+            self.game.enter_world("shrine_abyss_1f", POSTGAME_DUNGEONS["shrine_abyss"]["spawn"])
+        elif action == "open_shop":
             self.game.open_shop()
         elif action == "final_boss":
             self.game.start_battle("final_boss")
@@ -506,6 +510,12 @@ class FieldScene(BaseScene):
             quest = self.sub_quests["sq_goblin_hunt"]
             if quest["status"] == "IN_PROGRESS":
                 quest["progress"] = min(quest["target"], quest["progress"] + 1)
+        if enemy_id == "abyss_lord":
+            self.quest_flags["abyss_lord"] = 1
+            if "abyss_crown" not in self.owned_accessories:
+                self.owned_accessories.append("abyss_crown")
+            self.game.save_game()
+            return f"보상: 금화 {enemy['gold']}G · 심연의 왕관"
         if enemy_id == "final_boss":
             self.quest_flags["final_boss"] = 1
             self.game.save_game()
@@ -623,7 +633,13 @@ class FieldScene(BaseScene):
     def _open_chest(self, position):
         self.sfx("chest")
         self.opened.add(position)
-        if self.chests[position] == "potion":
+        content = self.chests[position]
+        if content.startswith("accessory:"):
+            accessory = content.split(":", 1)[1]
+            if accessory not in self.owned_accessories:
+                self.owned_accessories.append(accessory)
+            self.message = f"상자에서 {ACCESSORIES[accessory]['name']}을(를) 얻었습니다! 상점에서 장착할 수 있습니다."
+        elif content == "potion":
             self.potions = min(10, self.potions + 1)
             self.message = "\uc0c1\uc790\ub97c \uc5f4\uc5b4 \ud3ec\uc158\uc744 \uc5bb\uc5c8\uc2b5\ub2c8\ub2e4!"
         elif self.chests[position] == "high_potion":

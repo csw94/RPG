@@ -34,6 +34,13 @@ ENEMIES = {enemy["id"]: enemy for enemy in (
            weak=("light",), resist=("wind",)),
     _enemy("skeleton", "해골 병사", 100, 20, 6, 24, 24, "skeleton_warrior", (96, 120),
            weak=("light",), resist=("dark",)),
+    # Starlight Abyss (post-game)
+    _enemy("shadow_wolf", "그림자 늑대", 230, 54, 16, 50, 50, "shadow_wolf", (128, 96), "howl",
+           weak=("light",), resist=("dark",)),
+    _enemy("void_slime", "공허 슬라임", 270, 50, 22, 55, 52, "void_slime", (112, 84), "poison",
+           weak=("fire",), resist=("dark", "earth")),
+    _enemy("abyss_knight", "심연 기사", 330, 60, 26, 80, 65, "abyss_knight", (120, 168), "double_stab",
+           weak=("light",), resist=("dark",)),
     # Bosses
     _enemy("shrine_wind", "폭풍 하피", 160, 25, 6, 0, 60, "harpy", (144, 144), "gust",
            weak=("earth",), resist=("wind",)),
@@ -43,4 +50,6 @@ ENEMIES = {enemy["id"]: enemy for enemy in (
            weak=("earth",), resist=("fire",)),
     _enemy("final_boss", "흑기사 말포스", 580, 50, 20, 0, 0, "dark_knight", (120, 168), "dark_arts",
            weak=("light",), resist=("dark",)),
+    _enemy("abyss_lord", "심연의 군주 녹스", 1000, 84, 26, 500, 600, "abyss_lord", (160, 160), "abyss",
+           weak=("light",), resist=("dark", "fire")),
 )}

@@ -5,7 +5,7 @@ MAP_GRAPH = {
     "village_square": ("village_chief_house", "village_house_1", "village_house_2",
                        "village_north_shrine", "field_east", "field_west", "field_south"),
     "village_chief_house": ("village_square",),
-    "village_north_shrine": ("village_square",),
+    "village_north_shrine": ("village_square", "shrine_abyss_1f"),
     "village_house_1": ("village_square",),
     "village_house_2": ("village_square",),
     "field_east": ("village_square", "shrine_wind_1f"),
@@ -17,6 +17,10 @@ MAP_GRAPH = {
     "field_south": ("village_square", "shrine_fire_1f"),
     "shrine_fire_1f": ("field_south", "shrine_fire_2f"),
     "shrine_fire_2f": ("shrine_fire_1f",),
+    # Post-game: the Starlight Abyss below the north altar.
+    "shrine_abyss_1f": ("village_north_shrine", "shrine_abyss_2f"),
+    "shrine_abyss_2f": ("shrine_abyss_1f", "shrine_abyss_3f"),
+    "shrine_abyss_3f": ("shrine_abyss_2f",),
 }
 
 

@@ -42,8 +42,16 @@ class ShrineClearingScene(FieldScene):
     def _interact(self):
         x, y = self.player["x"], self.player["y"]
         if (x - self.ALTAR[0]) ** 2 + (y - self.ALTAR[1]) ** 2 <= 1.5:
-            self.show_dialogue(["마을 북쪽에 세워진 오래된 별빛 제단이다.",
-                                "제단의 빛은 광장의 분수와 함께 마을을 지켜왔다."])
+            if self.quest_flags.get("abyss_lord"):
+                self.show_dialogue(["별빛 심연의 어둠이 걷혔다. 제단 아래 계단은 언제든 열려 있다."],
+                                   action="enter_abyss")
+            elif self.quest_flags.get("final_boss"):
+                self.show_dialogue(["말포스가 쓰러지자 제단 아래에서 낯선 기운이 새어 나온다...",
+                                    "제단 밑으로 이어진 계단이 드러났다. 별빛 심연으로 내려간다."],
+                                   action="enter_abyss")
+            else:
+                self.show_dialogue(["마을 북쪽에 세워진 오래된 별빛 제단이다.",
+                                    "제단의 빛은 광장의 분수와 함께 마을을 지켜왔다."])
         elif (x - self.portal_position[0]) ** 2 + (y - self.portal_position[1]) ** 2 <= 1.5:
             from scenes.village_scene import VillageScene
             self.game.enter_world("village", VillageScene.SHRINE_RETURN)

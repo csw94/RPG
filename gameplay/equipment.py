@@ -39,6 +39,11 @@ ACCESSORIES = {
     "feather_charm": {"name": "바람의 깃털", "price": 110, "evasion": 8, "desc": "회피 +8%"},
     "mana_ring": {"name": "마나의 반지", "price": 130, "victory_mp": 2, "desc": "승리할 때 MP +2 추가"},
     "power_bracelet": {"name": "힘의 팔찌", "price": 170, "attack": 4, "desc": "공격력 +4"},
+    # Starlight Abyss rewards (not sold).
+    "star_amulet": {"name": "별의 목걸이", "price": 0, "attack": 3, "evasion": 6, "victory_mp": 2,
+                    "desc": "공격력 +3 · 회피 +6% · 승리 시 MP +2"},
+    "abyss_crown": {"name": "심연의 왕관", "price": 0, "attack": 8, "evasion": 8, "victory_mp": 3,
+                    "desc": "공격력 +8 · 회피 +8% · 승리 시 MP +3"},
 }
 
 SMALL_POTION = {"name": "회복약(소)", "price": 30, "heal": 50, "desc": "HP 50 회복"}
