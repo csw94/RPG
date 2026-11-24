@@ -6,7 +6,7 @@ from gameplay.enemies import ENEMIES
 from gameplay.world_data import FIELD_ROUTES
 from scenes.field_scene import FieldScene
 from settings import TILE_SIZE
-from utils.pixel_art import fit_sprite, hero_sprite, sprite, tile_noise
+from utils.pixel_art import enemy_idle, hero_sprite, walk_frame, sprite, tile_noise
 
 
 SHRINE_DUNGEONS = {
@@ -219,15 +219,15 @@ class DungeonScene(FieldScene):
                      (ex * t - cam_x - 8, ey * t - cam_y - 32))
         if self.floor == 2 and not self.quest_flags[self.boss_id]:
             bx, by = self.boss_position
-            boss = fit_sprite(ENEMIES[self.boss_id]["sprite"], (48, 48))
+            boss, bob = enemy_idle(ENEMIES[self.boss_id]["sprite"], (48, 48), self.portal_clock)
             surface.blit(sprite("shadow", (36, 12)), (bx * t + t // 2 - 18 - cam_x, (by + 1) * t - 8 - cam_y))
             surface.blit(boss, (bx * t + t // 2 - boss.get_width() // 2 - cam_x,
-                                (by + 1) * t - boss.get_height() - cam_y))
+                                (by + 1) * t - boss.get_height() + bob - cam_y))
         foot_x = round(self.player["x"] * t + t / 2) - cam_x
         foot_y = round((self.player["y"] + 1) * t) - cam_y
         surface.blit(sprite("shadow", (26, 10)), (foot_x - 13, foot_y - 7))
         surface.blit(hero_sprite(self.weapon, self.armor, (t, t + 16), self.facing,
-                                 int(self.walk_clock) % 2 if self.walk_clock else 0),
+                                 walk_frame(self.walk_clock)),
                      (foot_x - t // 2, foot_y - t - 16))
         self._draw_dialogue(surface)
         self._draw_hud(surface)

@@ -4,7 +4,7 @@ import pygame
 from scenes.field_scene import FieldScene
 from gameplay.world_data import FIELD_ROUTES
 from settings import TILE_SIZE, WIDTH
-from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite, tile_noise
+from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite, walk_frame, tile_noise, npc_sprite
 
 OUTLINE = PALETTE["outline"]
 # One cozy roof family: each building gets its own hue at the same softness and value.
@@ -357,12 +357,12 @@ class VillageScene(FieldScene):
         for position, sprite_name in ((self.VILLAGER, "townsfolk"), (self.LOGAN, "shopkeeper")):
             sx, sy = position[0] * t - cam_x, position[1] * t - cam_y
             self._draw_shadow(surface, sx + t / 2, sy + t)
-            surface.blit(sprite(sprite_name, NPC_SIZE), (sx, sy - 16))
+            surface.blit(npc_sprite(sprite_name, NPC_SIZE, self.portal_clock, position[0]), (sx, sy - 16))
         px = round(self.player["x"] * t + t / 2) - cam_x
         py = round((self.player["y"] + 1) * t) - cam_y
         self._draw_shadow(surface, px, py)
         surface.blit(hero_sprite(self.weapon, self.armor, (t, t + 16),
-                                 self.facing, int(self.walk_clock) % 2 if self.walk_clock else 0),
+                                 self.facing, walk_frame(self.walk_clock)),
                      (px - t // 2, py - t - 16))
         for tx, ty in self.trees:
             if self.player["y"] < ty <= self.player["y"] + 1.2:

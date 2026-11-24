@@ -1,5 +1,6 @@
 """Hand-drawn pixel sprites, including the taller 16x24 hero sprite."""
 
+import math
 import random
 import pygame
 
@@ -73,97 +74,169 @@ def _rect(surface, color, x, y, width, height=1):
     pygame.draw.rect(surface, color, pygame.Rect(x, y, width, height))
 
 
-def _player(weapon="rusty_sword", armor="traveler_clothes", direction="down", frame=0):
-    """A taller, chibi-style adventurer with layered hair, tunic, and gear."""
-    surface = _canvas((16, 24))
+HERO = {
+    "mantle": (56, 91, 66), "mantle_light": (89, 124, 78), "mantle_dark": (42, 70, 52),
+    "tunic": (201, 179, 128), "tunic_light": (232, 215, 174), "belt": (177, 145, 91),
+    "arm": (129, 87, 53), "trousers": (92, 94, 78), "legging": (67, 69, 63),
+    "legging_far": (50, 52, 48), "boot": (119, 83, 57), "boot_light": (177, 125, 72),
+    "boot_far": (90, 63, 45),
+}
 
-    # Tousled chestnut hair frames a large, expressive face.
-    _rect(surface, PALETTE["hair"], 4, 1, 8, 2)
-    _rect(surface, PALETTE["hair"], 2, 3, 12, 2)
-    _rect(surface, PALETTE["hair"], 1, 5, 14, 3)
-    _rect(surface, PALETTE["hair"], 2, 7, 3, 4)
-    _rect(surface, PALETTE["hair"], 11, 7, 3, 4)
-    _rect(surface, PALETTE["skin"], 4, 5, 8, 7)
-    _rect(surface, PALETTE["skin_shadow"], 3, 7, 1, 3)
-    _rect(surface, PALETTE["skin_shadow"], 12, 7, 1, 3)
-    _rect(surface, PALETTE["hair_light"], 3, 3, 4, 1)
-    _rect(surface, PALETTE["hair_light"], 9, 4, 3, 1)
-    _rect(surface, PALETTE["hair"], 4, 6, 3, 2)
-    _rect(surface, PALETTE["hair"], 9, 6, 3, 2)
-    _rect(surface, PALETTE["skin"], 5, 7, 6, 4)
-    _rect(surface, PALETTE["ink"], 6, 8, 1, 2)
-    _rect(surface, PALETTE["ink"], 9, 8, 1, 2)
-    _rect(surface, (220, 126, 113), 5, 10, 1, 1)
-    _rect(surface, (220, 126, 113), 10, 10, 1, 1)
-    _rect(surface, PALETTE["skin_shadow"], 7, 11, 2, 1)
 
-    # A forest-green mantle sits behind a cream tunic and leather belt.
-    _rect(surface, (56, 91, 66), 2, 12, 12, 6)
-    _rect(surface, (89, 124, 78), 2, 13, 2, 4)
-    _rect(surface, (89, 124, 78), 12, 13, 2, 4)
-    _rect(surface, (201, 179, 128), 4, 12, 8, 6)
-    _rect(surface, (232, 215, 174), 5, 12, 6, 4)
-    _rect(surface, (177, 145, 91), 4, 16, 8, 2)
-    _rect(surface, PALETTE["gold"], 7, 16, 2, 2)
-    _rect(surface, (129, 87, 53), 2, 13, 2, 4)
-    _rect(surface, (129, 87, 53), 12, 13, 2, 4)
+def walk_frame(clock):
+    """Map a walk clock (steps taken) to a pose: 0 stand, 1 left step, 2 stand, 3 right step."""
+    return int(clock) % 4 if clock else 0
 
-    # Short trousers, striped leggings, and sturdy boots.
-    _rect(surface, (92, 94, 78), 5, 18, 6, 2)
-    _rect(surface, (67, 69, 63), 5, 20, 2, 2)
-    _rect(surface, (67, 69, 63), 9, 20, 2, 2)
-    _rect(surface, (119, 83, 57), 4, 22, 4, 2)
-    _rect(surface, (119, 83, 57), 9, 22, 4, 2)
-    _rect(surface, (177, 125, 72), 4, 22, 4, 1)
-    _rect(surface, (177, 125, 72), 9, 22, 4, 1)
 
-    # The sword sits at the hero's side; its blade changes with the equipped weapon.
+def _hero_head(s, direction):
+    hair, light, skin, shade, ink = (PALETTE[k] for k in ("hair", "hair_light", "skin", "skin_shadow", "ink"))
+    if direction == "down":
+        _rect(s, hair, 4, 1, 8, 2)
+        _rect(s, hair, 2, 3, 12, 2)
+        _rect(s, hair, 1, 5, 14, 3)
+        _rect(s, hair, 2, 7, 3, 4)
+        _rect(s, hair, 11, 7, 3, 4)
+        _rect(s, skin, 4, 5, 8, 7)
+        _rect(s, shade, 3, 7, 1, 3)
+        _rect(s, shade, 12, 7, 1, 3)
+        _rect(s, light, 3, 3, 4, 1)
+        _rect(s, light, 9, 4, 3, 1)
+        _rect(s, hair, 4, 6, 3, 2)
+        _rect(s, hair, 9, 6, 3, 2)
+        _rect(s, skin, 5, 7, 6, 4)
+        _rect(s, ink, 6, 8, 1, 2)
+        _rect(s, ink, 9, 8, 1, 2)
+        _rect(s, (220, 126, 113), 5, 10, 1, 1)
+        _rect(s, (220, 126, 113), 10, 10, 1, 1)
+        _rect(s, shade, 7, 11, 2, 1)
+    elif direction == "up":
+        _rect(s, hair, 4, 1, 8, 2)
+        _rect(s, hair, 2, 3, 12, 2)
+        _rect(s, hair, 1, 5, 14, 3)
+        _rect(s, hair, 2, 8, 12, 3)
+        _rect(s, hair, 4, 11, 8, 1)
+        _rect(s, light, 4, 2, 4, 1)
+        _rect(s, light, 3, 4, 3, 1)
+        _rect(s, light, 9, 5, 3, 1)
+        _rect(s, PALETTE["hair"], 7, 9, 2, 2)
+        _rect(s, shade, 1, 8, 1, 2)
+        _rect(s, shade, 14, 8, 1, 2)
+    else:  # drawn facing right; "left" is mirrored afterwards
+        _rect(s, hair, 4, 1, 8, 2)
+        _rect(s, hair, 3, 3, 10, 4)
+        _rect(s, hair, 3, 6, 5, 6)
+        _rect(s, light, 5, 4, 4, 1)
+        _rect(s, skin, 8, 7, 5, 5)
+        _rect(s, shade, 7, 8, 2, 3)
+        _rect(s, hair, 9, 6, 4, 2)
+        _rect(s, ink, 11, 9, 1, 2)
+        _rect(s, shade, 13, 9, 1, 2)
+        _rect(s, shade, 9, 11, 3, 1)
+
+
+def _hero_torso(s, direction, frame, weapon, armor):
+    c = HERO
+    swing = {1: -1, 3: 1}.get(frame, 0)  # arms swing opposite to the stepping leg
     blade = (232, 239, 226) if weapon == "silver_sword" else (177, 193, 189)
-    _rect(surface, PALETTE["metal"], 1, 12, 1, 5)
-    _rect(surface, blade, 1, 11, 1, 5)
-    _rect(surface, PALETTE["gold"], 0, 16, 3, 1)
-    _rect(surface, PALETTE["boot"], 1, 17, 1, 3)
+    if direction == "down":
+        _rect(s, c["mantle"], 2, 12, 12, 6)
+        _rect(s, c["tunic"], 4, 12, 8, 6)
+        _rect(s, c["tunic_light"], 5, 12, 6, 4)
+        _rect(s, c["belt"], 4, 16, 8, 2)
+        _rect(s, PALETTE["gold"], 7, 16, 2, 2)
+        _rect(s, c["mantle_light"], 2, 13 + swing, 2, 4)
+        _rect(s, c["arm"], 2, 13 + swing, 2, 4)
+        _rect(s, c["mantle_light"], 12, 13 - swing, 2, 4)
+        _rect(s, c["arm"], 12, 13 - swing, 2, 4)
+        _rect(s, PALETTE["metal"], 1, 12 + swing, 1, 5)
+        _rect(s, blade, 1, 11 + swing, 1, 5)
+        _rect(s, PALETTE["gold"], 0, 16 + swing, 3, 1)
+        _rect(s, PALETTE["boot"], 1, 17 + swing, 1, 3)
+        if armor == "leather_armor":
+            _rect(s, (126, 77, 45), 4, 13, 8, 4)
+            _rect(s, (171, 111, 59), 5, 13, 6, 1)
+            _rect(s, PALETTE["gold"], 7, 15, 2, 1)
+            _rect(s, (83, 55, 39), 4, 17, 8, 1)
+        elif armor == "chainmail":
+            _rect(s, (134, 145, 147), 4, 13, 8, 4)
+            _rect(s, (90, 103, 111), 4, 14, 8, 1)
+            _rect(s, (177, 188, 182), 5, 13, 2, 1)
+            _rect(s, (177, 188, 182), 9, 13, 2, 1)
+            _rect(s, PALETTE["gold"], 7, 16, 2, 2)
+    elif direction == "up":
+        _rect(s, PALETTE["metal"], 13, 9, 1, 3)        # hilt over the shoulder
+        _rect(s, PALETTE["gold"], 12, 11, 3, 1)
+        _rect(s, c["mantle"], 2, 12, 12, 6)
+        _rect(s, c["mantle_light"], 3, 12, 10, 1)
+        _rect(s, c["mantle_dark"], 5, 14, 1, 4)
+        _rect(s, c["mantle_dark"], 10, 14, 1, 4)
+        _rect(s, PALETTE["boot"], 11, 13, 3, 1)       # sword strap
+        _rect(s, PALETTE["boot"], 9, 14, 2, 1)
+        _rect(s, c["arm"], 1, 13 - swing, 2, 4)
+        _rect(s, c["arm"], 13, 13 + swing, 2, 4)
+        _rect(s, c["belt"], 3, 17, 10, 1)
+    else:
+        _rect(s, c["mantle"], 3, 12, 5, 6)             # cape trails behind
+        _rect(s, c["mantle_dark"], 3, 15, 2, 3)
+        _rect(s, PALETTE["metal"], 4, 15, 1, 4)        # sheathed sword at the far hip
+        _rect(s, PALETTE["gold"], 3, 15, 3, 1)
+        _rect(s, c["tunic"], 6, 12, 6, 6)
+        _rect(s, c["tunic_light"], 7, 12, 4, 3)
+        if armor == "leather_armor":
+            _rect(s, (126, 77, 45), 6, 13, 6, 4)
+        elif armor == "chainmail":
+            _rect(s, (134, 145, 147), 6, 13, 6, 4)
+            _rect(s, (90, 103, 111), 6, 14, 6, 1)
+        _rect(s, c["belt"], 6, 16, 6, 2)
+        _rect(s, PALETTE["gold"], 10, 16, 1, 2)
+        _rect(s, c["arm"], 8 + swing, 13, 2, 4)
+        _rect(s, PALETTE["skin"], 8 + swing, 16, 2, 1)
 
-    # The torso changes visibly when armor is equipped.
-    if armor == "leather_armor":
-        _rect(surface, (126, 77, 45), 4, 13, 8, 4)
-        _rect(surface, (171, 111, 59), 5, 13, 6, 1)
-        _rect(surface, PALETTE["gold"], 7, 15, 2, 1)
-        _rect(surface, (83, 55, 39), 4, 17, 8, 1)
-    elif armor == "chainmail":
-        _rect(surface, (134, 145, 147), 4, 13, 8, 4)
-        _rect(surface, (90, 103, 111), 4, 14, 8, 1)
-        _rect(surface, (177, 188, 182), 5, 13, 2, 1)
-        _rect(surface, (177, 188, 182), 9, 13, 2, 1)
-        _rect(surface, PALETTE["gold"], 7, 16, 2, 2)
-    if frame % 2:
-        surface.fill((0, 0, 0, 0), pygame.Rect(4, 19, 10, 5))
-        _rect(surface, (92, 94, 78), 5, 18, 6, 2)
-        _rect(surface, (67, 69, 63), 4, 20, 2, 2)
-        _rect(surface, (67, 69, 63), 10, 19, 2, 2)
-        _rect(surface, (119, 83, 57), 2, 22, 5, 2)
-        _rect(surface, (119, 83, 57), 10, 21, 4, 2)
-        _rect(surface, (177, 125, 72), 2, 22, 5, 1)
-        _rect(surface, (177, 125, 72), 10, 21, 4, 1)
-    if direction == "up":
-        _rect(surface, PALETTE["hair"], 3, 5, 10, 7)
-        _rect(surface, PALETTE["hair_light"], 4, 5, 3, 1)
-        _rect(surface, PALETTE["hair"], 2, 8, 2, 3)
-        _rect(surface, PALETTE["hair"], 12, 8, 2, 3)
-    elif direction in ("left", "right"):
-        surface.fill((0, 0, 0, 0), pygame.Rect(2, 2, 13, 10))
-        _rect(surface, PALETTE["hair"], 4, 3, 8, 5)
-        _rect(surface, PALETTE["hair"], 3, 6, 5, 6)
-        _rect(surface, PALETTE["hair_light"], 5, 4, 4, 1)
-        _rect(surface, PALETTE["skin"], 8, 7, 5, 5)
-        _rect(surface, PALETTE["skin_shadow"], 7, 8, 2, 3)
-        _rect(surface, PALETTE["hair"], 9, 6, 4, 2)
-        _rect(surface, PALETTE["ink"], 11, 9, 1, 2)
-        _rect(surface, PALETTE["skin_shadow"], 13, 9, 1, 2)
-        _rect(surface, PALETTE["skin_shadow"], 9, 11, 3, 1)
-        if direction == "left":
-            surface = pygame.transform.flip(surface, True, False)
-    return _outline(surface)
+
+def _hero_legs(s, direction, frame):
+    c = HERO
+    _rect(s, c["trousers"], 5, 18, 6, 2)
+    if direction in ("down", "up"):
+        for side, x, bx in (("left", 5, 4), ("right", 9, 9)):
+            lifted = (frame == 1 and side == "left") or (frame == 3 and side == "right")
+            top = 21 if lifted else 22
+            _rect(s, c["legging"], x, 20, 2, top - 20)
+            _rect(s, c["boot"], bx, top, 4, 2)
+            if direction == "down":
+                _rect(s, c["boot_light"], bx, top, 4, 1)
+        return
+    if frame in (1, 3):
+        near_fwd = frame == 1
+        front = ("legging", "boot") if near_fwd else ("legging_far", "boot_far")
+        back = ("legging_far", "boot_far") if near_fwd else ("legging", "boot")
+        _rect(s, c[back[0]], 5, 20, 2, 1)
+        _rect(s, c[back[1]], 3, 21, 4, 2)
+        _rect(s, c[front[0]], 9, 20, 2, 2)
+        _rect(s, c[front[1]], 9, 22, 5, 2)
+        _rect(s, c["boot_light"], 9 + (0 if near_fwd else 4), 22, 1, 1)
+    else:
+        _rect(s, c["legging"], 7, 20, 3, 2)
+        _rect(s, c["boot"], 7, 22, 5, 2)
+        _rect(s, c["boot_light"], 7, 22, 5, 1)
+
+
+def _player(weapon="rusty_sword", armor="traveler_clothes", direction="down", frame=0):
+    """Chibi adventurer (16x24) with front, back and side bodies and a 4-pose walk cycle.
+
+    Frames: 0 stand, 1 left step, 2 stand, 3 right step. Steps lower the body by 1px.
+    """
+    frame %= 4
+    side = direction in ("left", "right")
+    upper = _canvas((16, 24))
+    _hero_torso(upper, "right" if side else direction, frame, weapon, armor)
+    _hero_head(upper, "right" if side else direction)
+    surface = _canvas((16, 24))
+    _hero_legs(surface, "right" if side else direction, frame)
+    surface.blit(upper, (0, 1 if frame in (1, 3) else 0), pygame.Rect(0, 0, 16, 18))
+    surface = _outline(surface)
+    if direction == "left":
+        surface = pygame.transform.flip(surface, True, False)
+    return surface
 
 
 def _slime():
@@ -1427,7 +1500,7 @@ def sprite(name, size=(32, 32)):
 
 def hero_sprite(weapon="rusty_sword", armor="traveler_clothes", size=(32, 32), direction="down", frame=0):
     """Return the player sprite with the currently equipped gear visible."""
-    key = (weapon, armor, tuple(size), direction, frame % 2)
+    key = (weapon, armor, tuple(size), direction, frame % 4)
     if key not in _HERO_SCALED:
         _HERO_SCALED[key] = pygame.transform.scale(_player(weapon, armor, direction, frame), size)
     return _HERO_SCALED[key]
@@ -1439,3 +1512,85 @@ def fit_sprite(name, box):
     w, h = base.get_size()
     factor = max(1, min(box[0] // w, box[1] // h))
     return sprite(name, (w * factor, h * factor))
+
+
+# --- Idle animation for standing NPCs -------------------------------------------------
+_POSES = {}
+
+
+def idle_pose(clock, seed=0):
+    """Which idle pose to show: a slow breath every 2.4s and a quick blink every 3.7s."""
+    phase = clock + seed * 0.73
+    if phase % 3.7 < 0.15:
+        return "blink"
+    return "breath" if phase % 2.4 >= 1.2 else "rest"
+
+
+def npc_pose(name, pose):
+    """Unscaled NPC sprite in an idle pose: rest, breath (head dips 1px) or blink."""
+    key = (name, pose)
+    if key not in _POSES:
+        base = sprite(name, None)
+        image = base.copy()
+        if pose == "breath":
+            image.fill((0, 0, 0, 0), pygame.Rect(0, 0, image.get_width(), 12))
+            image.blit(base, (0, 1), pygame.Rect(0, 0, image.get_width(), 12))
+        elif pose == "blink":
+            lid = base.get_at((7, 8))
+            for x in (6, 9):
+                if tuple(base.get_at((x, 8)))[:3] == PALETTE["ink"]:
+                    image.set_at((x, 8), lid)
+        _POSES[key] = image
+    return _POSES[key]
+
+
+def npc_sprite(name, size, clock=0.0, seed=0):
+    """NPC sprite scaled to ``size`` in the idle pose for ``clock``."""
+    pose = idle_pose(clock, seed)
+    key = (name, pose, tuple(size))
+    if key not in _POSES:
+        _POSES[key] = pygame.transform.scale(npc_pose(name, pose), size)
+    return _POSES[key]
+
+
+# --- Idle animation for enemies (battle screen, dungeon bosses) -----------------------
+IDLE_STYLES = {"slime": "squash", "magma_slime": "squash", "mushroom": "squash",
+               "bat": "hover", "harpy": "hover"}  # everyone else breathes
+
+
+def _enemy_pose(name, pose):
+    """Unscaled enemy sprite: rest, squash (1px shorter, 2px wider) or breath (top dips 1px)."""
+    key = ("enemy", name, pose)
+    if key not in _POSES:
+        base = sprite(name, None)
+        w, h = base.get_size()
+        if pose == "squash":
+            image = pygame.transform.scale(base, (w + 2, h - 1))
+        elif pose == "breath":
+            cut = int(h * 0.6)
+            image = base.copy()
+            image.fill((0, 0, 0, 0), pygame.Rect(0, 0, w, cut))
+            image.blit(base, (0, 1), pygame.Rect(0, 0, w, cut))
+        else:
+            image = base
+        _POSES[key] = image
+    return _POSES[key]
+
+
+def enemy_idle(name, box, clock):
+    """Return ``(surface, dy)`` for an idle enemy; blit the surface with its feet at the
+    same baseline (``feet - height``) and add ``dy`` (hovering creatures bob)."""
+    base = fit_sprite(name, box)
+    factor = base.get_width() // sprite(name, None).get_width()
+    style = IDLE_STYLES.get(name, "breathe")
+    if style == "hover":
+        return base, factor * round(1.5 * math.sin(clock * 4))
+    on = (clock % 0.8 >= 0.4) if style == "squash" else (clock % 1.2 >= 0.6)
+    if not on:
+        return base, 0
+    pose = "squash" if style == "squash" else "breath"
+    key = ("enemy_scaled", name, pose, factor)
+    if key not in _POSES:
+        raw = _enemy_pose(name, pose)
+        _POSES[key] = pygame.transform.scale(raw, (raw.get_width() * factor, raw.get_height() * factor))
+    return _POSES[key], 0

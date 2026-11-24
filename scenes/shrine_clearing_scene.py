@@ -4,7 +4,7 @@ import pygame
 
 from scenes.field_scene import FieldScene
 from settings import TILE_SIZE
-from utils.pixel_art import hero_sprite, sprite
+from utils.pixel_art import hero_sprite, sprite, walk_frame
 
 
 class ShrineClearingScene(FieldScene):
@@ -82,5 +82,5 @@ class ShrineClearingScene(FieldScene):
             px = round(self.player["x"] * t + t / 2) - cam_x
             py = round((self.player["y"] + 1) * t) - cam_y
             view.blit(hero_sprite(self.weapon, self.armor, (t, t + 16), self.facing,
-                                  int(self.walk_clock) % 2 if self.walk_clock else 0), (px - t // 2, py - t - 16))
+                                  walk_frame(self.walk_clock)), (px - t // 2, py - t - 16))
         self._draw_dialogue(surface)

@@ -1,10 +1,24 @@
-# HANDOVER — Chronicles of Pixel (v0.8.0)
+# HANDOVER — Chronicles of Pixel (v0.9.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.8.0 (태그 `v0.8.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.8.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.9.0 (태그 `v0.9.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.9.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 97개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 110개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+
+## 걷기·대기 애니메이션 (v0.9.0)
+- 주인공(`utils/pixel_art.py`의 `_player`):
+  - `_hero_head` / `_hero_torso` / `_hero_legs`로 나눔
+  - 정면·뒷모습·옆모습이 각각 따로 있고, 왼쪽은 오른쪽을 좌우 반전한 그림
+  - 4프레임: 0 서기, 1 왼발, 2 서기, 3 오른발. 걸음을 디딜 때 상체가 1px 내려가고 팔이 흔들림
+  - 장면에서는 `walk_frame(self.walk_clock)`을 씀. `walk_clock`은 초당 8씩 늘어남
+- NPC: `npc_sprite(name, size, clock, seed)`
+  - `idle_pose`가 숨쉬기(2.4초마다 머리가 1px 내려감)와 눈 깜빡임(3.7초마다)을 정함
+  - NPC 눈 위치는 (6,8)과 (9,8)로 모두 같다고 가정함
+- 적: `enemy_idle(name, box, clock)`이 `(그림, dy)`를 돌려줌
+  - 스타일은 `IDLE_STYLES`: squash(슬라임류·버섯), hover(박쥐·하피). 나머지는 숨쉬기
+  - 전투 화면과 던전 보스에 적용
+- 테스트: `tests/test_walk_animation.py`
 
 ## 전투 시스템 개편 (v0.8.0)
 - `gameplay/combat.py`의 `BattleEngine`: 한 턴 전체(주인공 행동 → 상태이상 → 적 행동)를 계산하고 이벤트 목록을 돌려줌. pygame 없이 테스트할 수 있음
@@ -20,6 +34,7 @@
 - 새 테스트: `tests/test_combat.py`, `tests/test_battle_scene.py`
 
 ## 릴리즈 기록
+- **v0.9.0:** 주인공 방향별 4프레임 걷기, NPC 숨쉬기·눈 깜빡임, 적 대기 동작(위 절 참고)
 - **v0.8.0:** 전투 개편. 스킬, 속성, 상태이상, 경험치와 레벨업, 지역별 적 8종, 전투 연출(위 절 참고)
 - **v0.7.2:** 타이틀 화면을 "밤의 오크밸리" 장면으로 바꿈(`utils/title_art.py`). 별·반딧불이 애니메이션, 나무 판자 하단 띠 포함
 - **v0.7.1:** 마을 건물 사이에 걸어갈 수 있는 통로를 확보함(오두막↔촌장 집 3칸, 촌장 집↔잡화점 2칸)

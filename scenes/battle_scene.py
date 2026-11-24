@@ -9,7 +9,7 @@ import pygame
 from gameplay.combat import STATUS_NAMES, BattleEngine
 from scenes.base_scene import BaseScene
 from utils import battle_art, ui
-from utils.pixel_art import fit_sprite, hero_sprite
+from utils.pixel_art import enemy_idle, hero_sprite
 
 EVENT_TIME = {"damage": 0.55, "heal": 0.5, "miss": 0.45, "status": 0.55, "status_tick": 0.5,
               "level_up": 1.0, "xp": 0.8, "defeat": 0.7, "lose": 0.9, "skill": 0.45,
@@ -38,6 +38,7 @@ class BattleScene(BaseScene):
         self.shown_enemy_hp = self.engine.enemy_hp
         self.lines = [f"{self.enemy['name']}이(가) 나타났다!"]
         self.done_timer = 0.0
+        self.clock = 0.0              # drives the enemy's idle animation
         self.kind = self.backdrop_kind()  # fixed: losing moves the hero to the village mid-fight
 
     # --- compatibility helpers ------------------------------------------------------
@@ -117,6 +118,7 @@ class BattleScene(BaseScene):
 
     # --- playback -------------------------------------------------------------------
     def update(self, dt):
+        self.clock += dt
         for side in self.shake:
             self.shake[side] = max(0.0, self.shake[side] - dt)
             self.lunge[side] = max(0.0, self.lunge[side] - dt)
@@ -210,12 +212,12 @@ class BattleScene(BaseScene):
         if self.mode == "done" and self.engine.result == "win":
             pass  # the defeated enemy is gone
         else:
-            enemy = fit_sprite(self.enemy["sprite"], self.enemy["size"])
+            enemy, bob = enemy_idle(self.enemy["sprite"], self.enemy["size"], self.clock)
             ex = battle_art.ENEMY_SPOT * 2 - enemy.get_width() // 2 + self._offset("enemy", -1)
             if self.shake["enemy"] and int(self.shake["enemy"] * 30) % 2:
                 enemy = enemy.copy()
                 enemy.fill((255, 255, 255, 0), special_flags=pygame.BLEND_RGBA_MAX)
-            surface.blit(enemy, (ex, feet - enemy.get_height() + 4))
+            surface.blit(enemy, (ex, feet - enemy.get_height() + 4 + bob))
         self._draw_status_panels(surface)
         for popup in self.popups:
             alpha = 255 if popup["age"] < 0.6 else int(255 * (1 - (popup["age"] - 0.6) / 0.4))

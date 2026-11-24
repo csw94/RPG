@@ -5,7 +5,7 @@ import pygame
 from scenes.field_scene import FieldScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils.interior_art import interior_sprite
-from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite
+from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, walk_frame, sprite, npc_sprite
 
 
 def _item(name, x, y, w=1, h=1, solid=True):
@@ -233,7 +233,7 @@ class HouseInteriorScene(FieldScene):
     def draw(self, surface):
         surface.fill((24, 18, 22))
         self._draw_room(surface)
-        title, npc_sprite = {
+        title, npc_name = {
             "village_house_1": ("약초상의 오두막", "villager"),
             "village_house_2": ("노기사 가렌의 거처", "old_knight"),
             "village_chief_house": ("촌장 발렌의 집", "chief"),
@@ -252,13 +252,13 @@ class HouseInteriorScene(FieldScene):
                 surface.blit(interior_sprite(data["sprite"]), (data["x"] * t, data["y"] * t))
             elif kind == "npc":
                 surface.blit(sprite("shadow", (26, 10)), (data[0] * t + 3, (data[1] + 1) * t - 7))
-                surface.blit(sprite(npc_sprite, NPC_SIZE), (data[0] * t, data[1] * t - 16))
+                surface.blit(npc_sprite(npc_name, NPC_SIZE, self.portal_clock, data[0]), (data[0] * t, data[1] * t - 16))
             else:
                 px = round(self.player["x"] * t + t / 2)
                 py = round((self.player["y"] + 1) * t)
                 surface.blit(sprite("shadow", (26, 10)), (px - 13, py - 7))
                 surface.blit(hero_sprite(self.weapon, self.armor, (t, t + 16), self.facing,
-                                         int(self.walk_clock) % 2 if self.walk_clock else 0),
+                                         walk_frame(self.walk_clock)),
                              (px - t // 2, py - t - 16))
         self._draw_hud(surface, title)
         self._draw_dialogue(surface)

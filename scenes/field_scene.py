@@ -8,7 +8,7 @@ import pygame
 from scenes.base_scene import BaseScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils import ui
-from utils.pixel_art import NPC_SIZE, hero_sprite, sprite, tile_noise
+from utils.pixel_art import NPC_SIZE, hero_sprite, walk_frame, sprite, tile_noise, npc_sprite
 from gameplay.equipment import ARMORS, WEAPONS
 from gameplay.world_data import FIELD_ROUTES
 
@@ -601,7 +601,7 @@ class FieldScene(BaseScene):
                 self.player["y"] = ny
                 moved = True
             if moved:
-                self.walk_clock += dt * 10
+                self.walk_clock += dt * 8
             else:
                 self.walk_clock = 0.0
             if moved and self.encounter_rate and random.random() < self.encounter_rate * dt:
@@ -749,7 +749,7 @@ class FieldScene(BaseScene):
                 surface.blit(sprite("flower_yellow", (TILE_SIZE, TILE_SIZE)), (sx, sy))
             elif kind == "toby":
                 surface.blit(sprite("shadow", (26, 10)), (sx + 3, sy + TILE_SIZE - 7))
-                surface.blit(sprite("merchant", NPC_SIZE), (sx, sy - 16))
+                surface.blit(npc_sprite("merchant", NPC_SIZE, self.portal_clock, 2), (sx, sy - 16))
             else:
                 portal_name = "gate_arch" if kind == "portal_town" else f"portal_dungeon_{int(self.portal_clock * 3) % 2}"
                 surface.blit(sprite(portal_name, (48, 64)), (sx - 8, sy - 32))
@@ -757,7 +757,7 @@ class FieldScene(BaseScene):
         foot_x = round(self.player["x"] * TILE_SIZE + TILE_SIZE / 2 - camera_x)
         foot_y = round((self.player["y"] + 1) * TILE_SIZE - camera_y)
         surface.blit(sprite("shadow", (26, 10)), (foot_x - 13, foot_y - 7))
-        frame = int(self.walk_clock) % 2 if self.walk_clock else 0
+        frame = walk_frame(self.walk_clock)
         surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16), self.facing, frame),
                      (foot_x - TILE_SIZE // 2, foot_y - TILE_SIZE - 16))
         for tx, ty in self.trees:
