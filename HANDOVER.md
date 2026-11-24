@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.17.0)
+# HANDOVER — Chronicles of Pixel (v0.18.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.17.0 (태그 `v0.17.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.17.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.18.0 (태그 `v0.18.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.18.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 260개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 272개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -156,7 +156,20 @@
 - 고레벨 스킬: 별빛 폭풍(Lv.10, MP 10, 빛 속성, 위력 30), 성스러운 기도(Lv.12, MP 12, 회복 160 + 레벨×4, 상태이상 해제). 전투 화면 스킬 버튼은 4열, 상태 화면 기술 목록은 3열
 - 별빛 심연 재조정: 지역이 늘고 스킬이 생겨 쉬워졌기 때문에 강화함(녹스 HP 1100, 공격 86. 심연 적 HP·공격 약 10~15% 상승). 층마다 2번 싸우면 보스 승률 약 60%, 4번이면 약 80%, 6번이면 약 90%
 
+## 플레이 기록·퀘스트 데이터 정리 (v0.18.0)
+- 플레이 기록: 세이브에 `play_time`(초)과 `stats`(wins, losses, flees)를 저장함
+  - 시간은 `Game.count_play_time`이 셈. 타이틀 화면에서는 세지 않음
+  - 전투 결과는 `BattleEngine._tally`가 셈
+  - 세이브 슬롯 카드에는 `gameplay/records.slot_summary`로 레벨·플레이 시간·인장 수·엔딩 여부를 표시함. 엔딩 카드에는 `EpilogueScene.record_rows`로 플레이 시간과 전투 승리 수를 표시함
+- 퀘스트 데이터: 부탁 7개의 이름, 목표 수, 처치 대상(`kill`), 필요 아이템(`requires_item`), 대사(`offer`/`done`), 보상(`reward`)이 `gameplay/quests.py`의 `QUESTS` 한 곳에 있음
+  - **부탁을 추가하는 법**
+    1. `QUESTS`에 항목을 추가함
+    2. 의뢰인 NPC를 만지는 장면에서 `self._offer_sidequest("sq_...")`를 호출함
+    3. 처치형 부탁이면 `kill`만 적으면 진행도가 자동으로 오름
+  - 세이브의 `sub_quests`, 상태 화면 이름, 보상 지급은 모두 이 표를 따름. `test_quest_data`가 표의 일관성과 보상 지급을 검사함
+
 ## 릴리즈 기록
+- **v0.18.0:** 플레이 시간과 전투 기록(세이브 슬롯과 엔딩 화면에 표시), 마을 부탁 데이터를 한 곳으로 정리
 - **v0.17.0:** 서리 고원 사냥꾼 하른과 부탁(얼음 심장), 빙결 대비 장비와 제단 3·4곳 정화 단계의 상품, Lv.10 별빛 폭풍·Lv.12 성스러운 기도, 별빛 심연 난이도 재조정
 - **v0.16.0:** 새 지역 「서리 고원」과 네 번째 제단 「얼음 제단」(제단 두 곳을 정화하면 열림), 새 적 4종과 빙결 상태이상, 인장 4개 기준으로 이야기 확장, 불꽃·최종 보스 밸런스 조정
 - **v0.15.0:** 엔딩 후 도전 던전 「별빛 심연」(3층, 숨겨진 보스와 전용 장신구), 상태 화면의 지도 페이지와 다음 목표 안내, 마을 부탁 3개 추가(전용 장신구 보상), CI 자동 테스트와 릴리즈 노트 자동화
@@ -251,6 +264,7 @@
 | `tools/balance_sim.py` | 전투 밸런스 시뮬레이터 |
 | `tools/release_notes.py` / `.github/workflows/` | 릴리즈 노트 추출 / CI 테스트와 릴리즈 빌드 |
 | `gameplay/objectives.py` | 다음 목표 안내 |
+| `gameplay/quests.py` / `gameplay/records.py` | 마을 부탁 데이터 / 플레이 시간 표시와 세이브 슬롯 요약 |
 | `utils/interior_art.py` | 실내 스프라이트. `interior_sprite(name, scale=2)`, 러그는 `rug_<색>_<w>x<h>` 형식 |
 | `utils/ui.py` | 공용 UI: 프레임, 막대, 버튼, 판자 띠 |
 | `utils/battle_art.py` | 전투 배경 `backdrop(kind)`, 발판 위치 상수 |
