@@ -4,6 +4,7 @@ import pygame
 
 from gameplay.combat import SKILLS, xp_to_next
 from gameplay.equipment import POTION_CAP
+from gameplay.objectives import next_objective
 from scenes.base_scene import BaseScene
 from utils import ui
 from utils.pixel_art import hero_sprite
@@ -12,12 +13,25 @@ QUEST_NAMES = {"sq_moon_herb": "달빛 약초", "sq_old_sword": "노기사의 �
 SEALS = (("shrine_wind", "바람의 제단"), ("shrine_earth", "대지의 폐광"), ("shrine_fire", "불꽃의 신전"))
 ITEM_NAMES = {"broken_old_sword": "부러진 옛 검", "knights_crest": "기사단 휘장"}
 TOGGLE_KEYS = (pygame.K_i, pygame.K_TAB)
+PAGES = (("record", "기록"), ("map", "지도"))
+HERO_MARK = (255, 200, 40)
+MAP_COLORS = {"ground": (118, 150, 92), "path": (204, 176, 124), "water": (88, 150, 200), "lava": (224, 112, 52),
+              "tree": (58, 104, 64), "rock": (120, 116, 112), "wall": (62, 52, 58), "floor": (150, 138, 128)}
+MARKER_STYLE = {  # colour, label for the legend
+    "chest": ((236, 196, 84), "상자"), "herb": ((150, 230, 120), "약초"), "town": ((250, 250, 240), "마을"),
+    "dungeon": ((170, 120, 255), "던전"), "gate": ((250, 250, 240), "출입구"), "door": ((214, 150, 96), "문"),
+    "exit": ((250, 250, 240), "나가는 길"), "stairs": ((120, 200, 255), "계단"), "boss": ((240, 70, 70), "보스"),
+    "npc": ((255, 170, 200), "주민"), "shop": ((236, 196, 84), "상점"), "fountain": ((120, 200, 255), "분수"),
+    "altar": ((170, 120, 255), "제단"), "bed": ((150, 230, 120), "침대"),
+}
 
 
 class StatusScene(BaseScene):
     def __init__(self, game):
         super().__init__(game)
         self.field = game.field
+        self.page = "record"
+        self.clock = 0.0
 
     # --- content ----------------------------------------------------------------------
     def skill_rows(self):
@@ -47,6 +61,9 @@ class StatusScene(BaseScene):
         for event in events:
             if event.type == pygame.KEYDOWN and event.key in (*TOGGLE_KEYS, pygame.K_ESCAPE):
                 self._close()
+            elif event.type == pygame.KEYDOWN and event.key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_d):
+                self.page = "map" if self.page == "record" else "record"
+                self.sfx("cursor")
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.close_rect().collidepoint(event.pos):
                     self._close()
@@ -56,7 +73,7 @@ class StatusScene(BaseScene):
         self.game.scene = self.field
 
     def update(self, dt):
-        pass
+        self.clock += dt
 
     @staticmethod
     def close_rect():
@@ -64,9 +81,80 @@ class StatusScene(BaseScene):
 
     # --- drawing ----------------------------------------------------------------------
     def draw(self, surface):
-        f, colors = self.field, self.game.colors
         ui.plank_strip(surface, (0, 0, surface.get_width(), surface.get_height()))
         ui.frame(surface, pygame.Rect(20, 14, 760, 572), "walnut", border=8)
+        if self.page == "map":
+            self._draw_map(surface)
+        else:
+            self._draw_record(surface)
+        for index, (page, label) in enumerate(PAGES):
+            self.button(surface, pygame.Rect(600 + index * 82, 28, 74, 30), label, page == self.page, 15)
+        self.button(surface, self.close_rect(), "닫기", False, 18)
+        self.text(surface, "←→ 기록 / 지도 · I / Tab / ESC 닫기", (400, 570), 13, self.game.colors["muted"], True)
+
+    # --- map page ---------------------------------------------------------------------
+    def map_rect(self):
+        f = self.field
+        cell = max(4, min(720 // f.COLS, 400 // f.ROWS))
+        width, height = f.COLS * cell, f.ROWS * cell
+        return pygame.Rect(400 - width // 2, 74 + (400 - height) // 2, width, height)
+
+    def _tile_color(self, x, y):
+        f = self.field
+        indoor = hasattr(f, "floor_tile") or hasattr(f, "ROOM")
+        if (x, y) in getattr(f, "lava", ()):
+            return MAP_COLORS["lava"]
+        if (x, y) in getattr(f, "water", ()):
+            return MAP_COLORS["water"]
+        if (x, y) in getattr(f, "trees", ()):
+            return MAP_COLORS["tree"]
+        if (x, y) in getattr(f, "rocks", ()):
+            return MAP_COLORS["rock"]
+        if (x, y) in f.walls:
+            return MAP_COLORS["wall"]
+        if (x, y) in getattr(f, "path", ()):
+            return MAP_COLORS["path"]
+        return MAP_COLORS["floor"] if indoor else MAP_COLORS["ground"]
+
+    def _draw_map(self, surface):
+        f, colors = self.field, self.game.colors
+        self.text(surface, f"지도 · {f.hud_title()}", (400, 44), 26, colors["gold"], True)
+        rect = self.map_rect()
+        cell = rect.width // f.COLS
+        ui.frame(surface, rect.inflate(16, 16), "walnut")
+        for y in range(f.ROWS):
+            for x in range(f.COLS):
+                surface.fill(self._tile_color(x, y), (rect.x + x * cell, rect.y + y * cell, cell, cell))
+        kinds = []
+        for kind, (x, y) in f.map_markers():
+            color, _label = MARKER_STYLE.get(kind, ((255, 255, 255), kind))
+            center = (rect.x + x * cell + cell // 2, rect.y + y * cell + cell // 2)
+            radius = max(3, cell // 2)
+            pygame.draw.circle(surface, ui.OUTLINE, center, radius + 1)
+            pygame.draw.circle(surface, color, center, radius)
+            if kind not in kinds:
+                kinds.append(kind)
+        # The hero blinks so it stands out from the markers.
+        px = rect.x + int(f.player["x"] * cell) + cell // 2
+        py = rect.y + int(f.player["y"] * cell) + cell // 2
+        if int(self.clock * 3) % 2 == 0:
+            size = max(4, cell // 2 + 2)
+            pygame.draw.circle(surface, ui.OUTLINE, (px, py), size + 3)
+            pygame.draw.circle(surface, HERO_MARK, (px, py), size + 2)
+            pygame.draw.circle(surface, (255, 255, 255), (px, py), size - 1)
+        legend = [("나", HERO_MARK)] + [(MARKER_STYLE[k][1], MARKER_STYLE[k][0]) for k in kinds if k in MARKER_STYLE]
+        x = 400 - sum(self.game.font(13).size(label)[0] + 26 for label, _ in legend) // 2
+        for label, color in legend:
+            pygame.draw.circle(surface, ui.OUTLINE, (x + 6, 490), 6)
+            pygame.draw.circle(surface, color, (x + 6, 490), 5)
+            image = self.game.font(13).render(label, True, colors["cream"])
+            surface.blit(image, (x + 15, 482))
+            x += image.get_width() + 26
+        self.text(surface, "다음 목표: " + next_objective(f), (400, 514), 15, colors["gold"], True)
+
+    # --- record page ------------------------------------------------------------------
+    def _draw_record(self, surface):
+        f, colors = self.field, self.game.colors
         self.text(surface, "수호자의 기록", (400, 44), 28, colors["gold"], True)
 
         # Left: portrait and core stats.
@@ -142,8 +230,6 @@ class StatusScene(BaseScene):
             self._ink(surface, name, (quests.x + 12, y), 14)
             self._ink(surface, text, (quests.right - 12, y), 14, right=True, soft=text == "미수락")
 
-        self.button(surface, self.close_rect(), "닫기", False, 18)
-        self.text(surface, "I / Tab / ESC 닫기", (400, 570), 13, colors["muted"], True)
 
     def _ink(self, surface, value, pos, size, right=False, soft=False):
         image = self.game.font(size).render(str(value), True, ui.INK_SOFT if soft else ui.INK)

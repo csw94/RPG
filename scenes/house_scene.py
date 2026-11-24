@@ -60,6 +60,13 @@ LAYOUTS = {
 }
 
 
+HOUSES = {  # title, resident sprite
+    "village_house_1": ("약초상의 오두막", "villager"),
+    "village_house_2": ("노기사 가렌의 거처", "old_knight"),
+    "village_chief_house": ("촌장 발렌의 집", "chief"),
+}
+
+
 class HouseInteriorScene(FieldScene):
     COLS, ROWS = 25, 16
     DOOR = (12, 14)
@@ -158,6 +165,15 @@ class HouseInteriorScene(FieldScene):
             self._interact_chief()
         else:
             self.message = "마을 지도와 기록이 쌓인 촌장의 집무실입니다."
+
+    def hud_title(self):
+        return HOUSES[self.house_id][0]
+
+    def map_markers(self):
+        markers = [("door", self.DOOR)] + [("npc", p) for p in self.npcs]
+        if self.bed:
+            markers += [("bed", p) for p in self.solid_tiles(self.bed)]
+        return markers
 
     def _near_bed(self):
         if not self.bed:
@@ -259,11 +275,7 @@ class HouseInteriorScene(FieldScene):
     def draw(self, surface):
         surface.fill((24, 18, 22))
         self._draw_room(surface)
-        title, npc_name = {
-            "village_house_1": ("약초상의 오두막", "villager"),
-            "village_house_2": ("노기사 가렌의 거처", "old_knight"),
-            "village_chief_house": ("촌장 발렌의 집", "chief"),
-        }[self.house_id]
+        title, npc_name = HOUSES[self.house_id]
         t = TILE_SIZE
         flat = [item for item in self.layout if not item["solid"]]
         for item in flat:

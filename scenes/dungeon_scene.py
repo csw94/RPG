@@ -161,6 +161,13 @@ class DungeonScene(FieldScene):
         x, y = self.STAIRS
         return (x + 1 if x <= 12 else x - 1, y)
 
+    def map_markers(self):
+        markers = [("chest", p) for p in self.chests if p not in self.opened]
+        markers += [("exit", self.EXIT), ("stairs", self.STAIRS)]
+        if self.floor == self.floors and not self.quest_flags.get(self.boss_id):
+            markers.append(("boss", self.boss_position))
+        return markers
+
     def _exit_spawn(self):
         return (self.EXIT[0] + (1 if self.EXIT[0] < 12 else -1), self.EXIT[1])
 

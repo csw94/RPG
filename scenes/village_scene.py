@@ -85,6 +85,12 @@ class VillageScene(FieldScene):
         if self.position_recovered:
             self.message = "저장 위치를 마을 입구로 복구했습니다."
 
+    def map_markers(self):
+        markers = [("gate", p) for p in self.FIELD_GATES.values()]
+        markers += [("door", p) for p in (self.QUEST_HOUSE_DOOR, self.KNIGHT_HOUSE_DOOR, self.CHIEF)]
+        markers += [("shop", self.LOGAN), ("fountain", self.FOUNTAIN), ("npc", self.VILLAGER)]
+        return markers
+
     def _interact(self):
         x, y = self.player["x"], self.player["y"]
         near = lambda target, radius=1.0: (x - target[0]) ** 2 + (y - target[1]) ** 2 <= radius ** 2

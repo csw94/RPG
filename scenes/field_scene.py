@@ -310,6 +310,18 @@ class FieldScene(BaseScene):
                 "opened": sorted(self.opened),
                 "opened_by_world": opened_by_world}
 
+    # --- map page --------------------------------------------------------------------
+    def map_markers(self):
+        """(kind, (x, y)) points of interest for the map page."""
+        markers = [("chest", p) for p in self.chests if p not in self.opened]
+        if self.sub_quests["sq_moon_herb"]["status"] != "COMPLETED":
+            markers += [("herb", p) for p in self.herb_positions if p not in self.collected_herbs]
+        if self.route_data:
+            markers += [("town", self.route_data["village_portal"]), ("dungeon", self.route_data["dungeon_portal"])]
+        if self.toby_position:
+            markers.append(("npc", self.toby_position))
+        return markers
+
     # --- equipment ---------------------------------------------------------------------
     @property
     def weapon_info(self):

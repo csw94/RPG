@@ -39,6 +39,9 @@ class ShrineClearingScene(FieldScene):
         self.walls.difference_update(self.path | {self.portal_position})
         self._restore_player_position(self.SPAWN)
 
+    def map_markers(self):
+        return [("altar", self.ALTAR), ("gate", self.portal_position)]
+
     def _interact(self):
         x, y = self.player["x"], self.player["y"]
         if (x - self.ALTAR[0]) ** 2 + (y - self.ALTAR[1]) ** 2 <= 1.5:
