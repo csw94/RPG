@@ -1,12 +1,13 @@
-# HANDOVER — Chronicles of Pixel 그래픽 개편 (v0.7.1)
+# HANDOVER — Chronicles of Pixel 그래픽 개편 (v0.7.2)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.7.1 (커밋 `c9e41af`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.7.1 (Actions 성공, `ChroniclesOfPixel.exe` 첨부됨)
-  - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 커밋으로 빌드함. 실행 확인 완료
-- 테스트 69개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- **최신 릴리즈:** v0.7.2 (태그 `v0.7.2`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.7.2 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+  - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
+- 테스트 76개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 릴리즈 기록
+- **v0.7.2:** 타이틀 화면을 "밤의 오크밸리" 장면으로 바꿈(`utils/title_art.py`). 별·반딧불이 애니메이션, 나무 판자 하단 띠 포함
 - **v0.7.1:** 마을 건물 사이에 걸어갈 수 있는 통로를 확보함(오두막↔촌장 집 3칸, 촌장 집↔잡화점 2칸)
 - **v0.7.0:** 그래픽 전면 개편, UI, 맵 30% 확장, 던전·전투 톤 통일(아래 "완료된 작업" 참고)
 
@@ -72,7 +73,6 @@
 - 필수로 남은 작업은 없음
 - 선택 과제
   - 예전 세이브의 위치 보정. 맵 좌표가 바뀌어서 v0.6.x 세이브는 다른 위치에서 이어질 수 있음. 막힌 칸이면 안전한 위치로 자동 복구되긴 함
-  - 타이틀 화면 배경을 새 톤에 맞추기. 지금은 단색 배경에 프레임만 바뀐 상태
   - 상점 화면 바깥 금색 테두리를 나무 프레임으로 통일
   - 전투 연출(타격 흔들림, 데미지 숫자)이나 캐릭터 걷기 애니메이션 보강
 
@@ -83,13 +83,14 @@
 | `utils/interior_art.py` | 실내 스프라이트. `interior_sprite(name, scale=2)`, 러그는 `rug_<색>_<w>x<h>` 형식 |
 | `utils/ui.py` | 공용 UI: 프레임, 막대, 버튼, 판자 띠 |
 | `utils/battle_art.py` | 전투 배경 `backdrop(kind)`, 발판 위치 상수 |
+| `utils/title_art.py` | 타이틀 배경 `backdrop()`과 애니메이션 `draw_overlay(surface, clock)` |
 | `scenes/field_scene.py` | 필드 공통 로직: 테마, 장식, `_blob`, HUD, 대화창 |
 | `scenes/village_scene.py` | 마을 레이아웃, 정적 레이어 캐시 |
 | `scenes/house_scene.py` | `LAYOUTS`, `ROOM`, `solid_tiles()` |
 | `scenes/dungeon_scene.py` | 던전 레이아웃과 타일 그리기 |
 | `scenes/battle_scene.py` | `backdrop_kind()`, 전투 그리기 |
 | `gameplay/world_data.py` / `gameplay/enemies.py` | 필드 데이터 / 적 데이터(스프라이트 이름, 표시 크기) |
-| `tests/` | `test_pixel_art`, `test_interiors`, `test_field_art`, `test_ui`, `test_map_size`, `test_dungeon_battle_art` 및 기존 테스트 |
+| `tests/` | `test_pixel_art`, `test_interiors`, `test_field_art`, `test_ui`, `test_map_size`, `test_dungeon_battle_art`, `test_title_art` 및 기존 테스트 |
 
 ## 주의사항
 - 화면 확인은 `main.Game()._create_world(state)`로 장면을 만들어 렌더링한다. `new_game()`은 세이브를 덮어쓰니 쓰지 않는다.
