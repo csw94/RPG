@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.21.0)
+# HANDOVER — Chronicles of Pixel (v0.22.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.21.0 (태그 `v0.21.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.21.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.22.0 (태그 `v0.22.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.22.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 349개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 358개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -220,7 +220,17 @@
   - 의뢰인은 `quest_due`일 때 부탁을 먼저 꺼내고, 그 밖에는 원래 기능(상점·대장간·도서관)을 엶
 - 시뮬레이터는 대장간 강화와 새 소모품을 쓰지 않음. 실제 플레이는 시뮬레이션 결과보다 조금 쉬워질 수 있음
 
+## 가방 (v0.22.0)
+- 상태 화면의 다섯 번째 페이지 `bag`. 필드와 실내에서는 B 키로 바로 열림(`Game.open_status("bag")`)
+- `StatusScene.bag_rows()`가 소모품·무기·방어구·장신구·중요 물품을 섹션 머리말과 함께 나열함. 빈 섹션에는 "(없음)" 줄이 들어감
+  - 커서는 머리말과 빈 줄을 건너뜀. 한 화면에 `BAG_ROWS_VISIBLE`(16)줄씩 스크롤함
+- Enter 동작
+  - 소모품: `FieldScene.use_item_outside`. HP·MP가 가득 차 있거나 해독제처럼 회복 효과가 없으면 쓰지 않음
+  - 무기·방어구: `equip`
+  - 장신구: 장착 중이면 `unequip_accessory`, 아니면 장착함
+
 ## 릴리즈 기록
+- **v0.22.0:** 가방 페이지(B 키). 필드에서 물약 사용, 어디서든 장비 교체, 장신구 해제, 아이템 상세 정보
 - **v0.21.0:** 마을 확장(44×30), 여관·대장간 강화·도서관·물약 상점, 전투 아이템 메뉴와 새 소모품, 새 주민 5명과 부탁 4개
 - **v0.20.0:** 업적 14개(달성 알림과 상태 화면 업적 페이지), 엔딩 후 회차 플레이(새 여정), 대화 글자 속도 설정과 Enter·Z 행동 키
 - **v0.19.0:** 난이도 선택(쉬움·보통·어려움, 모험 중 변경 가능), 상태 화면의 몬스터·장비 도감, 1분마다 자동 저장과 창을 닫을 때 저장
