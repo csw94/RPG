@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.12.0)
+# HANDOVER — Chronicles of Pixel (v0.13.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.12.0 (태그 `v0.12.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.12.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.13.0 (태그 `v0.13.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.13.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 154개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 169개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -64,7 +64,7 @@
   - 배경음악 7곡(`MUSIC`: title, village, field, dungeon, battle, boss, final)
     - 직접 작곡한 짧은 반복곡이고, 시작할 때 백그라운드 스레드에서 미리 만들어 둠
     - 곡 선택은 `music_for(scene_name, enemy_id)`가 하고, 매 프레임 `Game.run`에서 갱신함. 상점·상태 화면에서는 원래 곡을 유지함
-  - M 키로 음소거. 오디오 장치가 없으면 소리 없이 그대로 진행됨
+  - M 키로 음소거. 오디오 장치가 없으면 소리 없이 그대로 진행됨. 음량은 설정 화면에서 조절함
 
 ## 패배 후 선택·최종 보스 2페이즈 (v0.12.0)
 - 패배 화면에서 "다시 도전"과 "마을로 돌아가기" 중 고름
@@ -76,7 +76,21 @@
   - `BattleScene.music_track`이 장면 기본 곡을 덮어씀(`Game.run`)
   - 시뮬레이터 결과: 지역당 4회 싸웠을 때 최종 보스 승률 약 81%, 5회 이상이면 100%
 
+## 조작법·설정 화면 (v0.13.0)
+- 타이틀 메뉴: 새 모험 시작 / 모험 이어하기 / 조작법 / 설정 / 게임 종료. `_choose_menu`는 순서가 아니라 메뉴 이름으로 동작을 고름
+- 조작법 화면(`scenes/help_scene.py`): `CONTROLS`와 `TIPS` 목록을 그대로 그림. 키를 추가하면 이 목록과 README도 고칠 것
+- 설정 화면(`scenes/settings_scene.py`): 타이틀 메뉴나 필드에서 O 키로 열림
+  - 배경음악과 효과음 음량을 0~10 단계로 조절함(`Audio.set_volumes`)
+  - 화면 크기는 1x, 1.5x, 2x, 전체 화면 중에서 고름
+  - 설정은 `%APPDATA%/ChroniclesOfPixel/settings.json`에 저장됨(`utils/user_settings.py`)
+- 화면 확대(`utils/display.py`)
+  - 모든 장면은 800×600 `Game.canvas`에 그림. `Game.present()`가 이를 창 크기로 확대해서 그리고(nearest), 전체 화면에서는 4:3 비율로 가운데 맞춤
+  - 마우스 좌표는 `display.map_events`가 캔버스 좌표로 바꿈. 장면 코드는 계속 800×600 좌표만 쓰면 됨
+  - 모니터에 들어가지 않는 창 크기는 `available_modes`가 목록에서 뺌
+- README를 현재 게임 내용에 맞게 다시 씀
+
 ## 릴리즈 기록
+- **v0.13.0:** 타이틀의 조작법 화면, 설정 화면(음량·화면 크기·전체 화면), README 갱신
 - **v0.12.0:** 패배 후 다시 도전 선택지, 최종 보스 2페이즈(연출·전용 곡 포함)
 - **v0.11.0:** 침대 휴식, 상태 화면(I/Tab), 코드로 만든 효과음과 배경음악(M으로 음소거)
 - **v0.10.0:** 전투 밸런스를 다시 조정함. 제단 보너스는 고유 효과만 남김, 승리 시 MP +2, 던전별 적 구성, 보스 강화. `tools/balance_sim.py` 추가
@@ -160,6 +174,8 @@
 | `gameplay/save_migration.py` | 예전 세이브의 좌표를 현재 맵 구조로 변환 |
 | `utils/audio.py` | 코드로 만든 효과음과 배경음악, `music_for` |
 | `scenes/status_scene.py` | 상태 화면(I/Tab) |
+| `scenes/settings_scene.py` / `scenes/help_scene.py` | 설정 화면(O) / 조작법 화면 |
+| `utils/display.py` / `utils/user_settings.py` | 창 크기 확대와 마우스 좌표 변환 / 설정 파일 |
 | `tools/balance_sim.py` | 전투 밸런스 시뮬레이터 |
 | `utils/interior_art.py` | 실내 스프라이트. `interior_sprite(name, scale=2)`, 러그는 `rug_<색>_<w>x<h>` 형식 |
 | `utils/ui.py` | 공용 UI: 프레임, 막대, 버튼, 판자 띠 |
