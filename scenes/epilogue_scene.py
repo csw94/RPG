@@ -4,6 +4,8 @@ import math
 
 import pygame
 
+from utils import ui
+
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils.pixel_art import NPC_SIZE, sprite
 
@@ -152,12 +154,9 @@ class EpilogueScene:
 
     def _draw_dialogue(self, surface):
         colors = self.game.colors
-        pygame.draw.rect(surface, colors["ink"], (0, 512, WIDTH, HEIGHT - 512))
-        pygame.draw.rect(surface, colors["gold"], (0, 512, WIDTH, 4))
+        ui.plank_strip(surface, (0, 512, WIDTH, HEIGHT - 512))
         # The dialogue lives in the bottom bar so the crowd around the fountain stays visible.
-        box = pygame.Rect(8, 520, 784, 72)
-        pygame.draw.rect(surface, colors["panel"], box)
-        pygame.draw.rect(surface, colors["gold"], box, 2)
+        box = ui.frame(surface, pygame.Rect(8, 518, 784, 76), "parchment")
 
         hint = f"4막 · 새로운 수호자   {self.index + 1}/{len(self.lines)}   SPACE 다음 · ESC 건너뛰기"
         hint_width = self.game.font(13).size(hint)[0]
@@ -168,9 +167,8 @@ class EpilogueScene:
         speaker, line = self.lines[self.index]
         if speaker:
             tag = pygame.Rect(box.x + 14, 488, self.game.font(16).size(speaker)[0] + 24, 26)
-            pygame.draw.rect(surface, colors["ink"], tag.inflate(4, 4))
-            pygame.draw.rect(surface, colors["gold"], tag)
-            self.text(surface, speaker, tag.center, 16, colors["ink"], True)
+            ui.frame(surface, tag.inflate(6, 6), "walnut", True, border=3)
+            self.text(surface, speaker, tag.center, 16, colors["cream"], True)
         rows, current = [], ""
         for word in line.split():
             candidate = f"{current} {word}".strip()
@@ -180,7 +178,7 @@ class EpilogueScene:
             else:
                 current = candidate
         rows.append(current)
-        color = colors["cream"] if speaker else colors["muted"]
+        color = ui.INK if speaker else ui.INK_SOFT
         top = box.y + (22 if len(rows) == 1 else 10)
         for row_index, row in enumerate(rows[:2]):
             self.text(surface, row, (box.x + 20, top + row_index * 26), 18, color)

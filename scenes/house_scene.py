@@ -261,12 +261,5 @@ class HouseInteriorScene(FieldScene):
                 surface.blit(hero_sprite(self.weapon, self.armor, (t, t + 16), self.facing,
                                          int(self.walk_clock) % 2 if self.walk_clock else 0),
                              (px - t // 2, py - t - 16))
-        pygame.draw.rect(surface, self.game.colors["ink"], (0, 512, WIDTH, HEIGHT - 512))
-        pygame.draw.rect(surface, self.game.colors["gold"], (0, 512, WIDTH, 4))
-        pygame.draw.rect(surface, self.game.colors["panel"], (8, 520, 784, 72))
-        pygame.draw.rect(surface, self.game.colors["gold"], (8, 520, 784, 72), 2)
-        self.text(surface, f"{title}  ·  Lv.{self.level}  HP {self.hp}/{self.max_hp}  MP {self.mp}/{self.max_mp}  금화 {self.gold}",
-                  (20, 526), 18)
-        self.text(surface, self.message, (20, 558), 16, self.game.colors["muted"])
-        self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)
+        self._draw_hud(surface, title)
         self._draw_dialogue(surface)

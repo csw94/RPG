@@ -3,6 +3,8 @@
 from abc import ABC, abstractmethod
 import pygame
 
+from utils import ui
+
 
 class BaseScene(ABC):
     def __init__(self, game):
@@ -27,9 +29,4 @@ class BaseScene(ABC):
         return rect
 
     def button(self, surface, rect, label, selected=False, size=22):
-        face = self.game.colors["gold"] if selected else self.game.colors["panel"]
-        pygame.draw.rect(surface, self.game.colors["ink"], rect.inflate(4, 4))
-        pygame.draw.rect(surface, self.game.colors["gold"], rect.inflate(2, 2))
-        pygame.draw.rect(surface, face, rect)
-        pygame.draw.rect(surface, self.game.colors["cream"], rect, 1)
-        self.text(surface, label, rect.center, size, self.game.colors["ink"] if selected else self.game.colors["cream"], True)
+        ui.button(surface, self.game.font, rect, label, selected, size)

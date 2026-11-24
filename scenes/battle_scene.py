@@ -3,6 +3,8 @@
 import random
 import pygame
 
+from utils import ui
+
 from gameplay.enemies import ENEMIES
 from scenes.base_scene import BaseScene
 from utils.pixel_art import hero_sprite, sprite
@@ -164,10 +166,8 @@ class BattleScene(BaseScene):
         self._panel(surface, pygame.Rect(482, 24, 263, 94))
         self.text(surface, self.enemy["name"], (506, 42), 20)
         self._bar(surface, 506, 77, 215, max(0, self.enemy_hp), self.enemy_max_hp, self.game.colors["green"])
-        pygame.draw.rect(surface, self.game.colors["ink"], (0, 374, 800, 226))
-        pygame.draw.rect(surface, self.game.colors["gold"], (0, 374, 800, 4))
-        pygame.draw.rect(surface, self.game.colors["panel"], (8, 382, 784, 210))
-        pygame.draw.rect(surface, self.game.colors["gold"], (8, 382, 784, 210), 2)
+        ui.plank_strip(surface, (0, 374, 800, 226))
+        ui.frame(surface, pygame.Rect(8, 380, 784, 214), "walnut")
         self.text(surface, self.message, (400, 401), 18, self.game.colors["gold"], True)
         for index, (label, rect) in enumerate(zip(self.ACTIONS, self._buttons())):
             if index == 2:
@@ -178,9 +178,7 @@ class BattleScene(BaseScene):
                   (400, 570), 16, self.game.colors["muted"], True)
 
     def _panel(self, surface, rect):
-        pygame.draw.rect(surface, self.game.colors["ink"], rect)
-        pygame.draw.rect(surface, self.game.colors["cream"], rect.inflate(-8, -8))
-        pygame.draw.rect(surface, self.game.colors["panel"], rect.inflate(-14, -14))
+        ui.frame(surface, rect, "walnut")
 
     @staticmethod
     def _bar(surface, x, y, width, value, maximum, color):

@@ -7,6 +7,7 @@ import pygame
 
 from scenes.base_scene import BaseScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
+from utils import ui
 from utils.pixel_art import NPC_SIZE, hero_sprite, sprite
 from gameplay.equipment import ARMORS, WEAPONS
 from gameplay.world_data import FIELD_ROUTES
@@ -614,19 +615,43 @@ class FieldScene(BaseScene):
                 elif position in self.field_decals():
                     surface.blit(sprite(self.field_decals()[position], (TILE_SIZE, TILE_SIZE)), rect)
 
+    PLACE_NAMES = {"village": "오크밸리 광장", "village_north_shrine": "북쪽 별빛 제단", "field": "오크밸리 들판"}
+
+    def hud_title(self):
+        if self.route_data:
+            return self.route_data["name"]
+        return self.PLACE_NAMES.get(self.world, f"슬롯 {self.game.active_slot}")
+
+    def _draw_hud(self, surface, title=None):
+        """Bottom status bar: wooden boards holding a parchment card with bars and gold."""
+        ui.plank_strip(surface, (0, self.VIEW_HEIGHT, WIDTH, HEIGHT - self.VIEW_HEIGHT))
+        body = ui.frame(surface, pygame.Rect(8, self.VIEW_HEIGHT + 6, 784, 76), "parchment")
+        font = self.game.font
+        name = f"{title or self.hud_title()}  ·  Lv.{self.level}"
+        surface.blit(font(17).render(name, True, ui.INK), (body.x + 10, body.y + 5))
+        stats_x = 330
+        for index, (label, value, maximum, color) in enumerate((
+                ("HP", self.hp, self.max_hp, (196, 72, 60)), ("MP", self.mp, self.max_mp, (70, 120, 190)))):
+            x = stats_x + index * 150
+            surface.blit(font(14).render(label, True, ui.INK_SOFT), (x, body.y + 7))
+            ui.bar(surface, pygame.Rect(x + 24, body.y + 9, 90, 10), value, maximum, color)
+            surface.blit(font(12).render(f"{value}/{maximum}", True, ui.INK_SOFT), (x + 24, body.y + 21))
+        ui.coin(surface, (stats_x + 312, body.y + 15))
+        surface.blit(font(15).render(f"{self.gold}", True, ui.INK), (stats_x + 324, body.y + 6))
+        pygame.draw.line(surface, ui.PARCHMENT_SHADE, (body.x + 8, body.y + 36), (body.x + 660, body.y + 36))
+        surface.blit(font(16).render(str(self.message), True, ui.INK_SOFT), (body.x + 10, body.y + 42))
+        self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)
+
     def _draw_dialogue(self, surface):
         if not self.dialogue_lines:
             return
         box = pygame.Rect(38, 385, 724, 116)
-        pygame.draw.rect(surface, self.game.colors["ink"], box.inflate(6, 6))
-        pygame.draw.rect(surface, self.game.colors["gold"], box.inflate(2, 2))
-        pygame.draw.rect(surface, self.game.colors["panel"], box)
-        pygame.draw.rect(surface, self.game.colors["cream"], box, 1)
+        body = ui.frame(surface, box, "parchment")
         line = self.dialogue_lines[self.dialogue_index]
         words, rows, current = line.split(), [], ""
         for word in words:
             candidate = f"{current} {word}".strip()
-            if self.game.font(18).size(candidate)[0] > box.width - 44 and current:
+            if self.game.font(18).size(candidate)[0] > body.width - 40 and current:
                 rows.append(current)
                 current = word
             else:
@@ -634,8 +659,9 @@ class FieldScene(BaseScene):
         if current:
             rows.append(current)
         for index, row in enumerate(rows[:3]):
-            self.text(surface, row, (box.x + 20, box.y + 17 + index * 25), 18, self.game.colors["cream"])
-        self.text(surface, "SPACE  \ub2e4\uc74c", (box.right - 118, box.bottom - 27), 14, self.game.colors["gold"])
+            surface.blit(self.game.font(18).render(row, True, ui.INK), (body.x + 16, body.y + 12 + index * 25))
+        hint = self.game.font(14).render("SPACE  \ub2e4\uc74c \u25bc", True, ui.WOOD_DARK)
+        surface.blit(hint, (body.right - hint.get_width() - 12, body.bottom - 22))
 
 
     def draw(self, surface):
@@ -704,10 +730,4 @@ class FieldScene(BaseScene):
                 surface.blit(sprite("flower_yellow", (22, 22)), (sx + 5, sy + 5))
 
         self._draw_dialogue(surface)
-        pygame.draw.rect(surface, self.game.colors["ink"], (0, self.VIEW_HEIGHT, WIDTH, HEIGHT - self.VIEW_HEIGHT))
-        pygame.draw.rect(surface, self.game.colors["gold"], (0, self.VIEW_HEIGHT, WIDTH, 4))
-        pygame.draw.rect(surface, self.game.colors["panel"], (8, 520, 784, 72))
-        pygame.draw.rect(surface, self.game.colors["gold"], (8, 520, 784, 72), 2)
-        self.text(surface, f"슬롯 {self.game.active_slot}  ·  Lv.{self.level}  HP {self.hp}/{self.max_hp}  MP {self.mp}/{self.max_mp}  금화 {self.gold}", (20, 526), 18)
-        self.text(surface, self.message, (20, 558), 16, self.game.colors["muted"])
-        self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)
+        self._draw_hud(surface)

@@ -1,6 +1,8 @@
 """Village equipment shop with weapon, armor, and potion purchases."""
 
 import pygame
+
+from utils import ui
 from gameplay.equipment import ARMORS, SHOP_ITEMS, WEAPONS, item_info
 from scenes.base_scene import BaseScene
 
@@ -78,12 +80,8 @@ class ShopScene(BaseScene):
     def update(self, dt):
         pass
 
-    def _frame(self, surface, rect, fill, selected=False):
-        trim = self.game.colors["gold"] if selected else self.game.colors["muted"]
-        pygame.draw.rect(surface, self.game.colors["ink"], rect.inflate(6, 6))
-        pygame.draw.rect(surface, trim, rect.inflate(3, 3))
-        pygame.draw.rect(surface, fill, rect)
-        pygame.draw.rect(surface, self.game.colors["cream"], rect, 1)
+    def _frame(self, surface, rect, fill=None, active=False):
+        ui.frame_around(surface, rect, "walnut", active)
 
     def _item_text(self, item):
         player = self.game.field

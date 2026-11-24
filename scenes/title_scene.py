@@ -1,6 +1,8 @@
 """Medieval title menu and three-slot save selector."""
 
 import pygame
+
+from utils import ui
 from scenes.base_scene import BaseScene
 from utils.pixel_art import sprite
 
@@ -109,16 +111,8 @@ class TitleScene(BaseScene):
     def update(self, dt):
         pass
 
-    def _frame(self, surface, rect, fill, active=False):
-        trim = self.game.colors["gold"] if active else self.game.colors["muted"]
-        pygame.draw.rect(surface, (14, 20, 18), rect.inflate(8, 8))
-        pygame.draw.rect(surface, trim, rect.inflate(4, 4))
-        pygame.draw.rect(surface, fill, rect)
-        pygame.draw.rect(surface, self.game.colors["cream"], rect, 1)
-        corner = 6
-        for x, y in ((rect.left, rect.top), (rect.right - corner, rect.top),
-                     (rect.left, rect.bottom - corner), (rect.right - corner, rect.bottom - corner)):
-            pygame.draw.rect(surface, self.game.colors["gold"], (x, y, corner, corner))
+    def _frame(self, surface, rect, fill=None, active=False):
+        ui.frame_around(surface, rect, "walnut", active)
 
     def _draw_background(self, surface):
         surface.fill((23, 33, 29))

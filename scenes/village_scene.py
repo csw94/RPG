@@ -307,7 +307,7 @@ class VillageScene(FieldScene):
             draw_y = 1 if gate_id == "village_north_shrine" else gy
             name = "gate_arch"
             surface.blit(sprite(name, (48, 64)), (draw_x * TILE_SIZE - 8, draw_y * TILE_SIZE - 32))
-        for position, sprite_name in ((self.VILLAGER, "villager"), (self.LOGAN, "shopkeeper")):
+        for position, sprite_name in ((self.VILLAGER, "townsfolk"), (self.LOGAN, "shopkeeper")):
             self._draw_shadow(surface, position[0] * TILE_SIZE + TILE_SIZE / 2, (position[1] + 1) * TILE_SIZE)
             surface.blit(sprite(sprite_name, NPC_SIZE),
                          (position[0] * TILE_SIZE, position[1] * TILE_SIZE - 16))

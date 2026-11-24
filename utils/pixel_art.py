@@ -810,6 +810,21 @@ def _npc_old_knight():
     return _outline(s)
 
 
+def _npc_townsfolk():
+    """Plaza villager: straw hat over blond hair, sky-blue shirt and a bread basket."""
+    s = _canvas((16, 24))
+    _person_head(s, (226, 190, 104), (248, 222, 150))
+    _person_body(s, (110, 160, 210), (150, 192, 232), (120, 90, 64))
+    _rect(s, (120, 90, 64), 5, 14, 1, 4)
+    _rect(s, (120, 90, 64), 10, 14, 1, 4)
+    _rect(s, (214, 182, 110), 1, 3, 14, 2)
+    _rect(s, (232, 204, 130), 4, 0, 8, 3)
+    _rect(s, (190, 76, 66), 4, 2, 8, 1)
+    _rect(s, (170, 120, 70), 10, 16, 5, 3)
+    _rect(s, (214, 160, 96), 11, 15, 3, 1)
+    return _outline(s)
+
+
 def _npc_merchant():
     """Toby: wide travel hat with a feather, green scarf and an overstuffed backpack."""
     s = _canvas((16, 24))
@@ -992,6 +1007,7 @@ def sprite(name, size=(32, 32)):
             "well": _well,
             "shopkeeper": _npc_shopkeeper,
             "villager": _npc_herbalist,
+            "townsfolk": _npc_townsfolk,
             "skeleton": _skeleton,
         }
         _BASE[name] = builders[name]()
