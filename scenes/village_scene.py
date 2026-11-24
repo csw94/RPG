@@ -4,7 +4,16 @@ import pygame
 from scenes.field_scene import FieldScene
 from gameplay.world_data import FIELD_ROUTES
 from settings import TILE_SIZE, WIDTH
-from utils.pixel_art import hero_sprite, sprite
+from utils.pixel_art import PALETTE, hero_sprite, sprite
+
+OUTLINE = PALETTE["outline"]
+# One cozy roof family: each building gets its own hue at the same softness and value.
+# (base, row line, shingle seam, bright eave)
+ROOFS = {
+    "cottage": ((72, 120, 126), (100, 152, 150), (54, 92, 104), (140, 190, 176)),
+    "shop": ((166, 98, 62), (200, 130, 84), (128, 72, 50), (226, 164, 106)),
+    "chief": ((160, 76, 62), (196, 106, 80), (122, 56, 50), (226, 140, 102)),
+}
 
 
 class VillageScene(FieldScene):
@@ -107,7 +116,7 @@ class VillageScene(FieldScene):
     @staticmethod
     def _draw_shingles(surface, points, bounds, colors):
         pygame.draw.polygon(surface, colors[0], points)
-        pygame.draw.polygon(surface, (72, 35, 31), points, 3)
+        pygame.draw.polygon(surface, OUTLINE, points, 3)
         left, top, width, height = bounds
         for row in range(9, height - 4, 10):
             half = width * (row / height) / 2
@@ -122,7 +131,7 @@ class VillageScene(FieldScene):
 
     @staticmethod
     def _draw_window(surface, rect, flower_box=False):
-        pygame.draw.rect(surface, (48, 45, 40), rect.inflate(6, 6))
+        pygame.draw.rect(surface, OUTLINE, rect.inflate(6, 6))
         pygame.draw.rect(surface, (93, 151, 163), rect)
         pygame.draw.rect(surface, (211, 177, 115), rect, 3)
         pygame.draw.line(surface, (235, 205, 150), rect.midtop, rect.midbottom, 2)
@@ -155,7 +164,7 @@ class VillageScene(FieldScene):
 
         # Rear chimney and shadow make the gabled silhouette stand out from the grass.
         chimney_x = x + width - 53 if shop else x + 31
-        pygame.draw.rect(surface, (68, 58, 52), (chimney_x, y + 7, 25, 61))
+        pygame.draw.rect(surface, OUTLINE, (chimney_x, y + 7, 25, 61))
         pygame.draw.rect(surface, (143, 116, 92), (chimney_x + 4, y + 12, 17, 52))
         for brick_y in range(y + 19, y + 61, 12):
             pygame.draw.line(surface, (94, 74, 61), (chimney_x + 4, brick_y),
@@ -172,7 +181,7 @@ class VillageScene(FieldScene):
             pygame.draw.line(surface, (81, 72, 65), (stone_x + 7, wall_bottom - 10),
                              (stone_x + 7, wall_bottom - 4), 1)
 
-        wall_color = (163, 119, 78) if shop else (132, 93, 63)
+        wall_color = (176, 128, 84) if shop else (150, 106, 70)
         pygame.draw.rect(surface, wall_color, (x + 20, wall_top, width - 40, wall_bottom - wall_top - 12))
         for plank_x in range(x + 23, x + width - 22, 12):
             pygame.draw.line(surface, (93, 63, 47), (plank_x, wall_top + 4),
@@ -192,12 +201,12 @@ class VillageScene(FieldScene):
             apex_x = x + width // 2
             roof_points = [(x - 7, eaves_y + 12), (apex_x, y - 4),
                            (x + width + 7, eaves_y + 12)]
+        roof = ROOFS["shop" if shop else "cottage"]
         self._draw_shingles(surface, roof_points,
-                            (x, y, width, eaves_y - y + 20),
-                            ((121, 48, 39), (175, 74, 51), (205, 104, 69)))
-        pygame.draw.line(surface, (221, 122, 77), (x + 8, eaves_y + 10),
+                            (x, y, width, eaves_y - y + 20), (roof[0], roof[1], roof[2]))
+        pygame.draw.line(surface, roof[3], (x + 8, eaves_y + 10),
                          (x + width - 8, eaves_y + 10), 4)
-        pygame.draw.line(surface, (72, 42, 36), (x + 8, eaves_y + 17),
+        pygame.draw.line(surface, OUTLINE, (x + 8, eaves_y + 17),
                          (x + width - 8, eaves_y + 17), 3)
 
         # Gable timber and a small attic vent sit above the front wall.
@@ -221,9 +230,7 @@ class VillageScene(FieldScene):
         pygame.draw.circle(surface, self.game.colors["gold"], (door_x + door_width - 7, door_y + 27), 2)
         pygame.draw.rect(surface, (191, 163, 111), (door_x - 6, wall_bottom - 5, door_width + 12, 7))
 
-    def draw(self, surface):
-        # Reuse the common HUD and player state, then paint this map over the field.
-        super().draw(surface)
+    def road_tiles(self):
         road = {(12, y) for y in range(9, 16)}
         road.update({(12, 9), (11, 9), (10, 9), (9, 8), (8, 8), (7, 8), (6, 8), (5, 8), (4, 8), (3, 8)})
         road.update({(13, 9), (14, 9), (15, 9), (16, 8), (17, 8), (18, 8), (19, 8), (20, 8), (21, 8)})
@@ -232,11 +239,50 @@ class VillageScene(FieldScene):
         road.update((7, y) for y in range(1, 10))
         road.update((x, 1) for x in range(7, 13))
         road.update({(18, 9), (18, 10), (18, 11), (19, 11), (12, 7), (12, 8)})
+        return road
+
+    def tree_kind(self, position):
+        x, y = position
+        return ("tree_round", "tree_round", "tree_fruit", "tree_pine")[(x * 5 + y * 3) % 4]
+
+    def ground_decals(self):
+        """Walkable, purely visual ground details: flowers and pebbles off the road."""
+        if getattr(self, "_decals", None) is None:
+            road = self.road_tiles()
+            blocked = self.walls | road | set(self.trees) | {self.FOUNTAIN, self.VILLAGER, self.LOGAN}
+            decals = {}
+            for y in range(1, self.ROWS - 1):
+                for x in range(1, self.COLS - 1):
+                    if (x, y) in blocked:
+                        continue
+                    roll = (x * 73 + y * 151 + x * y * 17) % 23
+                    if roll in (0, 7):
+                        decals[(x, y)] = "flower_patch" if (x + y) % 2 else "flower_patch_1"
+                    elif roll == 13:
+                        decals[(x, y)] = "pebbles"
+            self._decals = decals
+        return self._decals
+
+    def _draw_border(self, surface, x, y, rect):
+        surface.blit(sprite(f"grass_{(x * 7 + y * 13) % 16}", (TILE_SIZE, TILE_SIZE)), rect)
+        if y in (0, self.ROWS - 1):
+            surface.blit(sprite("fence", (TILE_SIZE, TILE_SIZE)), rect)
+        else:
+            surface.blit(sprite("fence_v", (TILE_SIZE, TILE_SIZE)), rect)
+
+    def _draw_shadow(self, surface, center_x, bottom_y, width=26):
+        surface.blit(sprite("shadow", (width, 10)), (round(center_x - width / 2), round(bottom_y - 7)))
+
+    def draw(self, surface):
+        # Reuse the common HUD and player state, then paint this map over the field.
+        super().draw(surface)
+        road = self.road_tiles()
+        decals = self.ground_decals()
         for y in range(self.ROWS):
             for x in range(self.COLS):
                 rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
                 if x in (0, self.COLS - 1) or y in (0, self.ROWS - 1):
-                    surface.blit(sprite("stone", (TILE_SIZE, TILE_SIZE)), rect)
+                    self._draw_border(surface, x, y, rect)
                 else:
                     surface.blit(sprite(f"grass_{(x * 7 + y * 13) % 16}", (TILE_SIZE, TILE_SIZE)), rect)
                     if (x, y) in road:
@@ -249,30 +295,35 @@ class VillageScene(FieldScene):
                                 | (64 if (x - 1, y + 1) in road else 0)
                                 | (128 if (x - 1, y - 1) in road else 0))
                         surface.blit(sprite(f"trail_{mask}_{(x + y) % 3}", (TILE_SIZE, TILE_SIZE)), rect)
-                if (x, y) in self.trees:
-                    surface.blit(sprite("tree", (48, 64)), (rect.x - 8, rect.y - 32))
+                    elif (x, y) in decals:
+                        surface.blit(sprite(decals[(x, y)], (TILE_SIZE, TILE_SIZE)), rect)
+        for tx, ty in sorted(self.trees, key=lambda p: p[1]):
+            surface.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * TILE_SIZE - 8, ty * TILE_SIZE - 32))
         self._draw_house(surface, 2, 2)
         self._draw_house(surface, 16, 2, shop=True)
         self._draw_chief_house(surface)
         self._draw_logan_stall(surface)
         fx, fy = self.FOUNTAIN
+        self._draw_shadow(surface, fx * TILE_SIZE + TILE_SIZE / 2, (fy + 1) * TILE_SIZE, 40)
         surface.blit(sprite("star_fountain", (48, 64)), (fx * TILE_SIZE - 8, fy * TILE_SIZE - 32))
         for gate_id, (gx, gy) in self.FIELD_GATES.items():
             draw_x = min(max(gx, 1), self.COLS - 2)
             draw_y = 1 if gate_id == "village_north_shrine" else gy
-            name = "portal_town"
+            name = "gate_arch"
             surface.blit(sprite(name, (48, 64)), (draw_x * TILE_SIZE - 8, draw_y * TILE_SIZE - 32))
         for position, sprite_name in ((self.VILLAGER, "villager"), (self.LOGAN, "shopkeeper")):
+            self._draw_shadow(surface, position[0] * TILE_SIZE + TILE_SIZE / 2, (position[1] + 1) * TILE_SIZE)
             surface.blit(sprite(sprite_name, (TILE_SIZE, TILE_SIZE)),
                          (position[0] * TILE_SIZE, position[1] * TILE_SIZE))
         px = round(self.player["x"] * TILE_SIZE + TILE_SIZE / 2)
         py = round((self.player["y"] + 1) * TILE_SIZE)
+        self._draw_shadow(surface, px, py)
         surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16),
                                  self.facing, int(self.walk_clock) % 2 if self.walk_clock else 0),
                      (px - TILE_SIZE // 2, py - TILE_SIZE - 16))
         for tx, ty in self.trees:
             if self.player["y"] < ty <= self.player["y"] + 1.2:
-                surface.blit(sprite("tree", (48, 64)), (tx * TILE_SIZE - 8, ty * TILE_SIZE - 32))
+                surface.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * TILE_SIZE - 8, ty * TILE_SIZE - 32))
         self._draw_dialogue(surface)
 
     def _draw_chief_house(self, surface):
@@ -281,7 +332,8 @@ class VillageScene(FieldScene):
         cx = (left + right) // 2
         ground = 7 * TILE_SIZE  # The door tile (12, 7) sits just below the front step.
         eaves = ground - 78
-        outline = (52, 33, 30)
+        outline = OUTLINE
+        roof_base, roof_line, roof_seam, roof_eave = ROOFS["chief"]
 
         # Chimney behind the left roof slope.
         pygame.draw.rect(surface, outline, (left + 42, eaves - 66, 26, 52))
@@ -307,22 +359,22 @@ class VillageScene(FieldScene):
         # Wide main roof: a trapezoid of red-brown shingles with a bright eave line.
         ridge = eaves - 60
         roof = [(left - 6, eaves + 6), (left + 54, ridge), (right - 54, ridge), (right + 6, eaves + 6)]
-        pygame.draw.polygon(surface, (124, 57, 44), roof)
+        pygame.draw.polygon(surface, roof_base, roof)
         for row, ry in enumerate(range(ridge + 8, eaves + 4, 9)):
             t = (ry - ridge) / (eaves + 6 - ridge)
             x0, x1 = left + 54 - 60 * t, right - 54 + 60 * t
-            pygame.draw.line(surface, (168, 82, 58), (round(x0), ry), (round(x1), ry), 2)
+            pygame.draw.line(surface, roof_line, (round(x0), ry), (round(x1), ry), 2)
             for sx in range(round(x0) + (6 if row % 2 else 0), round(x1), 12):
-                pygame.draw.line(surface, (92, 42, 35), (sx, ry - 7), (sx, ry - 1), 1)
+                pygame.draw.line(surface, roof_seam, (sx, ry - 7), (sx, ry - 1), 1)
         pygame.draw.polygon(surface, outline, roof, 3)
-        pygame.draw.line(surface, (206, 116, 78), (left - 2, eaves + 4), (right + 2, eaves + 4), 3)
+        pygame.draw.line(surface, roof_eave, (left - 2, eaves + 4), (right + 2, eaves + 4), 3)
 
         # Front cross gable rising above the ridge, with a half-timbered plaster face.
         apex_y = ridge - 22
         gable = [(cx - 76, eaves + 14), (cx, apex_y), (cx + 76, eaves + 14)]
         face = [(cx - 50, eaves + 2), (cx, apex_y + 26), (cx + 50, eaves + 2)]
         self._draw_shingles(surface, gable, (cx - 76, apex_y, 152, eaves + 14 - apex_y),
-                            ((134, 60, 45), (180, 92, 62), (210, 118, 80)))
+                            (roof_base, roof_line, roof_seam))
         pygame.draw.polygon(surface, (226, 212, 182), face)
         pygame.draw.polygon(surface, (92, 60, 43), face, 4)
         pygame.draw.line(surface, (92, 60, 43), (cx, apex_y + 28), (cx, eaves + 2), 4)
@@ -381,7 +433,7 @@ class VillageScene(FieldScene):
             pygame.draw.rect(surface, (74, 50, 36), (post_x, top, 5, t + 30))
         for cx, cy in self.LOGAN_CRATES:
             box = pygame.Rect(cx * t + 2, cy * t + 8, t - 4, t - 8)
-            pygame.draw.rect(surface, (64, 42, 32), box.inflate(2, 2))
+            pygame.draw.rect(surface, OUTLINE, box.inflate(2, 2))
             pygame.draw.rect(surface, (152, 102, 60), box)
             pygame.draw.line(surface, (104, 68, 44), box.topleft, box.bottomright, 2)
             pygame.draw.line(surface, (104, 68, 44), box.topright, box.bottomleft, 2)
@@ -395,8 +447,8 @@ class VillageScene(FieldScene):
         width = (right - left) / stripes
         for index in range(stripes):
             x0 = left + index * width
-            color = (196, 64, 52) if index % 2 == 0 else (238, 226, 198)
+            color = ROOFS["chief"][1] if index % 2 == 0 else (240, 228, 200)
             pygame.draw.polygon(surface, color, [(x0 + 4, top - 14), (x0 + width + 4, top - 14),
                                                  (x0 + width, top + 4), (x0, top + 4)])
             pygame.draw.circle(surface, color, (round(x0 + width / 2), top + 4), round(width / 2))
-        pygame.draw.line(surface, (62, 36, 30), (left + 4, top - 14), (right + 4, top - 14), 2)
+        pygame.draw.line(surface, OUTLINE, (left + 4, top - 14), (right + 4, top - 14), 2)

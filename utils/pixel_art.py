@@ -5,10 +5,23 @@ import pygame
 
 
 PALETTE = {
-    "grass": (62, 128, 75),
-    "grass_dark": (45, 105, 64),
-    "grass_light": (105, 164, 87),
-    "grass_gold": (180, 174, 78),
+    # Cozy, slightly warm greens (Stardew-like) instead of the older cool forest tones.
+    "grass": (110, 168, 82),
+    "grass_dark": (84, 140, 68),
+    "grass_deep": (66, 116, 62),
+    "grass_light": (146, 196, 98),
+    "grass_gold": (204, 204, 112),
+    "path": (200, 156, 104),
+    "path_light": (222, 184, 130),
+    "path_dark": (172, 128, 84),
+    "path_rim": (138, 100, 70),
+    "outline": (54, 40, 46),
+    "leaf_dark": (52, 108, 66),
+    "leaf": (78, 146, 76),
+    "leaf_light": (128, 186, 90),
+    "leaf_glint": (186, 220, 120),
+    "bark": (110, 72, 50),
+    "bark_light": (150, 104, 66),
     "dirt": (133, 91, 58),
     "dirt_light": (171, 119, 73),
     "dirt_dark": (99, 65, 49),
@@ -179,31 +192,43 @@ def _chest(opened=False):
     return surface
 
 
+def _tuft(surface, x, y, light=True):
+    """A tiny 3x2 'v' of grass blades: lit tips over a shaded base."""
+    tip = PALETTE["grass_light"] if light else PALETTE["grass_dark"]
+    _rect(surface, tip, x, y, 1, 1)
+    _rect(surface, tip, x + 2, y, 1, 1)
+    _rect(surface, PALETTE["grass_dark"], x, y + 1, 3, 1)
+    _rect(surface, PALETTE["grass_deep"], x + 1, y + 1, 1, 1)
+
+
 def _grass(variant):
+    """One shared base color for every variant, so the map never shows a checkerboard grid."""
     surface = _canvas()
-    base = PALETTE["grass"] if variant % 2 == 0 else PALETTE["grass_dark"]
-    surface.fill(base)
-    rng = random.Random(variant + 431)
-    accents = (PALETTE["grass_dark"], PALETTE["grass_light"], PALETTE["grass_gold"])
-    for _ in range(28):
-        x, y = rng.randrange(16), rng.randrange(16)
-        surface.set_at((x, y), accents[rng.randrange(len(accents))])
-    # Short, two pixel blades read as tufts instead of smooth noise.
-    for x, y in ((2, 3), (11, 12), (6, 8)):
-        if (x + y + variant) % 2 == 0:
-            _rect(surface, PALETTE["grass_light"], x, y, 1, 2)
+    surface.fill(PALETTE["grass"])
+    rng = random.Random(variant * 7919 + 431)
+    # Soft mottling: small 2-pixel smudges, never single noisy dots.
+    for _ in range(6):
+        x, y = rng.randrange(15), rng.randrange(16)
+        _rect(surface, PALETTE["grass_dark"] if rng.random() < 0.6 else PALETTE["grass_light"], x, y, 2, 1)
+    for _ in range(rng.choice((1, 2, 2, 3))):
+        _tuft(surface, rng.randrange(1, 13), rng.randrange(1, 14), rng.random() < 0.7)
+    if variant % 5 == 0:
+        fx, fy = rng.randrange(2, 14), rng.randrange(2, 14)
+        surface.set_at((fx, fy), rng.choice(((250, 240, 210), (246, 206, 96), (236, 150, 160))))
     return surface
 
 
 def _path(variant=0):
     surface = _canvas()
-    surface.fill((132, 91, 57))
+    surface.fill(PALETTE["path"])
     rng = random.Random(variant + 944)
-    for _ in range(34):
-        x, y = rng.randrange(16), rng.randrange(16)
-        color = rng.choice(((154, 109, 68), (111, 75, 51), (174, 128, 80), (126, 84, 55)))
-        _rect(surface, color, x, y, rng.choice((1, 1, 2)), 1)
-    _rect(surface, (100, 69, 48), 0, 15, 16, 1)
+    for _ in range(10):
+        x, y = rng.randrange(15), rng.randrange(16)
+        _rect(surface, rng.choice((PALETTE["path_light"], PALETTE["path_dark"])), x, y, rng.choice((1, 2)), 1)
+    for _ in range(2):
+        x, y = rng.randrange(1, 14), rng.randrange(1, 14)
+        _rect(surface, PALETTE["path_light"], x, y, 2, 1)
+        _rect(surface, PALETTE["path_rim"], x, y + 1, 2, 1)
     return surface
 
 
@@ -225,18 +250,21 @@ def _terrain_overlay(mask, water=False, variant=0):
     if water:
         fill = (48, 111, 132)
         accents = ((58, 134, 148), (76, 150, 157), (37, 96, 125))
+        rim = (176, 216, 204)
     else:
-        fill = (132, 91, 57)
-        accents = ((154, 109, 68), (111, 75, 51), (174, 128, 80))
-    pygame.draw.ellipse(surface, fill, (0, 0, 16, 16))
+        fill = PALETTE["path"]
+        accents = (PALETTE["path_light"], PALETTE["path_dark"], PALETTE["path_light"])
+        rim = PALETTE["path_rim"]
+    # Full-width arms with a rounded core keep straight roads even (no "beads").
+    pygame.draw.rect(surface, fill, (2, 2, 12, 12), border_radius=4)
     if mask & 1:
-        _rect(surface, fill, 4, 0, 8, 9)
+        _rect(surface, fill, 2, 0, 12, 9)
     if mask & 2:
-        _rect(surface, fill, 7, 4, 9, 8)
+        _rect(surface, fill, 7, 2, 9, 12)
     if mask & 4:
-        _rect(surface, fill, 4, 7, 8, 9)
+        _rect(surface, fill, 2, 7, 12, 9)
     if mask & 8:
-        _rect(surface, fill, 0, 4, 9, 8)
+        _rect(surface, fill, 0, 2, 9, 12)
     if mask & 16:
         pygame.draw.polygon(surface, fill, ((8, 0), (16, 0), (16, 8)))
     if mask & 32:
@@ -250,28 +278,193 @@ def _terrain_overlay(mask, water=False, variant=0):
         x, y = rng.randrange(1, 15), rng.randrange(1, 15)
         if surface.get_at((x, y)).a:
             _rect(surface, rng.choice(accents), x, y, rng.choice((1, 2)), 1)
+    # A 1px rim wherever the patch meets grass inside this tile (the tile border
+    # itself is treated as "continues", so neighbouring patches join seamlessly).
+    solid = [[surface.get_at((x, y)).a > 0 for x in range(16)] for y in range(16)]
+    for y in range(16):
+        for x in range(16):
+            if not solid[y][x]:
+                continue
+            for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if 0 <= nx < 16 and 0 <= ny < 16 and not solid[ny][nx]:
+                    surface.set_at((x, y), rim)
+                    break
     if water:
         _rect(surface, (139, 190, 176), 5, 5, 2, 1)
         _rect(surface, (119, 176, 166), 10, 10, 2, 1)
     return surface
 
 
-def _tree():
-    """Layered broadleaf tree, with a transparent shadow and pixel highlights."""
+def _soft_shadow(surface, rect, alpha=80):
+    """Translucent ground ellipse; a darker core makes it read as soft, not a flat blob."""
+    pygame.draw.ellipse(surface, (34, 52, 36, alpha), rect)
+    inner = pygame.Rect(rect).inflate(-max(2, rect[2] // 3), -2)
+    pygame.draw.ellipse(surface, (34, 52, 36, min(255, alpha + 40)), inner)
+
+
+def _blob(surface, circles, tones):
+    """Draw a rounded canopy: dark outline ring, shaded body, lit upper-left, glints."""
+    outline, dark, mid, light, glint = tones
+    for cx, cy, r in circles:
+        pygame.draw.circle(surface, outline, (cx, cy), r + 1)
+    for cx, cy, r in circles:
+        pygame.draw.circle(surface, dark, (cx, cy), r)
+    for cx, cy, r in circles:
+        pygame.draw.circle(surface, mid, (cx - 1, cy - 1), max(1, r - 2))
+    for cx, cy, r in circles:
+        pygame.draw.circle(surface, light, (cx - max(1, r // 3), cy - max(1, r // 3)), max(1, r // 2 - 1))
+    for cx, cy, r in circles:
+        if r >= 4:
+            _rect(surface, glint, cx - r // 2, cy - r // 2, 2, 1)
+
+
+def _leaf_tones():
+    return (PALETTE["outline"], PALETTE["leaf_dark"], PALETTE["leaf"], PALETTE["leaf_light"], PALETTE["leaf_glint"])
+
+
+def _trunk(surface, x, top, bottom):
+    _rect(surface, PALETTE["outline"], x - 1, top, 6, bottom - top + 1)
+    _rect(surface, PALETTE["bark"], x, top, 4, bottom - top)
+    _rect(surface, PALETTE["bark_light"], x + 1, top, 1, bottom - top - 1)
+    # Little roots flare at the base.
+    _rect(surface, PALETTE["outline"], x - 2, bottom - 1, 2, 1)
+    _rect(surface, PALETTE["outline"], x + 4, bottom - 1, 2, 1)
+
+
+def _tree(kind="round"):
+    """Cozy round-canopy tree (24x32) with outline, three-tone shading and a soft shadow."""
     surface = _canvas((24, 32))
-    _rect(surface, (36, 67, 41, 100), 3, 26, 18, 4)
-    _rect(surface, (96, 66, 43), 10, 18, 5, 12)
-    _rect(surface, (145, 97, 52), 11, 20, 2, 7)
-    for x, y, w, h, color in (
-        (4, 7, 16, 12, (31, 87, 49)), (2, 10, 20, 11, (43, 113, 58)),
-        (5, 4, 14, 14, (56, 136, 66)), (7, 2, 10, 7, (82, 158, 74)),
-        (3, 13, 7, 6, (37, 101, 53)), (14, 12, 7, 7, (34, 99, 51)),
-    ):
-        _rect(surface, color, x, y, w, h)
-    for x, y in ((7, 4), (10, 7), (15, 5), (5, 11), (12, 12), (17, 10), (8, 15)):
-        _rect(surface, (112, 177, 83), x, y, 2, 2)
-    for x, y in ((10, 9), (15, 13), (5, 14)):
-        _rect(surface, (220, 192, 94), x, y, 1, 1)
+    _soft_shadow(surface, (2, 25, 20, 6))
+    if kind == "pine":
+        _trunk(surface, 10, 22, 29)
+        tiers = ((12, 2, 5, 9), (12, 7, 8, 14), (12, 12, 10, 21))
+        for cx, top, half, bottom in tiers:
+            pygame.draw.polygon(surface, PALETTE["outline"],
+                                ((cx, top - 1), (cx + half + 1, bottom + 1), (cx - half - 1, bottom + 1)))
+        for cx, top, half, bottom in tiers:
+            pygame.draw.polygon(surface, (46, 100, 72), ((cx, top), (cx + half, bottom), (cx - half, bottom)))
+            pygame.draw.polygon(surface, (66, 130, 84), ((cx, top + 1), (cx - 1, bottom - 1), (cx - half + 2, bottom - 1)))
+            _rect(surface, (120, 176, 104), cx - 2, top + 3, 1, 2)
+        return surface
+    _trunk(surface, 10, 18, 29)
+    _blob(surface, ((12, 11, 8), (6, 15, 5), (18, 15, 5), (12, 16, 6)), _leaf_tones())
+    if kind == "fruit":
+        for x, y in ((7, 9), (15, 8), (11, 14), (17, 16), (6, 17)):
+            _rect(surface, (204, 64, 60), x, y, 2, 2)
+            surface.set_at((x, y), (250, 150, 130))
+    return surface
+
+
+def _bush():
+    surface = _canvas()
+    _soft_shadow(surface, (1, 11, 14, 5))
+    _blob(surface, ((5, 9, 4), (10, 8, 4), (8, 6, 4)), _leaf_tones())
+    for x, y in ((5, 7), (10, 6)):
+        surface.set_at((x, y), (250, 232, 200))
+    return surface
+
+
+def _flower_patch(variant=0):
+    surface = _canvas()
+    rng = random.Random(variant + 77)
+    petals = ((250, 240, 214), (246, 206, 96), (236, 150, 168), (170, 160, 236))
+    for _ in range(4):
+        x, y = rng.randrange(2, 13), rng.randrange(3, 13)
+        color = rng.choice(petals)
+        _rect(surface, PALETTE["grass_deep"], x + 1, y + 2, 1, 2)
+        surface.set_at((x + 1, y), color)
+        surface.set_at((x, y + 1), color)
+        surface.set_at((x + 2, y + 1), color)
+        surface.set_at((x + 1, y + 1), (246, 206, 96) if color != (246, 206, 96) else (210, 120, 60))
+    return surface
+
+
+def _pebbles(variant=0):
+    surface = _canvas()
+    rng = random.Random(variant + 300)
+    for _ in range(3):
+        x, y = rng.randrange(2, 12), rng.randrange(4, 13)
+        w = rng.choice((2, 3))
+        _rect(surface, (120, 118, 112), x, y + 1, w, 1)
+        _rect(surface, (176, 172, 160), x, y, w, 1)
+    return surface
+
+
+def _shadow():
+    surface = _canvas((16, 8))
+    _soft_shadow(surface, (1, 1, 14, 6), 70)
+    return surface
+
+
+def _fence(vertical=False):
+    surface = _canvas()
+    post, post_light, rail = (128, 86, 56), (176, 128, 82), (156, 108, 70)
+    if vertical:
+        _rect(surface, PALETTE["outline"], 6, 0, 4, 16)
+        _rect(surface, rail, 7, 0, 2, 16)
+        _rect(surface, post_light, 7, 0, 1, 16)
+        _rect(surface, PALETTE["outline"], 5, 2, 6, 7)
+        _rect(surface, post, 6, 2, 4, 6)
+        _rect(surface, post_light, 6, 2, 4, 1)
+        return surface
+    for y in (5, 10):
+        _rect(surface, PALETTE["outline"], 0, y - 1, 16, 3)
+        _rect(surface, post_light if y == 5 else rail, 0, y, 16, 1)
+    for x in (2, 10):
+        _rect(surface, PALETTE["outline"], x - 1, 2, 5, 12)
+        _rect(surface, post, x, 3, 3, 10)
+        _rect(surface, post_light, x, 3, 1, 9)
+    _rect(surface, (34, 52, 36, 70), 0, 14, 16, 2)
+    return surface
+
+
+def _gate_arch():
+    """Village entrance: two timber posts on stone footings under a small shingled cap.
+
+    The middle stays transparent so the road visibly runs through the gate.
+    """
+    surface = _canvas((24, 32))
+    o = PALETTE["outline"]
+    post, post_light = (128, 86, 56), (176, 128, 82)
+    for x in (3, 17):
+        _soft_shadow(surface, (x - 2, 28, 8, 4), 70)
+        _rect(surface, o, x - 1, 8, 6, 22)
+        _rect(surface, post, x, 9, 4, 18)
+        _rect(surface, post_light, x, 9, 1, 17)
+        # Stone footing with a mossy lip.
+        _rect(surface, o, x - 2, 25, 8, 6)
+        _rect(surface, (150, 146, 136), x - 1, 26, 6, 4)
+        _rect(surface, (186, 182, 168), x - 1, 26, 6, 1)
+        _rect(surface, PALETTE["leaf_light"], x - 1, 25, 3, 1)
+    # Cross beam and a little roof cap in the cottage teal.
+    _rect(surface, o, 1, 8, 22, 4)
+    _rect(surface, post, 2, 9, 20, 2)
+    _rect(surface, post_light, 2, 9, 20, 1)
+    pygame.draw.polygon(surface, o, ((0, 8), (4, 2), (19, 2), (23, 8)))
+    pygame.draw.polygon(surface, (72, 120, 126), ((2, 7), (5, 3), (18, 3), (21, 7)))
+    _rect(surface, (100, 152, 150), 5, 4, 14, 1)
+    _rect(surface, (140, 190, 176), 3, 6, 18, 1)
+    # Hanging lantern gives the entrance a warm focal point.
+    _rect(surface, o, 11, 12, 1, 2)
+    _rect(surface, o, 10, 14, 4, 4)
+    _rect(surface, (248, 210, 120), 11, 15, 2, 2)
+    # Climbing vine on the left post.
+    for y in (13, 16, 19):
+        _rect(surface, PALETTE["leaf"], 2, y, 2, 2)
+        surface.set_at((2, y), PALETTE["leaf_light"])
+    surface.set_at((3, 17), (236, 150, 168))
+    return surface
+
+
+def _barrel():
+    surface = _canvas()
+    _soft_shadow(surface, (2, 11, 12, 5))
+    _rect(surface, PALETTE["outline"], 3, 2, 10, 12)
+    _rect(surface, (150, 98, 60), 4, 3, 8, 10)
+    _rect(surface, (186, 132, 82), 5, 3, 2, 10)
+    _rect(surface, (110, 112, 118), 4, 5, 8, 1)
+    _rect(surface, (110, 112, 118), 4, 10, 8, 1)
+    _rect(surface, (100, 66, 44), 4, 3, 8, 1)
     return surface
 
 
@@ -599,6 +792,18 @@ def sprite(name, size=(32, 32)):
             "water_0": lambda: _water(0),
             "water_1": lambda: _water(1),
             "tree": _tree,
+            "tree_round": _tree,
+            "tree_fruit": lambda: _tree("fruit"),
+            "tree_pine": lambda: _tree("pine"),
+            "bush": _bush,
+            "flower_patch": _flower_patch,
+            "flower_patch_1": lambda: _flower_patch(1),
+            "pebbles": _pebbles,
+            "shadow": _shadow,
+            "fence": _fence,
+            "fence_v": lambda: _fence(True),
+            "barrel": _barrel,
+            "gate_arch": _gate_arch,
             "rock": _rock,
             "portal_town": lambda: _portal("town"),
             "portal_dungeon": lambda: _portal("dungeon"),

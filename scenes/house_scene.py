@@ -4,12 +4,66 @@ import pygame
 
 from scenes.field_scene import FieldScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
-from utils.pixel_art import hero_sprite, sprite
+from utils.interior_art import interior_sprite
+from utils.pixel_art import PALETTE, hero_sprite, sprite
+
+
+def _item(name, x, y, w=1, h=1, solid=True):
+    return {"sprite": name, "x": x, "y": y, "w": w, "h": h, "solid": solid}
+
+
+# Every house shares one compact room. Furniture standing against the back wall is two
+# tiles tall (its top half overlaps the wall face); only the floor half is solid.
+# Both the drawing and the collision are derived from these lists.
+LAYOUTS = {
+    "village_house_1": {  # Marta's herb cottage
+        "wall": "wall_cottage",
+        "items": (
+            _item("window", 9, 1, 1, 2, False), _item("window", 16, 1, 1, 2, False),
+            _item("herb_shelf", 5, 2, 2, 2), _item("bookshelf", 12, 2, 2, 2),
+            _item("bed_green", 18, 2, 2, 3),
+            _item("rug_green_3x2", 11, 10, 3, 2, False),
+            _item("worktable", 8, 5, 2, 2), _item("cauldron", 5, 6), _item("jars", 5, 8),
+            _item("crate", 5, 9), _item("table", 14, 8, 2, 2),
+            _item("chair_right", 13, 8), _item("chair_left", 16, 8),
+            _item("barrel", 19, 7), _item("plant_pot", 19, 6),
+            _item("plant_pot", 5, 13), _item("plant_pot", 19, 13),
+        ),
+    },
+    "village_house_2": {  # Garen's quarters
+        "wall": "wall_stone",
+        "items": (
+            _item("window", 8, 1, 1, 2, False), _item("window", 16, 1, 1, 2, False),
+            _item("banner", 10, 1, 1, 2, False), _item("banner", 14, 1, 1, 2, False),
+            _item("bed_red", 5, 2, 2, 3), _item("chest", 7, 3),
+            _item("fireplace", 11, 2, 3, 2), _item("weapon_rack", 17, 2, 2, 2),
+            _item("barrel", 19, 3), _item("crate", 19, 4),
+            _item("rug_blue_5x3", 10, 6, 5, 3, False),
+            _item("armor_stand", 5, 8, 1, 2), _item("armor_stand", 19, 8, 1, 2),
+            _item("map_table", 15, 10, 3, 2), _item("chair_right", 14, 10),
+            _item("plant_pot", 5, 13), _item("barrel", 19, 13),
+        ),
+    },
+    "village_chief_house": {  # Chief Valen's office
+        "wall": "wall_plaster",
+        "items": (
+            _item("window", 9, 1, 1, 2, False), _item("window", 15, 1, 1, 2, False),
+            _item("wall_map", 11, 1, 3, 2, False),
+            _item("bookshelf", 5, 2, 2, 2), _item("bookshelf", 7, 2, 2, 2),
+            _item("bookshelf", 16, 2, 2, 2), _item("cabinet", 18, 2, 2, 2),
+            _item("desk", 11, 4, 3, 2), _item("globe", 6, 5), _item("plant_pot", 19, 5),
+            _item("rug_red_5x3", 10, 8, 5, 3, False),
+            _item("bench", 5, 10, 2, 1), _item("chest", 19, 10),
+            _item("plant_pot", 5, 13), _item("plant_pot", 19, 13),
+        ),
+    },
+}
 
 
 class HouseInteriorScene(FieldScene):
     COLS, ROWS = 25, 16
     DOOR = (12, 14)
+    ROOM = (5, 3, 19, 13)  # walkable floor: left, top, right, bottom (inclusive)
 
     def __init__(self, game, state=None):
         state = dict(state or {})
@@ -25,26 +79,25 @@ class HouseInteriorScene(FieldScene):
         # Marta keeps the herb cottage; Garen lives alone in house 2; Valen in the chief's house.
         self.npcs = ((7, 6),) if self.house_id == "village_house_1" else ((12, 6),)
         self.solid_npcs = set(self.npcs)
+        left, top, right, bottom = self.ROOM
         self.walls = {
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)
-            if x in (0, self.COLS - 1) or y in (0, self.ROWS - 1)
+            if not (left <= x <= right and top <= y <= bottom)
         }
-        self._build_furniture_collision()
+        self.walls.discard(self.DOOR)
+        self.layout = LAYOUTS[self.house_id]["items"]
+        for item in self.layout:
+            self.walls.update(self.solid_tiles(item))
+        self.walls.difference_update({(12, 13), *self.npcs})
         self._restore_player_position((12, 12))
 
-    def _build_furniture_collision(self):
-        if self.house_id == "village_house_1":
-            self.walls.update({(x, y) for x in range(2, 6) for y in range(2, 4)})
-            self.walls.update({(x, y) for x in range(19, 23) for y in range(2, 4)})
-            self.walls.update({(x, 8) for x in range(3, 8)})
-            self.walls.update({(12, y) for y in range(2, 7) if y != 5})
-        elif self.house_id == "village_house_2":
-            self.walls.update({(x, y) for x in range(2, 6) for y in range(2, 5)})      # bed
-            self.walls.update({(x, y) for x in range(9, 16) for y in range(2, 4)})     # hearth
-            self.walls.update({(x, y) for x in range(19, 23) for y in range(2, 4)})    # weapon rack
-            self.walls.update({(3, 9), (3, 10), (21, 9), (21, 10)})                    # armor stands
-            self.walls.update({(x, y) for x in range(17, 20) for y in range(11, 13)})  # map table
-        self.walls.difference_update({(12, 13), *self.npcs})
+    def solid_tiles(self, item):
+        """Floor tiles a furniture item blocks (wall-face parts never count)."""
+        if not item["solid"]:
+            return set()
+        top = self.ROOM[1]
+        return {(x, y) for x in range(item["x"], item["x"] + item["w"])
+                for y in range(max(top, item["y"]), item["y"] + item["h"])}
 
     def serialize(self):
         state = super().serialize()
@@ -144,123 +197,70 @@ class HouseInteriorScene(FieldScene):
     def update(self, dt):
         super().update(dt)
 
-    @staticmethod
-    def _wood_floor(surface):
-        for y in range(16):
-            for x in range(25):
-                rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-                color = (105, 73, 53) if (x + y) % 2 else (119, 83, 58)
-                pygame.draw.rect(surface, color, rect)
-                pygame.draw.line(surface, (84, 58, 45), (rect.x + 2, rect.y + 9),
-                                 (rect.right - 2, rect.y + 9), 1)
-                pygame.draw.line(surface, (139, 100, 67), (rect.x + 4, rect.y + 25),
-                                 (rect.right - 3, rect.y + 25), 1)
-        pygame.draw.rect(surface, (48, 37, 34), (0, 0, WIDTH, 32))
-        pygame.draw.rect(surface, (76, 59, 48), (0, 32, WIDTH, 5))
-        pygame.draw.rect(surface, (48, 37, 34), (0, 0, 32, 512))
-        pygame.draw.rect(surface, (48, 37, 34), (WIDTH - 32, 0, 32, 512))
-        pygame.draw.rect(surface, (119, 83, 58), (11 * TILE_SIZE, 13 * TILE_SIZE, 3 * TILE_SIZE, TILE_SIZE))
-        pygame.draw.rect(surface, (81, 54, 43), (11 * TILE_SIZE, 14 * TILE_SIZE, 3 * TILE_SIZE, TILE_SIZE))
-        pygame.draw.rect(surface, (175, 134, 86), (12 * TILE_SIZE + 5, 13 * TILE_SIZE, TILE_SIZE - 10, TILE_SIZE))
 
-    def _draw_quest_cottage(self, surface):
-        # Bed alcoves, a shared rug, herb shelves, and a work table.
-        pygame.draw.rect(surface, (63, 45, 36), (12 * TILE_SIZE - 5, 2 * TILE_SIZE, 10, 3 * TILE_SIZE))
-        pygame.draw.rect(surface, (63, 45, 36), (12 * TILE_SIZE - 5, 6 * TILE_SIZE, 10, TILE_SIZE))
-        pygame.draw.rect(surface, (79, 54, 40), (7 * TILE_SIZE, 2 * TILE_SIZE, 4 * TILE_SIZE, 3))
-        pygame.draw.rect(surface, (79, 54, 40), (7 * TILE_SIZE, 3 * TILE_SIZE, 4 * TILE_SIZE, 3))
-        for index, color in enumerate(((177, 75, 54), (201, 162, 78), (82, 129, 104), (97, 125, 157), (182, 119, 65))):
-            pygame.draw.rect(surface, color, (7 * TILE_SIZE + 5 + index * 20, 2 * TILE_SIZE - 8, 12, 8))
-        for x in (2, 19):
-            pygame.draw.rect(surface, (54, 42, 37), (x * TILE_SIZE - 3, 2 * TILE_SIZE - 3, 4 * TILE_SIZE + 6, 3 * TILE_SIZE + 6))
-            pygame.draw.rect(surface, (133, 89, 60), (x * TILE_SIZE, 2 * TILE_SIZE, 4 * TILE_SIZE, 3 * TILE_SIZE))
-            pygame.draw.rect(surface, (190, 190, 166), (x * TILE_SIZE + 5, 2 * TILE_SIZE + 5, 4 * TILE_SIZE - 10, 24))
-            pygame.draw.rect(surface, (103, 139, 156), (x * TILE_SIZE + 5, 2 * TILE_SIZE + 30, 4 * TILE_SIZE - 10, 57))
-            pygame.draw.rect(surface, (76, 52, 43), (x * TILE_SIZE + 5, 2 * TILE_SIZE + 30, 4 * TILE_SIZE - 10, 57), 3)
-        pygame.draw.rect(surface, (133, 53, 43), (8 * TILE_SIZE, 7 * TILE_SIZE, 8 * TILE_SIZE, 3 * TILE_SIZE))
-        pygame.draw.rect(surface, (206, 157, 91), (8 * TILE_SIZE, 7 * TILE_SIZE, 8 * TILE_SIZE, 3 * TILE_SIZE), 3)
-        for index in range(6):
-            pygame.draw.rect(surface, (81, 54, 42), (2 * TILE_SIZE, 6 * TILE_SIZE + index * 3, 4 * TILE_SIZE, 2))
-            pygame.draw.rect(surface, (117, 147, 74), (2 * TILE_SIZE + 8 + index * 16, 6 * TILE_SIZE - 5, 7, 8))
-        for index, color in enumerate(((181, 113, 68), (206, 182, 129), (113, 143, 105))):
-            pygame.draw.rect(surface, (68, 49, 39), (6 * TILE_SIZE + index * 15, 6 * TILE_SIZE, 12, 18))
-            pygame.draw.rect(surface, color, (6 * TILE_SIZE + 2 + index * 15, 6 * TILE_SIZE + 4, 8, 11))
-        pygame.draw.rect(surface, (70, 46, 36), (9 * TILE_SIZE, 5 * TILE_SIZE, 5 * TILE_SIZE, 2 * TILE_SIZE))
-        pygame.draw.rect(surface, (157, 111, 67), (9 * TILE_SIZE + 4, 5 * TILE_SIZE + 4, 5 * TILE_SIZE - 8, 2 * TILE_SIZE - 8))
-        pygame.draw.rect(surface, (75, 48, 38), (11 * TILE_SIZE, 12 * TILE_SIZE, 3 * TILE_SIZE, TILE_SIZE))
-
-    def _draw_knight_quarters(self, surface):
-        # A soldier's bed, stone hearth under the kingdom banner, a weapon rack,
-        # two old armor stands and the table where Garen keeps his maps.
+    def _draw_room(self, surface):
         t = TILE_SIZE
-        pygame.draw.rect(surface, (54, 42, 37), (2 * t - 3, 2 * t - 3, 4 * t + 6, 3 * t + 6))
-        pygame.draw.rect(surface, (109, 78, 55), (2 * t, 2 * t, 4 * t, 3 * t))
-        pygame.draw.rect(surface, (196, 194, 176), (2 * t + 6, 2 * t + 5, 4 * t - 12, 20))
-        pygame.draw.rect(surface, (122, 46, 44), (2 * t + 6, 2 * t + 28, 4 * t - 12, 3 * t - 34))
-        pygame.draw.line(surface, (210, 170, 92), (2 * t + 6, 2 * t + 40), (6 * t - 6, 2 * t + 40), 2)
+        left, top, right, bottom = self.ROOM
+        for y in range(top, bottom + 1):
+            for x in range(left, right + 1):
+                surface.blit(interior_sprite(f"floor_{(x * 3 + y * 5) % 3}"), (x * t, y * t))
+        wall = LAYOUTS[self.house_id]["wall"]
+        for x in range(left, right + 1):
+            surface.blit(interior_sprite(wall), (x * t, (top - 2) * t))
+        # A soft shade along the foot of the back wall gives the room depth.
+        shade = pygame.Surface(((right - left + 1) * t, 10), pygame.SRCALPHA)
+        shade.fill((40, 26, 30, 60))
+        surface.blit(shade, (left * t, top * t))
+        # Thick wall tops seen from above frame the room; the doorway is cut into the front.
+        rim, cap = PALETTE["outline"], (98, 74, 66)
+        frame_top = (top - 2) * t - 12
+        frame_bottom = (bottom + 1) * t + 12
+        pygame.draw.rect(surface, rim, (left * t - 12, frame_top, (right - left + 1) * t + 24, 12))
+        pygame.draw.rect(surface, rim, (left * t - 12, frame_top, 12, frame_bottom - frame_top))
+        pygame.draw.rect(surface, rim, ((right + 1) * t, frame_top, 12, frame_bottom - frame_top))
+        pygame.draw.rect(surface, rim, (left * t - 12, (bottom + 1) * t, (right - left + 1) * t + 24, 12))
+        pygame.draw.rect(surface, cap, (left * t - 10, frame_top + 2, (right - left + 1) * t + 20, 3))
+        dx, dy = self.DOOR
+        surface.blit(interior_sprite("doorway"), (dx * t, dy * t))
 
-        pygame.draw.rect(surface, (78, 76, 78), (9 * t, t + 12, 7 * t, 2 * t + 20))
-        for row in range(3):
-            for col in range(7):
-                pygame.draw.rect(surface, (118, 115, 112) if (row + col) % 2 else (102, 99, 98),
-                                 (9 * t + 4 + col * t - (row % 2) * 10, t + 16 + row * 18, t - 6, 14))
-        pygame.draw.rect(surface, (36, 28, 27), (11 * t, 2 * t + 8, 3 * t, t + 16))
-        pygame.draw.polygon(surface, (219, 104, 44), [(11 * t + 14, 3 * t + 24), (12 * t + 16, 2 * t + 14),
-                                                      (13 * t + 18, 3 * t + 24)])
-        pygame.draw.polygon(surface, (248, 186, 72), [(12 * t, 3 * t + 24), (12 * t + 16, 2 * t + 28),
-                                                      (13 * t, 3 * t + 24)])
-        banner = pygame.Rect(12 * t + 2, t - 22, t - 4, 40)
-        pygame.draw.rect(surface, (39, 66, 124), banner)
-        pygame.draw.polygon(surface, (39, 66, 124), [banner.bottomleft, (banner.centerx, banner.bottom + 8),
-                                                     banner.bottomright])
-        pygame.draw.circle(surface, self.game.colors["gold"], (banner.centerx, banner.y + 18), 6, 2)
-
-        pygame.draw.rect(surface, (55, 39, 33), (19 * t, 2 * t, 4 * t, 2 * t))
-        for index in range(4):
-            px = 19 * t + 14 + index * 30
-            pygame.draw.line(surface, (190, 196, 198), (px, 2 * t + 6), (px, 4 * t - 4), 4)
-            pygame.draw.line(surface, (140, 98, 58), (px - 7, 3 * t + 6), (px + 7, 3 * t + 6), 3)
-            pygame.draw.rect(surface, (120, 78, 46), (px - 2, 3 * t + 8, 4, 12))
-
-        for sx in (3, 21):
-            cx = sx * t + t // 2
-            pygame.draw.line(surface, (78, 56, 42), (cx, 9 * t), (cx, 11 * t), 4)
-            pygame.draw.rect(surface, (64, 58, 52), (cx - 14, 10 * t + 20, 28, 8))
-            pygame.draw.rect(surface, (138, 148, 150), (cx - 12, 9 * t + 2, 24, 26))
-            pygame.draw.rect(surface, (186, 194, 194), (cx - 8, 9 * t + 5, 8, 18))
-            pygame.draw.rect(surface, (120, 128, 132), (cx - 9, 8 * t + 8, 18, 18))
-            pygame.draw.rect(surface, (40, 42, 46), (cx - 6, 8 * t + 15, 12, 3))
-
-        pygame.draw.rect(surface, (39, 66, 124), (7 * t, 6 * t + 16, 11 * t, 4 * t))
-        pygame.draw.rect(surface, (196, 164, 98), (7 * t, 6 * t + 16, 11 * t, 4 * t), 3)
-        pygame.draw.rect(surface, (64, 44, 34), (17 * t, 11 * t, 3 * t, 2 * t))
-        pygame.draw.rect(surface, (150, 104, 62), (17 * t + 4, 11 * t + 4, 3 * t - 8, 2 * t - 8))
-        pygame.draw.rect(surface, (222, 204, 160), (17 * t + 14, 11 * t + 10, 40, 28))
-        pygame.draw.line(surface, (140, 98, 58), (17 * t + 20, 11 * t + 18), (17 * t + 46, 11 * t + 30), 2)
+    def _draw_window_light(self, surface):
+        t = TILE_SIZE
+        glow = pygame.Surface((3 * t, 3 * t), pygame.SRCALPHA)
+        pygame.draw.polygon(glow, (255, 236, 170, 34), ((t, 0), (2 * t, 0), (3 * t, 3 * t), (0, 3 * t)))
+        for item in self.layout:
+            if item["sprite"] == "window":
+                surface.blit(glow, ((item["x"] - 1) * t, self.ROOM[1] * t))
 
     def draw(self, surface):
-        surface.fill((38, 31, 29))
-        self._wood_floor(surface)
-        if self.house_id == "village_house_1":
-            self._draw_quest_cottage(surface)
-            title = "약초상의 오두막"
-            sprites = ("villager",)
-        elif self.house_id == "village_house_2":
-            self._draw_knight_quarters(surface)
-            title = "노기사 가렌의 거처"
-            sprites = ("old_knight",)
-        else:
-            self._draw_chief_office(surface)
-            title = "촌장 발렌의 집"
-            sprites = ("chief",)
-        for position, sprite_name in zip(self.npcs, sprites):
-            surface.blit(sprite(sprite_name, (TILE_SIZE, TILE_SIZE)),
-                         (position[0] * TILE_SIZE, position[1] * TILE_SIZE))
-        px = round(self.player["x"] * TILE_SIZE + TILE_SIZE / 2)
-        py = round((self.player["y"] + 1) * TILE_SIZE)
-        surface.blit(hero_sprite(self.weapon, self.armor, (TILE_SIZE, TILE_SIZE + 16), self.facing,
-                                 int(self.walk_clock) % 2 if self.walk_clock else 0),
-                     (px - TILE_SIZE // 2, py - TILE_SIZE - 16))
+        surface.fill((24, 18, 22))
+        self._draw_room(surface)
+        title, npc_sprite = {
+            "village_house_1": ("약초상의 오두막", "villager"),
+            "village_house_2": ("노기사 가렌의 거처", "old_knight"),
+            "village_chief_house": ("촌장 발렌의 집", "chief"),
+        }[self.house_id]
+        t = TILE_SIZE
+        flat = [item for item in self.layout if not item["solid"]]
+        for item in flat:
+            surface.blit(interior_sprite(item["sprite"]), (item["x"] * t, item["y"] * t))
+        self._draw_window_light(surface)
+        # Depth-sort furniture, the NPC and the hero by their bottom edge.
+        actors = [(item["y"] + item["h"], 0, "item", item) for item in self.layout if item["solid"]]
+        actors += [(y + 1, 1, "npc", (x, y)) for x, y in self.npcs]
+        actors.append((self.player["y"] + 1, 1, "hero", None))
+        for _bottom, _order, kind, data in sorted(actors, key=lambda a: (a[0], a[1])):
+            if kind == "item":
+                surface.blit(interior_sprite(data["sprite"]), (data["x"] * t, data["y"] * t))
+            elif kind == "npc":
+                surface.blit(sprite("shadow", (26, 10)), (data[0] * t + 3, (data[1] + 1) * t - 7))
+                surface.blit(sprite(npc_sprite, (t, t)), (data[0] * t, data[1] * t))
+            else:
+                px = round(self.player["x"] * t + t / 2)
+                py = round((self.player["y"] + 1) * t)
+                surface.blit(sprite("shadow", (26, 10)), (px - 13, py - 7))
+                surface.blit(hero_sprite(self.weapon, self.armor, (t, t + 16), self.facing,
+                                         int(self.walk_clock) % 2 if self.walk_clock else 0),
+                             (px - t // 2, py - t - 16))
         pygame.draw.rect(surface, self.game.colors["ink"], (0, 512, WIDTH, HEIGHT - 512))
         pygame.draw.rect(surface, self.game.colors["gold"], (0, 512, WIDTH, 4))
         pygame.draw.rect(surface, self.game.colors["panel"], (8, 520, 784, 72))
@@ -270,23 +270,3 @@ class HouseInteriorScene(FieldScene):
         self.text(surface, self.message, (20, 558), 16, self.game.colors["muted"])
         self.button(surface, pygame.Rect(686, 536, 92, 38), "저장", False, 17)
         self._draw_dialogue(surface)
-
-    @staticmethod
-    def _draw_chief_office(surface):
-        # A map desk, village records, a formal rug, and the chief's chair.
-        pygame.draw.rect(surface, (58, 43, 36), (2 * TILE_SIZE, 2 * TILE_SIZE, 5 * TILE_SIZE, 3 * TILE_SIZE))
-        pygame.draw.rect(surface, (119, 80, 53), (2 * TILE_SIZE + 5, 2 * TILE_SIZE + 5,
-                                                   5 * TILE_SIZE - 10, 3 * TILE_SIZE - 10))
-        for index, color in enumerate(((98, 132, 91), (93, 125, 154), (193, 157, 92))):
-            pygame.draw.rect(surface, color, (3 * TILE_SIZE + index * 30, 3 * TILE_SIZE, 25, 25))
-            pygame.draw.line(surface, (67, 56, 43), (3 * TILE_SIZE + index * 30, 3 * TILE_SIZE + 12),
-                             (3 * TILE_SIZE + index * 30 + 25, 3 * TILE_SIZE + 12), 2)
-        pygame.draw.rect(surface, (129, 41, 37), (8 * TILE_SIZE, 8 * TILE_SIZE, 9 * TILE_SIZE, 4 * TILE_SIZE))
-        pygame.draw.rect(surface, (209, 175, 111), (8 * TILE_SIZE, 8 * TILE_SIZE, 9 * TILE_SIZE, 4 * TILE_SIZE), 3)
-        pygame.draw.rect(surface, (76, 52, 40), (9 * TILE_SIZE, 4 * TILE_SIZE, 7 * TILE_SIZE, 2 * TILE_SIZE))
-        pygame.draw.rect(surface, (164, 119, 74), (9 * TILE_SIZE + 4, 4 * TILE_SIZE + 4,
-                                                     7 * TILE_SIZE - 8, 2 * TILE_SIZE - 8))
-        pygame.draw.rect(surface, (79, 54, 42), (10 * TILE_SIZE, 2 * TILE_SIZE, 5 * TILE_SIZE, 2 * TILE_SIZE))
-        for index in range(5):
-            pygame.draw.rect(surface, (190 - index * 12, 156 - index * 10, 104 - index * 6),
-                             (10 * TILE_SIZE + index * 28, 2 * TILE_SIZE + 4, 22, 25))
