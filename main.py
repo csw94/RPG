@@ -15,11 +15,13 @@ from scenes.status_scene import StatusScene
 from scenes.title_scene import TitleScene
 from scenes.village_scene import VillageScene
 from settings import COLORS, FPS, HEIGHT, TITLE, WIDTH
+from utils.audio import RATE, Audio, music_for
 from utils.resource import resource_path
 
 
 class Game:
     def __init__(self):
+        pygame.mixer.pre_init(RATE, -16, 1, 512)
         pygame.init()
         pygame.display.set_caption(TITLE)
         try:
@@ -37,6 +39,7 @@ class Game:
         self.scene_name = "title"
         self.scene = TitleScene(self)
         self._fonts = {}
+        self.audio = Audio()
 
     def font(self, size):
         if size not in self._fonts:
@@ -110,6 +113,7 @@ class Game:
         self.scene = ShopScene(self)
 
     def open_status(self):
+        self.audio.play("cursor")
         self.scene_name = "status"
         self.scene = StatusScene(self)
 
@@ -147,8 +151,12 @@ class Game:
             for event in events:
                 if event.type == pygame.QUIT:
                     self.running = False
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_m:
+                    self.audio.toggle_mute()
             self.scene.handle_events(events)
             self.scene.update(dt)
+            enemy = getattr(self.scene, "enemy", None) if self.scene_name == "battle" else None
+            self.audio.update(music_for(self.scene_name, enemy["id"] if enemy else None))
             self.scene.draw(self.screen)
             pygame.display.flip()
         pygame.quit()

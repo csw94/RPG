@@ -63,19 +63,25 @@ class TitleScene(BaseScene):
     def _menu_key(self, key):
         if key in (pygame.K_UP, pygame.K_w):
             self.selected = (self.selected - 1) % len(self.OPTIONS)
+            self.sfx("cursor")
         elif key in (pygame.K_DOWN, pygame.K_s):
             self.selected = (self.selected + 1) % len(self.OPTIONS)
+            self.sfx("cursor")
         elif key in (pygame.K_RETURN, pygame.K_SPACE):
+            self.sfx("confirm")
             self._choose_menu()
 
     def _slot_key(self, key):
         if key in (pygame.K_LEFT, pygame.K_a, pygame.K_UP, pygame.K_w):
             self.selected = (self.selected - 1) % self.SLOT_COUNT
             self.confirm_overwrite = False
+            self.sfx("cursor")
         elif key in (pygame.K_RIGHT, pygame.K_d, pygame.K_DOWN, pygame.K_s):
             self.selected = (self.selected + 1) % self.SLOT_COUNT
             self.confirm_overwrite = False
+            self.sfx("cursor")
         elif key in (pygame.K_RETURN, pygame.K_SPACE):
+            self.sfx("confirm")
             self._choose_slot()
 
     def _menu_buttons(self):

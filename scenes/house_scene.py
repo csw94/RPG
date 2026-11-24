@@ -120,10 +120,12 @@ class HouseInteriorScene(FieldScene):
                 elif event.key in (pygame.K_i, pygame.K_TAB) and not self.dialogue_lines:
                     self.game.open_status()
                 elif event.key == pygame.K_F5:
+                    self.sfx("save")
                     self.game.save_game()
                     self.message = "진행 상황을 저장했습니다."
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if pygame.Rect(686, 536, 92, 38).collidepoint(event.pos):
+                    self.sfx("save")
                     self.game.save_game()
                     self.message = "진행 상황을 저장했습니다."
 
@@ -165,6 +167,7 @@ class HouseInteriorScene(FieldScene):
         healed = self.hp < self.max_hp or self.mp < self.max_mp
         self.hp, self.mp = self.max_hp, self.max_mp
         self.game.save_game()
+        self.sfx("heal" if healed else "talk")
         if healed:
             self.show_dialogue(["포근한 침대에서 잠시 눈을 붙였다.", "HP와 MP가 모두 회복되었다. (저장 완료)"])
         else:

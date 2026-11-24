@@ -40,6 +40,7 @@ class BattleScene(BaseScene):
         self.done_timer = 0.0
         self.clock = 0.0              # drives the enemy's idle animation
         self.kind = self.backdrop_kind()  # fixed: losing moves the hero to the village mid-fight
+        self.sfx("encounter")
 
     # --- compatibility helpers ------------------------------------------------------
     @property
@@ -76,13 +77,16 @@ class BattleScene(BaseScene):
             skills = self.skill_list()
             if back:
                 self.mode = "menu"
+                self.sfx("cursor")
             elif step:
                 self.skill_index = (self.skill_index + step) % len(skills)
+                self.sfx("cursor")
             elif confirm:
                 self._run("skill", skills[self.skill_index]["id"])
         else:
             if step:
                 self.selected = (self.selected + step) % 4
+                self.sfx("cursor")
             elif confirm:
                 self._choose()
 
@@ -103,12 +107,14 @@ class BattleScene(BaseScene):
 
     def _choose(self):
         if self.selected == 1:
+            self.sfx("confirm")
             self.mode = "skills"
             self.skill_index = min(self.skill_index, len(self.skill_list()) - 1)
             return
         self._run(("attack", None, "item", "flee")[self.selected])
 
     def _run(self, action, skill_id=None):
+        self.sfx("confirm")
         events = self.engine.act(action, skill_id)
         self.game.save_game()
         self.queue = list(events)
@@ -141,6 +147,7 @@ class BattleScene(BaseScene):
         if event.get("text"):
             self.lines = (self.lines + [event["text"]])[-3:]
         kind, target = event["type"], event.get("target")
+        self._cue(event)
         x = {"hero": battle_art.HERO_SPOT * 2, "enemy": battle_art.ENEMY_SPOT * 2}.get(target, 400)
         if kind in ("attack", "skill"):
             self.lunge[event["actor"]] = 0.25
@@ -167,6 +174,17 @@ class BattleScene(BaseScene):
             self._popup(STATUS_NAMES[event["status"]], STATUS_COLORS[event["status"]], x)
         elif kind == "level_up":
             self._popup(f"LEVEL {event['level']}!", (255, 222, 110), battle_art.HERO_SPOT * 2)
+
+    def _cue(self, event):
+        kind, target = event["type"], event.get("target")
+        if kind == "damage":
+            name = "hurt" if target == "hero" else "crit" if event.get("crit") else "weak" if event.get("weak") else "hit"
+        else:
+            name = {"skill": "skill", "heal": "heal", "miss": "miss", "status": "status", "stunned": "status",
+                    "status_tick": "hurt", "guard": "guard", "level_up": "level_up", "defeat": "victory",
+                    "lose": "defeat", "flee": "flee"}.get(kind)
+        if name:
+            self.sfx(name)
 
     def _popup(self, text, color, x):
         self.popups.append({"text": text, "color": color, "x": x, "y": 186 - 30 * len(self.popups), "age": 0.0})

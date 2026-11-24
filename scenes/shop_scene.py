@@ -31,8 +31,10 @@ class ShopScene(BaseScene):
                     self._close()
                 elif event.key in (pygame.K_UP, pygame.K_w):
                     self.selected = (self.selected - 1) % len(SHOP_ITEMS)
+                    self.sfx("cursor")
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     self.selected = (self.selected + 1) % len(SHOP_ITEMS)
+                    self.sfx("cursor")
                 elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                     self._purchase()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -63,6 +65,7 @@ class ShopScene(BaseScene):
                 return
             player.gold -= info["price"]
             setattr(player, inventory, getattr(player, inventory) + 1)
+            self.sfx("coin")
             self.message = f"{info['name']}\uc744(\ub97c) \uac00\ubc29\uc5d0 \ub123\uc5c8\uc2b5\ub2c8\ub2e4."
             self.game.save_game()
             return
@@ -82,6 +85,7 @@ class ShopScene(BaseScene):
             player.max_hp += health_delta
             player.hp = min(player.max_hp, player.hp + max(0, health_delta))
         setattr(player, active_attribute, item["id"])
+        self.sfx("coin")
         self.message = f"{info['name']}\uc744(\ub97c) \uc7a5\ucc29\ud588\uc2b5\ub2c8\ub2e4."
         self.game.save_game()
 

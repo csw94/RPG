@@ -122,6 +122,19 @@
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
 
+## 미릴리즈 변경 (다음 릴리즈에 포함)
+- 침대 휴식: 마르타 오두막과 가렌 거처의 침대 옆에서 SPACE를 누르면 HP·MP가 모두 회복되고 저장됨(무료, `HouseInteriorScene._rest`)
+- 상태 화면: I 또는 Tab 키로 열림(`scenes/status_scene.py`). 능력치와 그 출처, 장비, 소지품, 기술(미습득은 ??? 표시), 제단 인장, 부탁 진행도를 보여줌
+- 소리(`utils/audio.py`)
+  - 오디오 파일 없이 코드로 합성함. 사각파·삼각파·노이즈, `array('h')`, 22050Hz. numpy를 쓰지 않음
+  - 효과음 21종(`SFX`)
+    - 장면에서는 `BaseScene.sfx(name)`으로 재생함. `game.audio`가 없으면 조용히 넘어감
+    - 전투 효과음은 `BattleScene._cue`가 이벤트 종류에 맞춰 고름
+  - 배경음악 6곡(`MUSIC`: title, village, field, dungeon, battle, boss)
+    - 직접 작곡한 짧은 반복곡이고, 시작할 때 백그라운드 스레드에서 미리 만들어 둠
+    - 곡 선택은 `music_for(scene_name, enemy_id)`가 하고, 매 프레임 `Game.run`에서 갱신함. 상점·상태 화면에서는 원래 곡을 유지함
+  - M 키로 음소거. 오디오 장치가 없으면 소리 없이 그대로 진행됨
+
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
 - 선택 과제

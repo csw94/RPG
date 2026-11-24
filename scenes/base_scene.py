@@ -28,5 +28,11 @@ class BaseScene(ABC):
         surface.blit(image, rect)
         return rect
 
+    def sfx(self, name):
+        """Play a sound effect if the game has audio (tests and headless runs may not)."""
+        audio = getattr(self.game, "audio", None)
+        if audio:
+            audio.play(name)
+
     def button(self, surface, rect, label, selected=False, size=22):
         ui.button(surface, self.game.font, rect, label, selected, size)
