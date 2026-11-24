@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.20.0)
+# HANDOVER — Chronicles of Pixel (v0.21.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.20.0 (태그 `v0.20.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.20.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.21.0 (태그 `v0.21.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.21.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 314개 모두 통과 (미릴리즈 변경 포함 시 349개): `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 349개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -198,7 +198,30 @@
   - 필드와 실내에서 Enter와 Z도 스페이스와 같은 행동 키(`ACTION_KEYS`)
   - 완전한 키 재설정은 하지 않음. 모든 장면이 키를 직접 확인하고 있어서 입력 처리를 한곳으로 모으는 작업이 먼저 필요함
 
+## 마을 확장 (v0.21.0)
+- 마을을 44×30으로 확장함(`VillageScene.COLS, ROWS`)
+  - 기존 32×21 마을은 좌표를 그대로 두었으므로 세이브 보정이 필요 없음
+  - 동쪽·남쪽 출입구만 새 가장자리로 옮김((43,10), (15,29)). 필드에서 돌아오는 위치(`return_village`)도 함께 옮김
+  - 새 건물은 `DISTRICT`에, 주민은 `RESIDENTS`에 정의함. 건물은 4×4이고 주인이 문 앞에 서 있음(실내 없음). 기존 `BUILDINGS`(원래 세 건물, 골목 테스트용)와는 따로 관리함
+  - 새 NPC 그림: innkeeper, blacksmith, librarian, apothecary, child
+- 여관(로사): `inn_offer` → `ConfirmScene` → `rest_at_inn`. 숙박비는 10 + 2×레벨. 소문은 `RUMOURS` 목록에서 플레이 시간 1분마다 바뀜
+- 물약 상점(미라): `ShopScene(game, "mira")`
+  - `SHOP_ITEMS`의 `shop` 키로 상점을 구분함(기본값 logan)
+  - 새 소모품은 `CONSUMABLES`에 있음: 마나 물약, 해독제, 엘릭서(3개까지). 세이브에는 `items` 가방으로 저장하고, 회복약 두 종류는 기존 필드를 그대로 씀
+  - 전투의 "아이템" 버튼이 `item_list`를 열고, `act("item", id)`를 호출함. id 없이 `act("item")`을 부르면 예전처럼 자동으로 포션을 씀(시뮬레이터가 이 방식을 씀)
+- 대장간(브론): `SmithyScene`
+  - 장착 장비를 +3까지 강화함(무기 +3 공격, 방어구 +2 방어). 비용은 `upgrade_cost`. 세이브의 `upgrades`({장비 id: 단계})에 저장함
+- 도서관(에델): `LibraryScene`. 책 데이터는 `gameplay/library.py`의 `BOOKS`(6권). 읽은 책은 세이브의 `books_read`에 저장하고, 모두 읽으면 "도서관의 학자" 업적을 얻음(업적 15개)
+- 새 부탁 4개(전체 11개)
+  - sq_inn_stew: 북쪽 길이 열린 뒤에 부탁함
+  - sq_smith_ore
+  - sq_library: `count: "bestiary"`. `sync_quest_progress`가 도감 수로 진행도를 맞춤
+  - sq_tomi
+  - 의뢰인은 `quest_due`일 때 부탁을 먼저 꺼내고, 그 밖에는 원래 기능(상점·대장간·도서관)을 엶
+- 시뮬레이터는 대장간 강화와 새 소모품을 쓰지 않음. 실제 플레이는 시뮬레이션 결과보다 조금 쉬워질 수 있음
+
 ## 릴리즈 기록
+- **v0.21.0:** 마을 확장(44×30), 여관·대장간 강화·도서관·물약 상점, 전투 아이템 메뉴와 새 소모품, 새 주민 5명과 부탁 4개
 - **v0.20.0:** 업적 14개(달성 알림과 상태 화면 업적 페이지), 엔딩 후 회차 플레이(새 여정), 대화 글자 속도 설정과 Enter·Z 행동 키
 - **v0.19.0:** 난이도 선택(쉬움·보통·어려움, 모험 중 변경 가능), 상태 화면의 몬스터·장비 도감, 1분마다 자동 저장과 창을 닫을 때 저장
 - **v0.18.0:** 플레이 시간과 전투 기록(세이브 슬롯과 엔딩 화면에 표시), 마을 부탁 데이터를 한 곳으로 정리
@@ -277,28 +300,6 @@
   - 크기 25×16은 손으로 짠 미로 구조라 그대로 유지
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
 - **릴리즈**: CLAUDE.md 절차를 따름. 이 PC에는 `gh` CLI가 없어서, Actions와 릴리즈 확인은 `api.github.com`(공개 API)을 curl로 조회함
-
-## 미릴리즈 변경 (다음 릴리즈에 포함)
-- 마을을 44×30으로 확장함(`VillageScene.COLS, ROWS`)
-  - 기존 32×21 마을은 좌표를 그대로 두었으므로 세이브 보정이 필요 없음
-  - 동쪽·남쪽 출입구만 새 가장자리로 옮김((43,10), (15,29)). 필드에서 돌아오는 위치(`return_village`)도 함께 옮김
-  - 새 건물은 `DISTRICT`에, 주민은 `RESIDENTS`에 정의함. 건물은 4×4이고 주인이 문 앞에 서 있음(실내 없음). 기존 `BUILDINGS`(원래 세 건물, 골목 테스트용)와는 따로 관리함
-  - 새 NPC 그림: innkeeper, blacksmith, librarian, apothecary, child
-- 여관(로사): `inn_offer` → `ConfirmScene` → `rest_at_inn`. 숙박비는 10 + 2×레벨. 소문은 `RUMOURS` 목록에서 플레이 시간 1분마다 바뀜
-- 물약 상점(미라): `ShopScene(game, "mira")`
-  - `SHOP_ITEMS`의 `shop` 키로 상점을 구분함(기본값 logan)
-  - 새 소모품은 `CONSUMABLES`에 있음: 마나 물약, 해독제, 엘릭서(3개까지). 세이브에는 `items` 가방으로 저장하고, 회복약 두 종류는 기존 필드를 그대로 씀
-  - 전투의 "아이템" 버튼이 `item_list`를 열고, `act("item", id)`를 호출함. id 없이 `act("item")`을 부르면 예전처럼 자동으로 포션을 씀(시뮬레이터가 이 방식을 씀)
-- 대장간(브론): `SmithyScene`
-  - 장착 장비를 +3까지 강화함(무기 +3 공격, 방어구 +2 방어). 비용은 `upgrade_cost`. 세이브의 `upgrades`({장비 id: 단계})에 저장함
-- 도서관(에델): `LibraryScene`. 책 데이터는 `gameplay/library.py`의 `BOOKS`(6권). 읽은 책은 세이브의 `books_read`에 저장하고, 모두 읽으면 "도서관의 학자" 업적을 얻음(업적 15개)
-- 새 부탁 4개(전체 11개)
-  - sq_inn_stew: 북쪽 길이 열린 뒤에 부탁함
-  - sq_smith_ore
-  - sq_library: `count: "bestiary"`. `sync_quest_progress`가 도감 수로 진행도를 맞춤
-  - sq_tomi
-  - 의뢰인은 `quest_due`일 때 부탁을 먼저 꺼내고, 그 밖에는 원래 기능(상점·대장간·도서관)을 엶
-- 시뮬레이터는 대장간 강화와 새 소모품을 쓰지 않음. 실제 플레이는 시뮬레이션 결과보다 조금 쉬워질 수 있음
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
