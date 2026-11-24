@@ -11,14 +11,10 @@ from utils import ui
 from gameplay.save_migration import LAYOUT_VERSION
 from utils.pixel_art import NPC_SIZE, hero_sprite, walk_frame, sprite, tile_noise, npc_sprite
 from gameplay.equipment import ACCESSORIES, ARMORS, WEAPONS
+from gameplay.quests import QUESTS, kill_quests
 from gameplay.world_data import FIELD_ROUTES, SHRINES
 
 
-# Villager requests that count defeated enemies, and their (gold, accessory) rewards.
-KILL_QUESTS = {"sq_wolf_hunt": "wolf", "sq_magma_ore": "magma_slime", "sq_bat_hunt": "bat",
-               "sq_frost_hunt": "frost_wisp"}
-QUEST_REWARDS = {"sq_wolf_hunt": (60, "wolf_fang_charm"), "sq_magma_ore": (100, "ember_bracelet"),
-                 "sq_bat_hunt": (0, "guardian_medal"), "sq_frost_hunt": (120, "frost_heart")}
 
 
 class FieldScene(BaseScene):
@@ -59,8 +55,7 @@ class FieldScene(BaseScene):
         self.quest_flags = {key: int(value) for key, value in state.get("quest_flags", {}).items()}
         for key in ("prologue_done", *SHRINES, "star_sword_awakened", "final_boss", "abyss_lord"):
             self.quest_flags.setdefault(key, 0)
-        quest_targets = {"sq_moon_herb": 3, "sq_old_sword": 1, "sq_goblin_hunt": 5,
-                         "sq_wolf_hunt": 4, "sq_magma_ore": 3, "sq_bat_hunt": 4, "sq_frost_hunt": 4}
+        quest_targets = {quest_id: quest["target"] for quest_id, quest in QUESTS.items()}
         saved_quests = state.get("sub_quests", {})
         self.sub_quests = {
             quest_id: {"status": saved_quests.get(quest_id, {}).get("status", "NOT_STARTED"),
@@ -440,54 +435,14 @@ class FieldScene(BaseScene):
             self.game.start_epilogue()
 
     def _offer_sidequest(self, quest_id):
-        quest = self.sub_quests[quest_id]
+        """Offer, report on or hand in a request; texts and rewards come from QUESTS."""
+        quest, info = self.sub_quests[quest_id], QUESTS[quest_id]
         status, progress, target = quest["status"], quest["progress"], quest["target"]
         if status == "NOT_STARTED":
-            lines, action = {
-                "sq_moon_herb": (["콜록콜록... 마물들 때문에 동쪽 숲길에 못 나간 지 오래라네.",
-                                  "반짝이는 달빛 약초 3송이만 구해다 주겠나?"], "accept_subquest:sq_moon_herb"),
-                "sq_old_sword": (["젊은 시절 서쪽 폐광에서 마물과 싸우다 내 검을 잃어버렸지...",
-                                  "폐광 1층 어딘가에 남아있을 텐데, 찾아줄 수 있겠나?"], "accept_subquest:sq_old_sword"),
-                "sq_goblin_hunt": (["이봐, 모험가! 협곡 길목에 고블린 척후병 놈들이 진을 치고 있어.",
-                                    "5마리만 혼내주면 두둑히 사례하지!"], "accept_subquest:sq_goblin_hunt"),
-                "sq_wolf_hunt": (["광장 주민: 요즘 숲늑대들이 밤마다 울어서 잠을 못 자요...",
-                                  "동쪽 숲길의 숲늑대 4마리만 쫓아 주시면 할아버지의 부적을 드릴게요!"],
-                                 "accept_subquest:sq_wolf_hunt"),
-                "sq_magma_ore": (["로건: 아, 마침 잘 왔네! 남쪽 화산의 마그마 슬라임 몸속엔 좋은 용암석이 있지.",
-                                  "3마리만 잡아서 가져다주면 팔찌를 하나 만들어 주겠네."],
-                                 "accept_subquest:sq_magma_ore"),
-                "sq_bat_hunt": (["검을 찾아 준 자네라면 믿을 수 있지. 하나만 더 부탁하세.",
-                                 "바람의 제단 1층에 동굴 박쥐가 들끓어 순례자들이 못 들어간다네. 4마리만 잡아 주게."],
-                                "accept_subquest:sq_bat_hunt"),
-                "sq_frost_hunt": (["사냥꾼 하른: 쉿, 조용히... 서리 정령들이 사냥감을 전부 얼려 버렸다네.",
-                                   "정령 4마리만 흩어 주면, 얼음 속에서 캐낸 귀한 보석을 주지."],
-                                  "accept_subquest:sq_frost_hunt"),
-            }[quest_id]
-            self.show_dialogue(lines, action)
+            self.show_dialogue(info["offer"], f"accept_subquest:{quest_id}")
         elif status == "IN_PROGRESS" and progress >= target:
-            ready = quest_id != "sq_old_sword" or "broken_old_sword" in self.quest_items
-            if ready:
-                lines, action = {
-                    "sq_moon_herb": (["오오, 이 은은한 향기! 고맙네 젊은이.",
-                                      "특제 고급 회복약 두 병을 받아두게."], "complete_subquest:sq_moon_herb"),
-                    "sq_old_sword": (["이 흠집... 틀림없는 내 검이야. 이제 미련을 놓을 수 있겠군.",
-                                      "현역 시절 휘장을 자네에게 물려주겠네."], "complete_subquest:sq_old_sword"),
-                    "sq_goblin_hunt": (["속이 다 시원하군! 약속한 보수야.",
-                                        "로건 가게에서 장비를 맞추도록 해."], "complete_subquest:sq_goblin_hunt"),
-                    "sq_wolf_hunt": (["광장 주민: 어젯밤엔 푹 잤어요! 정말 고마워요.",
-                                      "할아버지의 늑대 송곳니 부적이에요. 급소가 잘 보인대요! (상점에서 장착)"],
-                                     "complete_subquest:sq_wolf_hunt"),
-                    "sq_magma_ore": (["로건: 이 열기 좀 보게! 최고의 용암석이야.",
-                                      "용암석 팔찌일세. 불길도 막아 주지. 노점에서 장착하게."],
-                                     "complete_subquest:sq_magma_ore"),
-                    "sq_bat_hunt": (["순례자들이 다시 제단을 찾는다는군. 역시 내가 사람 보는 눈은 있어.",
-                                     "기사단 시절의 수호자의 훈장일세. 자네가 지녀 주게."],
-                                    "complete_subquest:sq_bat_hunt"),
-                    "sq_frost_hunt": (["사냥꾼 하른: 고원이 다시 숨을 쉬는군. 고맙네, 젊은이.",
-                                       "얼음 심장일세. 지니고 있으면 냉기가 몸을 얼리지 못하지. (상점에서 장착)"],
-                                      "complete_subquest:sq_frost_hunt"),
-                }[quest_id]
-                self.show_dialogue(lines, action)
+            if not info.get("requires_item") or info["requires_item"] in self.quest_items:
+                self.show_dialogue(info["done"], f"complete_subquest:{quest_id}")
             else:
                 self.show_dialogue([f"진행 상황 {progress}/{target}. 목표를 마치고 다시 오게."])
         elif status == "IN_PROGRESS":
@@ -496,26 +451,22 @@ class FieldScene(BaseScene):
             self.show_dialogue(["도와줘서 고맙네. 보답은 이미 전했어."])
 
     def _complete_sidequest(self, quest_id):
-        quest = self.sub_quests[quest_id]
+        quest, info = self.sub_quests[quest_id], QUESTS[quest_id]
         if quest["status"] != "IN_PROGRESS" or quest["progress"] < quest["target"]:
             return False
-        if quest_id == "sq_moon_herb":
-            self.gold += 100
-            self.high_potions = min(10, self.high_potions + 2)
-        elif quest_id == "sq_old_sword":
-            if "broken_old_sword" not in self.quest_items:
-                return False
-            self.atk += 4
-            self.defense += 4
-            self.quest_items.add("knights_crest")
-        elif quest_id == "sq_goblin_hunt":
-            self.gold += 180
-            self.potions = min(10, self.potions + 3)
-        elif quest_id in QUEST_REWARDS:
-            gold, accessory = QUEST_REWARDS[quest_id]
-            self.gold += gold
-            if accessory not in self.owned_accessories:
-                self.owned_accessories.append(accessory)
+        if info.get("requires_item") and info["requires_item"] not in self.quest_items:
+            return False
+        reward = info["reward"]
+        self.gold += reward.get("gold", 0)
+        self.potions = min(10, self.potions + reward.get("potions", 0))
+        self.high_potions = min(10, self.high_potions + reward.get("high_potions", 0))
+        self.atk += reward.get("atk", 0)
+        self.defense += reward.get("defense", 0)
+        if reward.get("quest_item"):
+            self.quest_items.add(reward["quest_item"])
+        accessory = reward.get("accessory")
+        if accessory and accessory not in self.owned_accessories:
+            self.owned_accessories.append(accessory)
         quest["status"] = "COMPLETED"
         self.game.save_game()
         return True
@@ -588,11 +539,7 @@ class FieldScene(BaseScene):
             self.potions = min(10, self.potions + enemy["potion_drop"])
         if enemy_id in SHRINES:
             self.clear_shrine(enemy_id)
-        if enemy_id == "goblin":
-            quest = self.sub_quests["sq_goblin_hunt"]
-            if quest["status"] == "IN_PROGRESS":
-                quest["progress"] = min(quest["target"], quest["progress"] + 1)
-        for quest_id, target_enemy in KILL_QUESTS.items():
+        for quest_id, target_enemy in kill_quests().items():
             quest = self.sub_quests[quest_id]
             if enemy_id == target_enemy and quest["status"] == "IN_PROGRESS":
                 quest["progress"] = min(quest["target"], quest["progress"] + 1)

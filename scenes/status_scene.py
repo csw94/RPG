@@ -5,13 +5,12 @@ import pygame
 from gameplay.combat import SKILLS, xp_to_next
 from gameplay.equipment import POTION_CAP
 from gameplay.objectives import next_objective
+from gameplay.quests import QUESTS
 from scenes.base_scene import BaseScene
 from utils import ui
 from utils.pixel_art import hero_sprite
 
-QUEST_NAMES = {"sq_moon_herb": "달빛 약초", "sq_old_sword": "노기사의 검", "sq_goblin_hunt": "고블린 소탕",
-               "sq_wolf_hunt": "숲의 사냥꾼", "sq_magma_ore": "용암석 수집", "sq_bat_hunt": "동굴 소탕",
-               "sq_frost_hunt": "고원의 정령"}
+QUEST_NAMES = {quest_id: quest["name"] for quest_id, quest in QUESTS.items()}
 SEALS = (("shrine_wind", "바람의 제단"), ("shrine_earth", "대지의 폐광"), ("shrine_fire", "불꽃의 신전"),
          ("shrine_ice", "얼음 제단"))
 ITEM_NAMES = {"broken_old_sword": "부러진 옛 검", "knights_crest": "기사단 휘장"}
