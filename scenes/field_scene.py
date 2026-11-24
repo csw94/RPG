@@ -11,6 +11,7 @@ from utils import ui
 from gameplay.save_migration import LAYOUT_VERSION
 from utils.pixel_art import NPC_SIZE, hero_sprite, walk_frame, sprite, tile_noise, npc_sprite
 from gameplay.equipment import ACCESSORIES, ARMORS, WEAPONS
+from gameplay.difficulty import DIFFICULTIES, difficulty_of
 from gameplay.quests import QUESTS, kill_quests
 from gameplay.world_data import FIELD_ROUTES, SHRINES
 
@@ -44,6 +45,7 @@ class FieldScene(BaseScene):
         self.level = int(state.get("level", 1))
         self.xp = int(state.get("xp", 0))
         self.play_time = float(state.get("play_time", 0))
+        self.difficulty = state.get("difficulty") if state.get("difficulty") in DIFFICULTIES else "normal"
         saved_stats = state.get("stats") or {}
         self.stats = {key: int(saved_stats.get(key, 0)) for key in ("wins", "losses", "flees")}
         self.potions = int(state.get("potions", 0))
@@ -327,7 +329,7 @@ class FieldScene(BaseScene):
         }
         opened_by_world[self.world] = [list(position) for position in sorted(self.opened)]
         return {**self.player, "world": self.world, "layout_version": LAYOUT_VERSION,
-                "play_time": round(self.play_time, 1), "stats": dict(self.stats),
+                "play_time": round(self.play_time, 1), "stats": dict(self.stats), "difficulty": self.difficulty,
                 "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
                 "potions": self.potions, "high_potions": self.high_potions, "gold": self.gold,
@@ -534,7 +536,8 @@ class FieldScene(BaseScene):
         from gameplay.enemies import ENEMIES
 
         enemy = ENEMIES[enemy_id]
-        self.gold += enemy["gold"]
+        gold = round(enemy["gold"] * difficulty_of(self)["gold"])
+        self.gold += gold
         if enemy["potion_drop"] and self.potions < 10:
             self.potions = min(10, self.potions + enemy["potion_drop"])
         if enemy_id in SHRINES:
@@ -548,13 +551,13 @@ class FieldScene(BaseScene):
             if "abyss_crown" not in self.owned_accessories:
                 self.owned_accessories.append("abyss_crown")
             self.game.save_game()
-            return f"보상: 금화 {enemy['gold']}G · 심연의 왕관"
+            return f"보상: 금화 {gold}G · 심연의 왕관"
         if enemy_id == "final_boss":
             self.quest_flags["final_boss"] = 1
             self.game.save_game()
             return "\uc5d4\ub529 \ud574\uae08 \u00b7 \uc655\uad6d \uae30\uc0ac \uc784\uba85"
         self.game.save_game()
-        return f"\ubcf4\uc0c1: \uae08\ud654 {enemy['gold']}G" + (f", \ud68c\ubcf5\uc57d +{enemy['potion_drop']}" if enemy["potion_drop"] else "")
+        return f"\ubcf4\uc0c1: \uae08\ud654 {gold}G" + (f", \ud68c\ubcf5\uc57d +{enemy['potion_drop']}" if enemy["potion_drop"] else "")
 
 
     def _blocked(self, x, y):

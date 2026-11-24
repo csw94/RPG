@@ -67,11 +67,11 @@ class Game:
         self.scene_name = name
         self.scene = TitleScene(self) if name == "title" else FieldScene(self)
 
-    def new_game(self, slot):
+    def new_game(self, slot, difficulty="normal"):
         self.notice = ""
         self.active_slot = slot
         state = {
-            "world": "village", "x": 15, "y": 15,
+            "world": "village", "x": 15, "y": 15, "difficulty": difficulty,
             "level": 1, "hp": 100, "max_hp": 100, "atk": 15, "defense": 5,
             "mp": 10, "max_mp": 10, "gold": 0, "potions": 0, "high_potions": 0,
             "weapon": "rusty_sword", "armor": "traveler_clothes",

@@ -2,6 +2,7 @@
 
 import pygame
 
+from gameplay.difficulty import DIFFICULTIES, DIFFICULTY_ORDER
 from gameplay.records import slot_summary
 from utils import title_art, ui
 from scenes.base_scene import BaseScene
@@ -20,13 +21,17 @@ class TitleScene(BaseScene):
         self.slot_action = "new"
         self.confirm_overwrite = False
         self.slot_data = self.game.save_manager.list_saves()
+        self.pending_slot = None
+        self.difficulty_index = DIFFICULTY_ORDER.index("normal")
         self.notice = ""
         self.clock = 0.0
 
     def handle_events(self, events):
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
+                if self.mode == "difficulty":
+                    self._difficulty_key(event.key)
+                elif event.key == pygame.K_ESCAPE:
                     if self.confirm_overwrite:
                         self.confirm_overwrite = False
                         self.notice = "덮어쓰기를 취소했습니다."
@@ -40,7 +45,12 @@ class TitleScene(BaseScene):
                 else:
                     self._slot_key(event.key)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.mode == "menu":
+                if self.mode == "difficulty":
+                    for index, rect in enumerate(self._difficulty_cards()):
+                        if rect.collidepoint(event.pos):
+                            self.difficulty_index = index
+                            self._start_new_game()
+                elif self.mode == "menu":
                     for index, rect in enumerate(self._menu_buttons()):
                         if rect.collidepoint(event.pos):
                             self.selected = index
@@ -122,7 +132,53 @@ class TitleScene(BaseScene):
             self.confirm_overwrite = True
             self.notice = f"{self.SLOT_LABELS[self.selected]}의 기록을 덮어쓰려면 Enter를 한 번 더 누르세요."
             return
-        self.game.new_game(slot)
+        self.pending_slot = slot
+        self.mode = "difficulty"
+        self.difficulty_index = DIFFICULTY_ORDER.index("normal")
+        self.notice = ""
+
+    def _difficulty_key(self, key):
+        if key == pygame.K_ESCAPE:
+            self.mode = "slots"
+            self.confirm_overwrite = False
+        elif key in (pygame.K_LEFT, pygame.K_a, pygame.K_UP, pygame.K_w):
+            self.difficulty_index = (self.difficulty_index - 1) % len(DIFFICULTY_ORDER)
+            self.sfx("cursor")
+        elif key in (pygame.K_RIGHT, pygame.K_d, pygame.K_DOWN, pygame.K_s):
+            self.difficulty_index = (self.difficulty_index + 1) % len(DIFFICULTY_ORDER)
+            self.sfx("cursor")
+        elif key in (pygame.K_RETURN, pygame.K_SPACE):
+            self.sfx("confirm")
+            self._start_new_game()
+
+    def _start_new_game(self):
+        self.game.new_game(self.pending_slot, DIFFICULTY_ORDER[self.difficulty_index])
+
+    @staticmethod
+    def _difficulty_cards():
+        return [pygame.Rect(88 + i * 210, 220, 194, 220) for i in range(len(DIFFICULTY_ORDER))]
+
+    def _draw_difficulty(self, surface):
+        colors = self.game.colors
+        self._soft_label(surface, "난이도 선택", (400, 85), 34, colors["gold"])
+        self.text(surface, "모험 중에도 설정(O)에서 바꿀 수 있습니다", (400, 130), 17, colors["cream"], True)
+        for index, (key, rect) in enumerate(zip(DIFFICULTY_ORDER, self._difficulty_cards())):
+            info = DIFFICULTIES[key]
+            self._frame(surface, rect, colors["panel"], index == self.difficulty_index)
+            self.text(surface, info["name"], (rect.centerx, rect.top + 40), 26,
+                      colors["gold"] if index == self.difficulty_index else colors["cream"], True)
+            words, lines, line = info["desc"].replace(". ", ".|").split("|"), [], ""
+            for part in " ".join(words).split(" "):
+                candidate = f"{line} {part}".strip()
+                if self.game.font(14).size(candidate)[0] > rect.width - 24 and line:
+                    lines.append(line)
+                    line = part
+                else:
+                    line = candidate
+            lines.append(line)
+            for row, text in enumerate(lines[:6]):
+                self.text(surface, text, (rect.centerx, rect.top + 92 + row * 22), 14, colors["muted"], True)
+        self.text(surface, "←→ 선택 · Enter 시작 · ESC 뒤로", (400, 564), 15, colors["muted"], True)
 
     def update(self, dt):
         self.clock += dt
@@ -202,5 +258,7 @@ class TitleScene(BaseScene):
         self._draw_background(surface)
         if self.mode == "menu":
             self._draw_menu(surface)
+        elif self.mode == "difficulty":
+            self._draw_difficulty(surface)
         else:
             self._draw_slots(surface)

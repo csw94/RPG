@@ -11,6 +11,7 @@ guard, defeat, xp, level_up, flee, lose. Every event carries a Korean ``text`` f
 
 import random
 
+from gameplay.difficulty import difficulty_of
 from gameplay.enemies import ENEMIES
 
 ELEMENTS = ("none", "light", "wind", "earth", "fire", "dark")
@@ -55,8 +56,9 @@ class BattleEngine:
         self.field = field
         self.rng = rng or random.Random()
         self.enemy = ENEMIES.get(enemy_id, ENEMIES["slime"])
-        self.enemy_hp = self.enemy["hp"]
-        self.enemy_max_hp = self.enemy["hp"]
+        self.difficulty = difficulty_of(field)
+        self.enemy_hp = round(self.enemy["hp"] * self.difficulty["enemy_hp"])
+        self.enemy_max_hp = self.enemy_hp
         self.statuses = {"hero": {}, "enemy": {}}
         self.guarding = False
         self.enraged = False
@@ -107,6 +109,7 @@ class BattleEngine:
             self._emit(events, type="miss", target="hero", text=f"{label}을(를) 회피했다!")
             return 0
         amount = raw if fixed else max(1, self._vary(raw - field.defense_power))
+        amount = max(1, round(amount * self.difficulty["damage"]))
         if self.guarding:
             amount //= 2
         field.hp = max(0, field.hp - amount)
