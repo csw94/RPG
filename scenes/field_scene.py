@@ -8,6 +8,7 @@ import pygame
 from scenes.base_scene import BaseScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils import ui
+from gameplay.save_migration import LAYOUT_VERSION
 from utils.pixel_art import NPC_SIZE, hero_sprite, walk_frame, sprite, tile_noise, npc_sprite
 from gameplay.equipment import ARMORS, WEAPONS
 from gameplay.world_data import FIELD_ROUTES
@@ -290,7 +291,8 @@ class FieldScene(BaseScene):
             for world, positions in self.opened_by_world.items()
         }
         opened_by_world[self.world] = [list(position) for position in sorted(self.opened)]
-        return {**self.player, "world": self.world, "hp": self.hp, "max_hp": self.max_hp,
+        return {**self.player, "world": self.world, "layout_version": LAYOUT_VERSION,
+                "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
                 "potions": self.potions, "high_potions": self.high_potions, "gold": self.gold,
                 "atk": self.atk, "defense": self.defense, "evasion_bonus": self.evasion_bonus,

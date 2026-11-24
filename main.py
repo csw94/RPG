@@ -3,7 +3,7 @@
 import pygame
 
 from db.save_manager import SaveManager
-from gameplay.world_data import MAP_GRAPH
+from gameplay.world_data import FIELD_ROUTES, MAP_GRAPH
 from scenes.battle_scene import BattleScene
 from scenes.dungeon_scene import DungeonScene
 from scenes.epilogue_scene import EpilogueScene
@@ -80,8 +80,9 @@ class Game:
     def _create_world(self, state):
         state = dict(state)
         if state.get("world") == "field":
-            # Legacy saves used a single combined field; resume them in the eastern route.
-            state.update(world="field_east", x=2, y=12)
+            # Legacy saves used a single combined field; resume them at the eastern route's entrance.
+            x, y = FIELD_ROUTES["field_east"]["village_spawn"]
+            state.update(world="field_east", x=float(x), y=float(y))
         if state.get("world") in ("village_chief_house", "village_house_1", "village_house_2"):
             return HouseInteriorScene(self, state)
         if state.get("world") == "village_north_shrine":

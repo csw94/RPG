@@ -7,6 +7,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
+from gameplay.save_migration import migrate
 from gameplay.world_data import MAP_GRAPH
 
 
@@ -88,8 +89,9 @@ class SaveManager:
     def load(self, slot: int = 1) -> dict[str, Any] | None:
         slot = self._validate_slot(slot)
         with self._connect() as connection:
-            row = connection.execute("SELECT payload FROM saves WHERE slot = ?", (slot,)).fetchone()
-        return json.loads(row[0]) if row else None
+            row = connection.execute("SELECT payload, updated_at FROM saves WHERE slot = ?", (slot,)).fetchone()
+        # Old saves are moved onto the current map layout; the slot is rewritten on the next save.
+        return migrate(json.loads(row[0]), row[1]) if row else None
 
 
 @dataclass(frozen=True)
