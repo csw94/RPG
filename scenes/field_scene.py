@@ -407,18 +407,15 @@ class FieldScene(BaseScene):
         if self.quest_flags[shrine_key]:
             return False
         self.quest_flags[shrine_key] = 1
-        self.max_hp += 30
-        self.hp = self.max_hp
-        self.atk += 5
-        self.defense += 3
+        # Levels carry general growth; each shrine adds only its own blessing.
         if shrine_key == "shrine_wind":
             self.evasion_bonus = 15
         elif shrine_key == "shrine_earth":
-            self.max_hp += 50
-            self.hp = self.max_hp
-            self.defense += 5
+            self.max_hp += 40
+            self.defense += 4
         else:
-            self.atk += 10
+            self.atk += 6
+        self.hp = self.max_hp
         self.game.save_game()
         return True
 

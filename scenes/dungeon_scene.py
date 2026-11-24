@@ -14,19 +14,19 @@ SHRINE_DUNGEONS = {
         "boss": "shrine_wind", "name": "바람의 제단", "chest": "potion",
         "field": "field_east",
         "chest_pos": (4, 3), "stairs": (22, 2), "boss_pos": (12, 7), "exit": (2, 14),
-        "style": "wind",
+        "style": "wind", "monsters": ("bat", "skeleton"),
     },
     "shrine_earth": {
         "boss": "shrine_earth", "name": "대지의 폐광", "chest": "broken_sword",
         "field": "field_west",
         "chest_pos": (20, 12), "stairs": (22, 13), "boss_pos": (12, 3), "exit": (12, 14),
-        "style": "earth",
+        "style": "earth", "monsters": ("skeleton", "bandit", "scorpion"),
     },
     "shrine_fire": {
         "boss": "shrine_fire", "name": "불꽃의 신전", "chest": "high_potion",
         "field": "field_south",
         "chest_pos": (12, 12), "stairs": (12, 2), "boss_pos": (12, 7), "exit": (22, 14),
-        "style": "fire",
+        "style": "fire", "monsters": ("skeleton", "magma_slime", "salamander"),
     },
 }
 
@@ -58,7 +58,7 @@ class DungeonScene(FieldScene):
         self.STAIRS = shrine["stairs"]
         self.boss_position = shrine["boss_pos"]
         self.encounter_rate = 0.08 if self.floor == 1 else 0
-        self.enemy_pool = ("bat", "skeleton")
+        self.enemy_pool = shrine["monsters"]
         self.chests = {shrine["chest_pos"]: shrine["chest"]} if self.floor == 1 else {}
         self.walls = {
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)

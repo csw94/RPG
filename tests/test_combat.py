@@ -183,5 +183,39 @@ class EnemyDataTests(unittest.TestCase):
             self.assertTrue(set(dungeon.enemy_pool) & {"bat", "skeleton"}, shrine)
 
 
+class BalanceRuleTests(unittest.TestCase):
+    def test_shrine_blessings_only_grant_their_own_perk(self):
+        expected = {"shrine_wind": {"evasion_bonus": 15},
+                    "shrine_earth": {"max_hp": 40, "defense": 4},
+                    "shrine_fire": {"atk": 6}}
+        for shrine, gains in expected.items():
+            field = hero(3, hp=10)
+            before = {k: getattr(field, k) for k in ("max_hp", "atk", "defense", "evasion_bonus")}
+            field.clear_shrine(shrine)
+            after = {k: getattr(field, k) for k in before}
+            diff = {k: after[k] - before[k] for k in before if after[k] != before[k]}
+            self.assertEqual(diff, gains, shrine)
+            self.assertEqual(field.hp, field.max_hp, shrine)
+
+    def test_winning_restores_a_little_mp(self):
+        field = hero(1, atk=400, mp=0)
+        engine = BattleEngine(field, "slime", rng=FixedRng())
+        engine.act("attack")
+        self.assertEqual(field.mp, combat.VICTORY_MP)
+        full = hero(1, atk=400)
+        full.mp = full.max_mp
+        BattleEngine(full, "slime", rng=FixedRng()).act("attack")
+        self.assertEqual(full.mp, full.max_mp)
+
+    def test_each_shrine_dungeon_has_its_own_monsters(self):
+        pools = [set(DungeonScene(FakeGame(), {"world": f"{s}_1f"}).enemy_pool) for s in SHRINE_DUNGEONS]
+        self.assertEqual(len({frozenset(p) for p in pools}), len(pools))
+
+    def test_later_bosses_are_tougher(self):
+        order = ("shrine_wind", "shrine_earth", "shrine_fire", "final_boss")
+        hps = [ENEMIES[b]["hp"] for b in order]
+        self.assertEqual(hps, sorted(hps))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -14,33 +14,33 @@ def _enemy(enemy_id, name, hp, attack, defense, gold, xp, sprite, size, pattern=
 
 ENEMIES = {enemy["id"]: enemy for enemy in (
     # Everywhere
-    _enemy("slime", "초록 슬라임", 35, 10, 2, 10, 8, "slime", (112, 84), weak=("fire",), potion_drop=1),
-    _enemy("goblin", "고블린 척후병", 55, 16, 4, 25, 14, "goblin", (96, 96), "double_stab"),
+    _enemy("slime", "초록 슬라임", 40, 10, 2, 10, 10, "slime", (112, 84), weak=("fire",), potion_drop=1),
+    _enemy("goblin", "고블린 척후병", 62, 16, 4, 25, 18, "goblin", (96, 96), "double_stab"),
     # Windy forest path (east)
-    _enemy("wolf", "숲늑대", 48, 13, 3, 14, 12, "wolf", (128, 96), "howl", weak=("fire",)),
-    _enemy("mushroom", "독버섯 요정", 60, 11, 3, 12, 11, "mushroom", (96, 96), "poison",
+    _enemy("wolf", "숲늑대", 55, 13, 3, 14, 15, "wolf", (128, 96), "howl", weak=("fire",)),
+    _enemy("mushroom", "독버섯 요정", 66, 11, 3, 12, 14, "mushroom", (96, 96), "poison",
            weak=("fire",), resist=("earth",)),
     # Red rock canyon (west)
-    _enemy("scorpion", "붉은 전갈", 70, 19, 7, 22, 18, "scorpion", (128, 96), "poison",
+    _enemy("scorpion", "붉은 전갈", 105, 21, 7, 22, 24, "scorpion", (128, 96), "poison",
            weak=("wind",), resist=("earth",)),
-    _enemy("bandit", "협곡 도적", 80, 21, 5, 35, 22, "bandit", (96, 120), "double_stab"),
+    _enemy("bandit", "협곡 도적", 115, 22, 5, 35, 28, "bandit", (96, 120), "double_stab"),
     # Volcanic foothills (south)
-    _enemy("salamander", "불도마뱀", 95, 25, 8, 30, 26, "salamander", (128, 96), "burn",
+    _enemy("salamander", "불도마뱀", 150, 28, 9, 30, 34, "salamander", (128, 96), "burn",
            weak=("earth",), resist=("fire",)),
-    _enemy("magma_slime", "마그마 슬라임", 110, 23, 10, 28, 24, "magma_slime", (112, 84), "burn",
+    _enemy("magma_slime", "마그마 슬라임", 160, 26, 12, 28, 32, "magma_slime", (112, 84), "burn",
            weak=("wind",), resist=("fire",)),
     # Shrine dungeons
-    _enemy("bat", "동굴 박쥐", 50, 15, 3, 16, 15, "bat", (112, 84), "drain",
+    _enemy("bat", "동굴 박쥐", 60, 15, 3, 16, 18, "bat", (112, 84), "drain",
            weak=("light",), resist=("wind",)),
-    _enemy("skeleton", "해골 병사", 75, 20, 6, 24, 20, "skeleton_warrior", (96, 120),
+    _enemy("skeleton", "해골 병사", 100, 20, 6, 24, 24, "skeleton_warrior", (96, 120),
            weak=("light",), resist=("dark",)),
     # Bosses
-    _enemy("shrine_wind", "폭풍 하피", 140, 22, 6, 0, 60, "harpy", (144, 144), "gust",
+    _enemy("shrine_wind", "폭풍 하피", 160, 25, 6, 0, 60, "harpy", (144, 144), "gust",
            weak=("earth",), resist=("wind",)),
-    _enemy("shrine_earth", "바위 골렘", 200, 20, 12, 0, 90, "golem", (144, 144), "earthquake",
+    _enemy("shrine_earth", "바위 골렘", 260, 30, 12, 0, 90, "golem", (144, 144), "earthquake",
            weak=("wind",), resist=("earth",)),
-    _enemy("shrine_fire", "화염 리자드맨", 160, 28, 8, 0, 120, "lizardman", (144, 144), "enrage",
+    _enemy("shrine_fire", "화염 리자드맨", 300, 40, 12, 0, 120, "lizardman", (144, 144), "enrage",
            weak=("earth",), resist=("fire",)),
-    _enemy("final_boss", "흑기사 말포스", 320, 35, 15, 0, 0, "dark_knight", (120, 168), "dark_arts",
+    _enemy("final_boss", "흑기사 말포스", 580, 50, 20, 0, 0, "dark_knight", (120, 168), "dark_arts",
            weak=("light",), resist=("dark",)),
 )}

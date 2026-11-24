@@ -32,6 +32,7 @@ SKILLS = {
 }
 STATUS_NAMES = {"poison": "독", "burn": "화상", "stun": "기절"}
 CRIT_CHANCE = 0.08
+VICTORY_MP = 2  # a little MP back after every win, so skills stay usable
 LEVEL_GAINS = {"max_hp": 12, "max_mp": 3, "atk": 2, "defense": 1}
 
 
@@ -247,6 +248,7 @@ class BattleEngine:
         self.result = "win"
         self.enemy_hp = 0
         self._emit(events, type="defeat", target="enemy", text=f"{self.enemy['name']} 격파!")
+        field.mp = min(field.max_mp, field.mp + VICTORY_MP)
         reward = field.resolve_battle_victory(self.enemy["id"])
         if self.enemy["id"] == "final_boss":
             field.pending_epilogue = True
