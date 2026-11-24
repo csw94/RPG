@@ -1,6 +1,11 @@
 """Static map graph and route-specific overworld layouts for Oak Valley."""
 
 
+# The four shrines whose seals awaken the star sword. The northern road (Frost Highlands)
+# thaws once NORTH_UNLOCK of the others are cleared.
+SHRINES = ("shrine_wind", "shrine_earth", "shrine_fire", "shrine_ice")
+NORTH_UNLOCK = 2
+
 MAP_GRAPH = {
     "village_square": ("village_chief_house", "village_house_1", "village_house_2",
                        "village_north_shrine", "field_east", "field_west", "field_south"),

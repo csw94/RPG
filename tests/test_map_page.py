@@ -57,8 +57,10 @@ class ObjectiveTests(unittest.TestCase):
         self.assertIn("대지의 폐광", partial)
         self.assertIn("불꽃의 신전", partial)
         self.assertNotIn("바람의 제단", partial)
+        self.assertIn("북쪽 얼음 제단", self.objective(prologue_done=True, shrine_wind=True, shrine_earth=True,
+                                                  shrine_fire=True))
         self.assertIn("분수", self.objective(prologue_done=True, shrine_wind=True, shrine_earth=True,
-                                            shrine_fire=True))
+                                            shrine_fire=True, shrine_ice=True))
         self.assertIn("말포스", self.objective(prologue_done=True, shrine_wind=True, shrine_earth=True,
                                              shrine_fire=True, star_sword_awakened=True))
         self.assertIn("심연", self.objective(prologue_done=True, shrine_wind=True, shrine_earth=True,

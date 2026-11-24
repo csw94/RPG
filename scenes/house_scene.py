@@ -2,6 +2,7 @@
 
 import pygame
 
+from gameplay.world_data import SHRINES
 from scenes.field_scene import FieldScene
 from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils.interior_art import interior_sprite
@@ -203,7 +204,7 @@ class HouseInteriorScene(FieldScene):
             self._offer_sidequest("sq_old_sword")
 
     def _interact_chief(self):
-        cleared = sum(self.quest_flags[key] for key in ("shrine_wind", "shrine_earth", "shrine_fire"))
+        cleared = sum(self.quest_flags[key] for key in SHRINES)
         if self.quest_flags["final_boss"]:
             self.show_dialogue(["오크밸리의 수호 기사여, 그대 덕분에 별빛 결계가 다시 빛나고 있네.",
                                 "언제든 마을에 들러 쉬어 가게."])
@@ -215,16 +216,16 @@ class HouseInteriorScene(FieldScene):
             self.potions = min(10, self.potions + 2)
             self.show_dialogue([
                 "별빛 분수의 결계가 약해지고 마을 외곽에 마물들이 나타났네.",
-                "동·서·남 세 제단의 봉인석을 정화해 마을을 지켜주게.",
+                "동·서·남·북 네 제단의 봉인석을 정화해 마을을 지켜주게. 북쪽 길은 두 제단을 정화하면 얼음이 녹을 걸세.",
                 "녹슨 철검과 회복약 두 개를 주겠네. 출발 전에 준비하게.",
             ])
             self.game.save_game()
-        elif cleared == 3:
-            self.show_dialogue(["세 개의 인장을 모두 모았구나. 광장의 별빛 분수에 바치게."])
+        elif cleared == len(SHRINES):
+            self.show_dialogue(["네 개의 인장을 모두 모았구나. 광장의 별빛 분수에 바치게."])
         elif cleared:
             self.show_dialogue(["정화한 제단의 빛이 돌아오고 있네. 나머지 길도 조심해서 다녀오게."])
         else:
-            self.show_dialogue(["세 제단을 원하는 순서로 공략해도 좋네. 마을 사람들의 부탁도 살펴보게."])
+            self.show_dialogue(["동·서·남 제단은 원하는 순서로 공략해도 좋네. 마을 사람들의 부탁도 살펴보게."])
 
     def _advance_dialogue(self):
         if self.dialogue_lines:

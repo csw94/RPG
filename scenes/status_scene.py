@@ -11,7 +11,8 @@ from utils.pixel_art import hero_sprite
 
 QUEST_NAMES = {"sq_moon_herb": "달빛 약초", "sq_old_sword": "노기사의 검", "sq_goblin_hunt": "고블린 소탕",
                "sq_wolf_hunt": "숲의 사냥꾼", "sq_magma_ore": "용암석 수집", "sq_bat_hunt": "동굴 소탕"}
-SEALS = (("shrine_wind", "바람의 제단"), ("shrine_earth", "대지의 폐광"), ("shrine_fire", "불꽃의 신전"))
+SEALS = (("shrine_wind", "바람의 제단"), ("shrine_earth", "대지의 폐광"), ("shrine_fire", "불꽃의 신전"),
+         ("shrine_ice", "얼음 제단"))
 ITEM_NAMES = {"broken_old_sword": "부러진 옛 검", "knights_crest": "기사단 휘장"}
 TOGGLE_KEYS = (pygame.K_i, pygame.K_TAB)
 PAGES = (("record", "기록"), ("map", "지도"))
@@ -219,12 +220,12 @@ class StatusScene(BaseScene):
         quests = ui.frame(surface, pygame.Rect(286, 358, 474, 158), "parchment")
         self._ink(surface, "제단의 인장", (quests.x + 12, quests.y + 6), 16)
         for index, (name, done) in enumerate(self.seal_rows()):
-            x = quests.x + 12 + index * 152
+            x = quests.x + 12 + index * 114
             box = pygame.Rect(x, quests.y + 32, 14, 14)
             pygame.draw.rect(surface, ui.INK_SOFT, box, 2)
             if done:
                 pygame.draw.rect(surface, (214, 172, 88), box.inflate(-6, -6))
-            self._ink(surface, name, (x + 20, quests.y + 30), 14, soft=not done)
+            self._ink(surface, name, (x + 20, quests.y + 31), 13, soft=not done)
         self._ink(surface, "마을 사람들의 부탁", (quests.x + 12, quests.y + 58), 16)
         for index, (name, text) in enumerate(self.quest_rows()):
             col, row = divmod(index, 3)

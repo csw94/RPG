@@ -7,11 +7,11 @@ can be re-equipped here for free.
 import pygame
 
 from gameplay.equipment import POTION_CAP, SHOP_ITEMS, SHOP_TABS, item_info, shop_stock
+from gameplay.world_data import SHRINES
 from scenes.base_scene import BaseScene
 from utils import ui
 
 TAB_IDS = [tab for tab, _ in SHOP_TABS]
-SHRINES = ("shrine_wind", "shrine_earth", "shrine_fire")
 
 
 class ShopScene(BaseScene):

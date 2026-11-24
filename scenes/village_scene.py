@@ -2,7 +2,7 @@
 
 import pygame
 from scenes.field_scene import FieldScene
-from gameplay.world_data import FIELD_ROUTES
+from gameplay.world_data import FIELD_ROUTES, SHRINES
 from settings import TILE_SIZE, WIDTH
 from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite, walk_frame, tile_noise, npc_sprite
 
@@ -115,16 +115,16 @@ class VillageScene(FieldScene):
                 ], action="epilogue")
             elif self.quest_flags["star_sword_awakened"]:
                 self.show_dialogue([
-                    "\ud558\ud558\ud558! \uc218\uace0\ud588\ub2e4, \uc560\uc1a1\uc774. \ub124\uac00 \ubaa8\uc544\uc900 \uc138 \uac1c\uc758 \uc778\uc7a5, \ub9c8\uc655\ub2d8\uaed8 \ubc14\uce58\ub3c4\ub85d \ud558\uc9c0!",
+                    "\ud558\ud558\ud558! \uc218\uace0\ud588\ub2e4, \uc560\uc1a1\uc774. \ub124\uac00 \ubaa8\uc544\uc900 \ub124 \uac1c\uc758 \uc778\uc7a5, \ub9c8\uc655\ub2d8\uaed8 \ubc14\uce58\ub3c4\ub85d \ud558\uc9c0!",
                     "\ud751\uae30\uc0ac \ub9d0\ud3ec\uc2a4\uac00 \ubcc4\ube5b \ubd84\uc218 \uc55e\uc5d0 \ubaa8\uc2b5\uc744 \ub4dc\ub7ec\ub0c8\ub2e4!",
                 ], action="final_boss")
             elif self.check_fountain_awakening():
                 self.show_dialogue([
-                    "\uc138 \uc778\uc7a5\uc774 \ubd84\uc218\uc5d0 \ubaa8\uc774\uc790 \ubcc4\ube5b\uc758 \uac80\uc774 \uae68\uc5b4\ub0ac\ub2e4!",
+                    "\ub124 \uc778\uc7a5\uc774 \ubd84\uc218\uc5d0 \ubaa8\uc774\uc790 \ubcc4\ube5b\uc758 \uac80\uc774 \uae68\uc5b4\ub0ac\ub2e4!",
                     "\uac80\uc744 \ub4e4\uace0 \ub2e4\uc2dc \ubd84\uc218\ub85c \uc640\uc11c \ub9c8\uc655\uad70\uc744 \ub9c9\uc544\ub77c!",
                 ])
             else:
-                self.show_dialogue(["\ubd84\uc218\uc758 \ube5b\uc774 \uc57d\ud574\uc84c\ub2e4. \ub3d9\ucabd\u00b7\uc11c\ucabd\u00b7\ub0a8\ucabd \uc81c\ub2e8\uc758 \uc778\uc7a5\uc744 \ubaa8\ub450 \ubaa8\uc544\uc57c \ud55c\ub2e4."])
+                self.show_dialogue(["\ubd84\uc218\uc758 \ube5b\uc774 \uc57d\ud574\uc84c\ub2e4. \ub3d9\u00b7\uc11c\u00b7\ub0a8\u00b7\ubd81 \ub124 \uc81c\ub2e8\uc758 \uc778\uc7a5\uc744 \ubaa8\ub450 \ubaa8\uc544\uc57c \ud55c\ub2e4."])
         elif near(self.VILLAGER):
             if self.sub_quests["sq_wolf_hunt"]["status"] != "COMPLETED":
                 self._offer_sidequest("sq_wolf_hunt")
@@ -138,17 +138,17 @@ class VillageScene(FieldScene):
 
     def _interact_logan(self):
         ore = self.sub_quests["sq_magma_ore"]
-        cleared_any = any(self.quest_flags[key] for key in ("shrine_wind", "shrine_earth", "shrine_fire"))
+        cleared_any = any(self.quest_flags[key] for key in SHRINES)
         # Logan only asks once the hero has proven themselves at a shrine; until then he just sells.
         offer = ore["status"] == "NOT_STARTED" and cleared_any
         report = ore["status"] == "IN_PROGRESS" and ore["progress"] >= ore["target"]
         if offer or report:
             self._offer_sidequest("sq_magma_ore")
             return
-        cleared = sum(self.quest_flags[key] for key in ("shrine_wind", "shrine_earth", "shrine_fire"))
+        cleared = sum(self.quest_flags[key] for key in SHRINES)
         if self.quest_flags["final_boss"]:
             advice = "별빛의 검이라니... 대장장이 평생 이런 검은 처음 보네. 뭐든 골라 보게!"
-        elif self.quest_flags["star_sword_awakened"] or cleared == 3:
+        elif self.quest_flags["star_sword_awakened"] or cleared == len(SHRINES):
             advice = "흑기사와 싸우기 전에 고급 회복약을 넉넉히 챙기게. 녀석의 암흑 베기는 아프다네."
         elif cleared:
             advice = "바위 골렘은 단단하니 좋은 무기를, 화염 리자드맨은 화력이 세니 갑옷을 챙기게."

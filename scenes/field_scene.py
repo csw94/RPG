@@ -11,7 +11,7 @@ from utils import ui
 from gameplay.save_migration import LAYOUT_VERSION
 from utils.pixel_art import NPC_SIZE, hero_sprite, walk_frame, sprite, tile_noise, npc_sprite
 from gameplay.equipment import ACCESSORIES, ARMORS, WEAPONS
-from gameplay.world_data import FIELD_ROUTES
+from gameplay.world_data import FIELD_ROUTES, SHRINES
 
 
 # Villager requests that count defeated enemies, and their (gold, accessory) rewards.
@@ -48,8 +48,7 @@ class FieldScene(BaseScene):
         self.defense = int(state.get("defense", state.get("def", 5)))
         self.evasion_bonus = int(state.get("evasion_bonus", 0))
         self.quest_flags = {key: int(value) for key, value in state.get("quest_flags", {}).items()}
-        for key in ("prologue_done", "shrine_wind", "shrine_earth", "shrine_fire", "star_sword_awakened", "final_boss",
-                    "abyss_lord"):
+        for key in ("prologue_done", *SHRINES, "star_sword_awakened", "final_boss", "abyss_lord"):
             self.quest_flags.setdefault(key, 0)
         quest_targets = {"sq_moon_herb": 3, "sq_old_sword": 1, "sq_goblin_hunt": 5,
                          "sq_wolf_hunt": 4, "sq_magma_ore": 3, "sq_bat_hunt": 4}
@@ -493,7 +492,7 @@ class FieldScene(BaseScene):
         return True
 
     def clear_shrine(self, shrine_key):
-        if shrine_key not in ("shrine_wind", "shrine_earth", "shrine_fire"):
+        if shrine_key not in SHRINES:
             return False
         if self.quest_flags[shrine_key]:
             return False
@@ -504,6 +503,10 @@ class FieldScene(BaseScene):
         elif shrine_key == "shrine_earth":
             self.max_hp += 40
             self.defense += 4
+        elif shrine_key == "shrine_ice":
+            self.max_mp += 12
+            self.defense += 2
+            self.mp = self.max_mp
         else:
             self.atk += 6
         self.hp = self.max_hp
@@ -511,8 +514,9 @@ class FieldScene(BaseScene):
         return True
 
     def check_fountain_awakening(self):
-        required = ("shrine_wind", "shrine_earth", "shrine_fire")
-        if not all(self.quest_flags[key] for key in required):
+        if self.quest_flags["star_sword_awakened"]:
+            return True  # also keeps older saves that awakened it with three seals
+        if not all(self.quest_flags[key] for key in SHRINES):
             return False
         if not self.quest_flags["star_sword_awakened"]:
             self.quest_flags["star_sword_awakened"] = 1
@@ -546,7 +550,7 @@ class FieldScene(BaseScene):
         self.gold += enemy["gold"]
         if enemy["potion_drop"] and self.potions < 10:
             self.potions = min(10, self.potions + enemy["potion_drop"])
-        if enemy_id in ("shrine_wind", "shrine_earth", "shrine_fire"):
+        if enemy_id in SHRINES:
             self.clear_shrine(enemy_id)
         if enemy_id == "goblin":
             quest = self.sub_quests["sq_goblin_hunt"]
