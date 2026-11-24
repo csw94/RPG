@@ -117,6 +117,8 @@ class HouseInteriorScene(FieldScene):
                         self._advance_dialogue()
                     else:
                         self._interact()
+                elif event.key in (pygame.K_i, pygame.K_TAB) and not self.dialogue_lines:
+                    self.game.open_status()
                 elif event.key == pygame.K_F5:
                     self.game.save_game()
                     self.message = "진행 상황을 저장했습니다."

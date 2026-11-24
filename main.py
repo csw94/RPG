@@ -11,6 +11,7 @@ from scenes.field_scene import FieldScene
 from scenes.house_scene import HouseInteriorScene
 from scenes.shop_scene import ShopScene
 from scenes.shrine_clearing_scene import ShrineClearingScene
+from scenes.status_scene import StatusScene
 from scenes.title_scene import TitleScene
 from scenes.village_scene import VillageScene
 from settings import COLORS, FPS, HEIGHT, TITLE, WIDTH
@@ -107,6 +108,10 @@ class Game:
     def open_shop(self):
         self.scene_name = "shop"
         self.scene = ShopScene(self)
+
+    def open_status(self):
+        self.scene_name = "status"
+        self.scene = StatusScene(self)
 
     def save_game(self):
         if self.field:
