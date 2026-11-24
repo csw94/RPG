@@ -1099,6 +1099,159 @@ DUNGEON_TONES = {
 }
 
 
+
+# --- Regional enemies (v0.8.0) -----------------------------------------------------
+
+def _wolf():
+    """Forest wolf (16x12): grey coat, pale belly, amber eye, bushy tail."""
+    s = _canvas((16, 12))
+    fur, dark, light = (128, 134, 146), (88, 94, 108), (196, 200, 206)
+    _rect(s, dark, 0, 3, 3, 2)          # tail
+    _rect(s, fur, 1, 2, 2, 1)
+    _rect(s, fur, 3, 4, 8, 4)           # body
+    _rect(s, light, 4, 7, 6, 1)
+    _rect(s, dark, 3, 4, 8, 1)
+    _rect(s, fur, 10, 2, 4, 4)          # head
+    _rect(s, fur, 14, 4, 2, 2)          # snout
+    _rect(s, PALETTE["ink"], 15, 4, 1, 1)
+    _rect(s, dark, 10, 1, 1, 1)
+    _rect(s, dark, 12, 1, 1, 1)
+    _rect(s, (238, 176, 64), 12, 3, 1, 1)
+    for x in (3, 5, 8, 10):
+        _rect(s, dark, x, 8, 1, 3)
+    return _outline(s)
+
+
+def _mushroom():
+    """Poison mushroom sprite (16x16): spotted purple cap, sleepy face, stubby feet."""
+    s = _canvas()
+    cap, cap_dark, spot = (150, 82, 168), (108, 56, 128), (236, 222, 240)
+    pygame.draw.ellipse(s, cap_dark, (1, 1, 14, 9))
+    pygame.draw.ellipse(s, cap, (1, 1, 14, 7))
+    for x, y in ((4, 3), (9, 2), (11, 5), (6, 5)):
+        _rect(s, spot, x, y, 2, 1)
+    _rect(s, (236, 220, 186), 4, 9, 8, 5)
+    _rect(s, (204, 186, 150), 4, 13, 8, 1)
+    _rect(s, PALETTE["ink"], 6, 10, 1, 1)
+    _rect(s, PALETTE["ink"], 9, 10, 1, 1)
+    _rect(s, (190, 96, 120), 7, 12, 2, 1)
+    _rect(s, (120, 96, 80), 4, 14, 3, 2)
+    _rect(s, (120, 96, 80), 9, 14, 3, 2)
+    return _outline(s)
+
+
+def _scorpion():
+    """Red canyon scorpion (16x12): curled stinger tail and two pincers."""
+    s = _canvas((16, 12))
+    shell, dark, light = (190, 72, 52), (132, 46, 38), (230, 120, 84)
+    _rect(s, shell, 4, 6, 8, 3)         # body
+    _rect(s, light, 5, 6, 6, 1)
+    _rect(s, shell, 11, 2, 2, 5)        # tail rising
+    _rect(s, shell, 8, 1, 4, 2)
+    _rect(s, (246, 214, 120), 7, 2, 1, 2)  # stinger
+    _rect(s, shell, 0, 5, 3, 2)         # pincers
+    _rect(s, dark, 0, 7, 2, 1)
+    _rect(s, shell, 1, 9, 3, 1)
+    _rect(s, PALETTE["ink"], 4, 7, 1, 1)
+    for x in (5, 7, 9, 11):
+        _rect(s, dark, x, 9, 1, 2)
+    return _outline(s)
+
+
+def _bandit():
+    """Canyon bandit (16x20): hood, mask, short blade."""
+    s = _canvas((16, 20))
+    hood, hood_dark = (110, 78, 58), (78, 54, 42)
+    _rect(s, hood, 4, 1, 8, 7)
+    _rect(s, (226, 184, 142), 5, 4, 6, 3)
+    _rect(s, (60, 54, 62), 5, 6, 6, 2)  # mask
+    _rect(s, PALETTE["ink"], 6, 4, 1, 1)
+    _rect(s, PALETTE["ink"], 9, 4, 1, 1)
+    _rect(s, hood_dark, 3, 8, 10, 7)    # cloak
+    _rect(s, (156, 62, 52), 4, 9, 8, 1) # scarf
+    _rect(s, (90, 74, 60), 4, 15, 3, 4)
+    _rect(s, (90, 74, 60), 9, 15, 3, 4)
+    _rect(s, (190, 200, 206), 14, 8, 1, 6)
+    _rect(s, (120, 84, 56), 13, 13, 3, 1)
+    return _outline(s)
+
+
+def _salamander():
+    """Fire salamander (16x12): orange body, flame crest along the back."""
+    s = _canvas((16, 12))
+    body, dark, belly = (226, 110, 46), (166, 70, 36), (246, 196, 96)
+    _rect(s, body, 0, 7, 3, 2)          # tail
+    _rect(s, body, 3, 5, 9, 4)
+    _rect(s, belly, 4, 8, 7, 1)
+    _rect(s, body, 11, 4, 5, 3)         # head
+    _rect(s, PALETTE["ink"], 14, 5, 1, 1)
+    for x in (4, 6, 8, 10):
+        _rect(s, (250, 210, 80), x, 3, 1, 2)
+        _rect(s, (238, 92, 54), x + 1, 4, 1, 1)
+    _rect(s, dark, 4, 9, 2, 2)
+    _rect(s, dark, 9, 9, 2, 2)
+    return _outline(s)
+
+
+def _magma_slime():
+    """Magma slime (16x12): dark crust over glowing lava cracks."""
+    s = _canvas((16, 12))
+    pygame.draw.ellipse(s, (74, 52, 56), (1, 2, 14, 10))
+    pygame.draw.ellipse(s, (120, 70, 60), (2, 2, 12, 8))
+    for x, y, w in ((3, 5, 3), (9, 4, 3), (6, 8, 4)):
+        _rect(s, (246, 126, 52), x, y, w, 1)
+    _rect(s, (255, 214, 96), 4, 3, 2, 1)
+    _rect(s, (255, 230, 120), 5, 6, 2, 2)
+    _rect(s, (255, 230, 120), 10, 6, 2, 2)
+    _rect(s, PALETTE["ink"], 6, 7, 1, 1)
+    _rect(s, PALETTE["ink"], 11, 7, 1, 1)
+    return _outline(s)
+
+
+def _bat():
+    """Cave bat (16x12): wide wings, small furry body, red eyes."""
+    s = _canvas((16, 12))
+    wing, wing_light = (76, 62, 96), (112, 92, 138)
+    _rect(s, wing, 0, 3, 6, 3)
+    _rect(s, wing, 10, 3, 6, 3)
+    _rect(s, wing, 1, 6, 2, 1)
+    _rect(s, wing, 4, 6, 2, 2)
+    _rect(s, wing, 10, 6, 2, 2)
+    _rect(s, wing, 13, 6, 2, 1)
+    _rect(s, wing_light, 1, 3, 4, 1)
+    _rect(s, wing_light, 11, 3, 4, 1)
+    _rect(s, (96, 80, 110), 6, 2, 4, 6)  # body
+    _rect(s, (96, 80, 110), 6, 1, 1, 1)
+    _rect(s, (96, 80, 110), 9, 1, 1, 1)
+    _rect(s, (232, 70, 54), 7, 3, 1, 1)
+    _rect(s, (232, 70, 54), 8, 3, 1, 1)
+    _rect(s, (250, 240, 210), 7, 5, 1, 1)
+    return _outline(s)
+
+
+def _skeleton_warrior():
+    """Skeleton soldier (16x20): skull, rib cage, rusty sword and round shield."""
+    s = _canvas((16, 20))
+    bone, shade = PALETTE["bone"], (178, 170, 148)
+    _rect(s, bone, 5, 1, 6, 5)
+    _rect(s, shade, 5, 5, 6, 1)
+    _rect(s, PALETTE["ink"], 6, 3, 2, 1)
+    _rect(s, PALETTE["ink"], 9, 3, 2, 1)
+    _rect(s, bone, 7, 6, 2, 1)
+    for y in (8, 10, 12):
+        _rect(s, bone, 5, y, 6, 1)
+    _rect(s, bone, 7, 7, 2, 7)
+    _rect(s, bone, 6, 14, 1, 5)
+    _rect(s, bone, 9, 14, 1, 5)
+    _rect(s, bone, 4, 8, 1, 5)
+    _rect(s, bone, 11, 8, 1, 4)
+    _rect(s, (150, 120, 100), 12, 4, 1, 8)   # rusty blade
+    _rect(s, (110, 80, 60), 11, 11, 3, 1)
+    pygame.draw.ellipse(s, (104, 82, 62), (0, 9, 5, 6))
+    _rect(s, (160, 130, 90), 2, 11, 1, 2)
+    return _outline(s)
+
+
 def _dfloor(style, variant):
     floor, seam, *_rest = DUNGEON_TONES[style]
     surface = _canvas()
@@ -1255,6 +1408,14 @@ def sprite(name, size=(32, 32)):
             "villager": _npc_herbalist,
             "townsfolk": _npc_townsfolk,
             "skeleton": _skeleton,
+            "wolf": lambda: pygame.transform.flip(_wolf(), True, False),
+            "mushroom": _mushroom,
+            "scorpion": _scorpion,
+            "bandit": _bandit,
+            "salamander": lambda: pygame.transform.flip(_salamander(), True, False),
+            "magma_slime": _magma_slime,
+            "bat": _bat,
+            "skeleton_warrior": _skeleton_warrior,
         }
         _BASE[name] = builders[name]()
     key = (name, tuple(size)) if size else (name, None)

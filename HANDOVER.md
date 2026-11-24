@@ -1,10 +1,24 @@
-# HANDOVER — Chronicles of Pixel 그래픽 개편 (v0.7.2)
+# HANDOVER — Chronicles of Pixel (v0.7.2 릴리즈 + 전투 개편 작업 중)
 
 ## 현재 상태
 - **최신 릴리즈:** v0.7.2 (태그 `v0.7.2`)
   - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.7.2 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
 - 테스트 76개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+
+## 진행 중: 전투 시스템 개편 (v0.8.0 예정, 아직 커밋 안 함)
+- 테스트 97개 모두 통과. 남은 일은 커밋, 태그 `v0.8.0`, 릴리즈(사용자 확인 후 진행)
+- `gameplay/combat.py`의 `BattleEngine`: 한 턴 전체(주인공 행동 → 상태이상 → 적 행동)를 계산하고 이벤트 목록을 돌려줌. pygame 없이 테스트할 수 있음
+  - 스킬 6종은 레벨에 따라 배움(`SKILLS`). 속성 약점은 1.5배, 저항은 0.5배. 독·화상·기절, 치명타 8%, 피해량 ±10%
+  - 경험치와 레벨업: `FieldScene.gain_xp()`, `xp_to_next(level) = 20 + 15×level`. 레벨이 오를 때 `LEVEL_GAINS`만큼 능력치가 오름
+  - 제단을 클리어해도 레벨은 더 이상 오르지 않음(능력치 보너스는 그대로)
+- `scenes/battle_scene.py`: 이벤트를 하나씩 재생함. 돌진, 피격 흔들림·흰색 번쩍임, 떠오르는 숫자, 상태 배지, 스킬 목록(Esc로 뒤로), 승패 후 Enter로 계속
+- 새 적 8종(`gameplay/enemies.py`, `_enemy()` 헬퍼):
+  - 숲: 늑대, 독버섯
+  - 협곡: 전갈, 도적
+  - 화산: 불도마뱀, 마그마 슬라임
+  - 던전: 박쥐, 해골 병사(그림 이름은 `skeleton_warrior`. 기존 `skeleton`은 장식용)
+- 새 테스트: `tests/test_combat.py`, `tests/test_battle_scene.py`
 
 ## 릴리즈 기록
 - **v0.7.2:** 타이틀 화면을 "밤의 오크밸리" 장면으로 바꿈(`utils/title_art.py`). 별·반딧불이 애니메이션, 나무 판자 하단 띠 포함

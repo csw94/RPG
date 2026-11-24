@@ -31,7 +31,7 @@ FIELD_ROUTES = {
                    (4, 21, 10, 6), (18, 20, 9, 7), (36, 20, 10, 7), (46, 12, 4, 10)),
         "herbs": ((17, 13), (29, 10), (39, 9)),
         "chests": {(22, 14): "potion", (43, 7): "gold"},
-        "enemy_pool": ("slime", "goblin"), "encounter_rate": 0.09,
+        "enemy_pool": ("slime", "wolf", "mushroom", "goblin"), "encounter_rate": 0.09,
     },
     "field_west": {
         "name": "붉은 바위 협곡", "theme": "canyon", "shrine": "shrine_earth",
@@ -41,7 +41,7 @@ FIELD_ROUTES = {
         "groves": (), "herbs": (),
         "toby": (43, 17),
         "chests": {(36, 14): "gold", (16, 10): "potion"},
-        "enemy_pool": ("goblin",), "encounter_rate": 0.12,
+        "enemy_pool": ("scorpion", "bandit", "goblin"), "encounter_rate": 0.12,
     },
     "field_south": {
         "name": "메마른 화산 기슭", "theme": "volcanic", "shrine": "shrine_fire",
@@ -50,6 +50,6 @@ FIELD_ROUTES = {
         "path": ((16, 28), (14, 22), (21, 18), (17, 13), (23, 9), (29, 3)),
         "groves": (), "herbs": (),
         "chests": {(23, 16): "high_potion", (9, 20): "gold"},
-        "enemy_pool": ("goblin", "slime"), "encounter_rate": 0.14,
+        "enemy_pool": ("salamander", "magma_slime", "goblin"), "encounter_rate": 0.14,
     },
 }

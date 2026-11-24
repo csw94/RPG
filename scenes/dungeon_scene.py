@@ -58,7 +58,7 @@ class DungeonScene(FieldScene):
         self.STAIRS = shrine["stairs"]
         self.boss_position = shrine["boss_pos"]
         self.encounter_rate = 0.08 if self.floor == 1 else 0
-        self.enemy_pool = ("goblin", "slime")
+        self.enemy_pool = ("bat", "skeleton")
         self.chests = {shrine["chest_pos"]: shrine["chest"]} if self.floor == 1 else {}
         self.walls = {
             (x, y) for x in range(self.COLS) for y in range(self.ROWS)

@@ -1,155 +1,180 @@
-"""Turn-based encounters for the Oak Valley story."""
+"""Turn-based encounters: menus on top of ``gameplay.combat.BattleEngine``.
 
-import random
+The engine resolves a whole round at once and returns events; this scene plays them back
+one by one (lunges, hit shake, floating numbers) and only then hands control back.
+"""
+
 import pygame
 
-from utils import battle_art, ui
-
-from gameplay.enemies import ENEMIES
+from gameplay.combat import STATUS_NAMES, BattleEngine
 from scenes.base_scene import BaseScene
+from utils import battle_art, ui
 from utils.pixel_art import fit_sprite, hero_sprite
+
+EVENT_TIME = {"damage": 0.55, "heal": 0.5, "miss": 0.45, "status": 0.55, "status_tick": 0.5,
+              "level_up": 1.0, "xp": 0.8, "defeat": 0.7, "lose": 0.9, "skill": 0.45,
+              "attack": 0.32, "stunned": 0.6, "guard": 0.5}
+ELEMENT_COLORS = {"light": (255, 236, 150), "wind": (150, 230, 190), "earth": (214, 170, 110),
+                  "fire": (255, 140, 70), "dark": (170, 120, 220), "none": (255, 255, 255)}
+STATUS_COLORS = {"poison": (150, 96, 190), "burn": (230, 110, 54), "stun": (230, 200, 90)}
 
 
 class BattleScene(BaseScene):
-    ACTIONS = ("\uacf5\uaca9", "\uc2a4\ud0ac", "\ud3ec\uc158", "\ub3c4\ub9dd")
+    ACTIONS = ("공격", "스킬", "포션", "도망")
 
-    def __init__(self, game, enemy_type="slime"):
+    def __init__(self, game, enemy_type="slime", rng=None):
         super().__init__(game)
+        self.engine = BattleEngine(game.field, enemy_type, rng=rng)
+        self.enemy = self.engine.enemy
         self.selected = 0
-        self.enemy = ENEMIES.get(enemy_type, ENEMIES["slime"])
-        self.enemy_hp = self.enemy["hp"]
-        self.enemy_max_hp = self.enemy["hp"]
-        self.turn = 0
-        self.enraged = False
-        self.message = f"{self.enemy['name']}\uc774(\uac00) \ub098\ud0c0\ub0ac\ub2e4!"
-        self.done = False
-        self.result_timer = 0.0
+        self.skill_index = 0
+        self.mode = "menu"            # menu | skills | playing | done
+        self.queue = []
+        self.current = None
+        self.event_timer = 0.0
+        self.popups = []              # dicts: text, color, x, y, age
+        self.shake = {"hero": 0.0, "enemy": 0.0}
+        self.lunge = {"hero": 0.0, "enemy": 0.0}
+        self.shown_enemy_hp = self.engine.enemy_hp
+        self.lines = [f"{self.enemy['name']}이(가) 나타났다!"]
+        self.done_timer = 0.0
+        self.kind = self.backdrop_kind()  # fixed: losing moves the hero to the village mid-fight
 
+    # --- compatibility helpers ------------------------------------------------------
+    @property
+    def message(self):
+        return self.lines[-1] if self.lines else ""
+
+    @property
+    def done(self):
+        return self.mode == "done"
+
+    def skill_list(self):
+        return self.engine.available_skills()
+
+    # --- input ----------------------------------------------------------------------
     def handle_events(self, events):
         for event in events:
             if event.type == pygame.KEYDOWN:
-                if event.key in (pygame.K_LEFT, pygame.K_a, pygame.K_UP, pygame.K_w):
-                    self.selected = (self.selected - 1) % 4
-                elif event.key in (pygame.K_RIGHT, pygame.K_d, pygame.K_DOWN, pygame.K_s):
-                    self.selected = (self.selected + 1) % 4
-                elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                    self._act()
+                self._key(event.key)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for index, rect in enumerate(self._buttons()):
-                    if rect.collidepoint(event.pos):
-                        self.selected = index
-                        self._act()
+                self._click(event.pos)
 
-    def _buttons(self):
-        return [pygame.Rect(104 + (i % 2) * 310, 434 + (i // 2) * 58, 280, 46) for i in range(4)]
-
-    def _act(self):
-        if self.done:
-            self.game.finish_battle()
-            return
-        field = self.game.field
-        action_message = ""
-        if self.selected == 0:
-            damage = max(1, field.attack_power - self.enemy["defense"])
-            self.enemy_hp -= damage
-            action_message = f"\uac80\uc744 \ud718\ub450\ub974\uc5b4 {damage}\uc758 \ud53c\ud574\ub97c \uc8fc\uc5c8\ub2e4."
-        elif self.selected == 1:
-            if field.mp < 3:
-                self.message = "MP\uac00 \ubd80\uc871\ud569\ub2c8\ub2e4."
-                return
-            field.mp -= 3
-            damage = max(1, field.attack_power + 10 - self.enemy["defense"])
-            self.enemy_hp -= damage
-            action_message = f"\ube5b\uc758 \ud0c4\uc744 \ubc1c\ud788\uc5b4 {damage}\uc758 \ud53c\ud574\ub97c \uc785\ud614\ub2e4!"
-        elif self.selected == 2:
-            if field.potions > 0:
-                field.potions -= 1
-                healed = min(50, field.max_hp - field.hp)
-                field.hp = min(field.max_hp, field.hp + 50)
-                action_message = f"\ud68c\ubcf5\uc57d(\uc18c)\uc73c\ub85c HP {healed}\uc744 \ud68c\ubcf5\ud588\ub2e4."
-            elif field.high_potions > 0:
-                field.high_potions -= 1
-                healed = min(120, field.max_hp - field.hp)
-                field.hp = min(field.max_hp, field.hp + 120)
-                action_message = f"\uace0\uae09 \ud68c\ubcf5\uc57d\uc73c\ub85c HP {healed}\uc744 \ud68c\ubcf5\ud588\ub2e4."
-            else:
-                self.message = "\uc0ac\uc6a9\ud560 \ud3ec\uc158\uc774 \uc5c6\uc2b5\ub2c8\ub2e4."
-                return
-        else:
-            if self.enemy["pattern"] in ("gust", "earthquake", "enrage", "dark_arts"):
-                self.message = "\ubcf4\uc2a4\uc758 \uc555\ub3c4\uc801\uc778 \uae30\uc6b4\uc5d0 \ub3c4\ub9dd\uce60 \uc218 \uc5c6\ub2e4!"
-                return
-            self.message = "\uc804\ud22c\uc5d0\uc11c \ub3c4\ub9dd\ud588\ub2e4."
-            self.done = True
-            self.result_timer = 0.65
-            return
-
-        if self.enemy_hp <= 0:
-            reward = field.resolve_battle_victory(self.enemy["id"])
-            if self.enemy["id"] == "final_boss":
-                field.pending_epilogue = True
-            self.message = f"{self.enemy['name']} \uaca9\ud30c! {reward}"
-            self.done = True
-            self.result_timer = 1.3
-            self.game.save_game()
-            return
-
-        self.turn += 1
-        self.message = action_message + " " + self._enemy_turn(field)
-        if field.hp <= 0:
-            field.hp = max(1, field.max_hp // 2)
-            field.player.update(x=12, y=13)
-            field.world = "village"
-            field.message = "\ud798\uacb0\ud558\uac8c \uae68\uc5b4\ub098 \uc624\ud06c\ubc38\ub9ac\ub85c \ub3cc\uc544\uc654\ub2e4."
-            self.message += " \uc758\uc2dd\uc744 \uc783\uc5c8\ub2e4..."
-            self.done = True
-            self.result_timer = 1.4
-        self.game.save_game()
-
-    def _enemy_turn(self, field):
-        pattern = self.enemy["pattern"]
-        evasion = field.evasion_bonus > 0 and random.random() < field.evasion_bonus / 100
-
-        def hit(amount, fixed=False):
-            if evasion:
-                return 0
-            damage = amount if fixed else max(1, amount - field.defense_power)
-            field.hp = max(0, field.hp - damage)
-            return damage
-
-        if pattern == "double_stab":
-            first = hit(max(1, self.enemy["attack"] // 2))
-            second = hit(max(1, self.enemy["attack"] // 2))
-            if evasion:
-                return "\ud68c\ud53c \ubcf4\ub108\uc2a4\ub85c \uc5f0\uc18d \ucc0c\ub974\uae30\ub97c \ud53c\ud588\ub2e4!"
-            return f"\uace0\ube14\ub9b0\uc758 \uc5f0\uc18d \ucc0c\ub974\uae30! {first + second} \ud53c\ud574."
-        if pattern == "gust" and self.turn % 2 == 0:
-            amount = hit(15, fixed=True)
-            return "\ud3ed\ud48d \ub3cc\ud48d! \ubc29\uc5b4\ub97c \ubb34\uc2dc\ud55c 15 \ud53c\ud574." if amount else "\ud3ed\ud48d\uc744 \ud68c\ud53c\ud588\ub2e4!"
-        if pattern == "earthquake" and self.turn % 3 == 0:
-            amount = hit(30, fixed=True)
-            return "\ubc14\uc704 \uace8\ub818\uc758 \uc9c0\uc9c4! 30 \ud53c\ud574." if amount else "\uc9c0\uc9c4\uc758 \ucda9\uaca9\uc744 \ud68c\ud53c\ud588\ub2e4!"
-        if pattern == "enrage" and not self.enraged and self.enemy_hp <= self.enemy_max_hp // 2:
-            self.enraged = True
-            return "\ud654\uc5fc \ub9ac\uc790\ub4dc\ub9e8\uc774 \uad11\ud3ed\ud654\ud588\ub2e4! ATK +5"
-        attack = self.enemy["attack"] + (5 if pattern == "enrage" and self.enraged else 0)
-        if pattern == "dark_arts" and self.turn % 3 == 0:
-            amount = hit(18, fixed=True)
-            return "\uc5b4\ub460\uc758 \ud30c\ub3d9! \ubaa8\ub4e0 \uac83\uc744 \ud718\uac10\ud558\uba70 18 \ud53c\ud574." if amount else "\uc5b4\ub460\uc758 \ud30c\ub3d9\uc744 \ube5b\uc73c\ub85c \ud76c\uc11d\ud588\ub2e4!"
-        if pattern == "dark_arts":
-            attack += 8
-        amount = hit(attack)
-        if evasion:
-            return "\uc801\uc758 \uacf5\uaca9\uc744 \ud68c\ud53c\ud588\ub2e4!"
-        label = "\uc554\ud751 \ubca0\uae30" if pattern == "dark_arts" else "\uc801\uc758 \uacf5\uaca9"
-        return f"{label}! {amount}\uc758 \ud53c\ud574\ub97c \ubc1b\uc558\ub2e4."
-
-    def update(self, dt):
-        if self.done:
-            self.result_timer -= dt
-            if self.result_timer <= 0:
+    def _key(self, key):
+        confirm = key in (pygame.K_RETURN, pygame.K_SPACE)
+        back = key in (pygame.K_ESCAPE, pygame.K_BACKSPACE, pygame.K_x)
+        step = -1 if key in (pygame.K_LEFT, pygame.K_a, pygame.K_UP, pygame.K_w) else \
+            1 if key in (pygame.K_RIGHT, pygame.K_d, pygame.K_DOWN, pygame.K_s) else 0
+        if self.mode == "done":
+            if confirm:
                 self.game.finish_battle()
+        elif self.mode == "playing":
+            if confirm:
+                self.event_timer = 0  # skip ahead
+        elif self.mode == "skills":
+            skills = self.skill_list()
+            if back:
+                self.mode = "menu"
+            elif step:
+                self.skill_index = (self.skill_index + step) % len(skills)
+            elif confirm:
+                self._run("skill", skills[self.skill_index]["id"])
+        else:
+            if step:
+                self.selected = (self.selected + step) % 4
+            elif confirm:
+                self._choose()
 
+    def _click(self, pos):
+        if self.mode == "done":
+            self.game.finish_battle()
+        elif self.mode == "skills":
+            for index, rect in enumerate(self._skill_buttons()):
+                if rect.collidepoint(pos):
+                    self.skill_index = index
+                    self._run("skill", self.skill_list()[index]["id"])
+                    return
+        elif self.mode == "menu":
+            for index, rect in enumerate(self._buttons()):
+                if rect.collidepoint(pos):
+                    self.selected = index
+                    self._choose()
+
+    def _choose(self):
+        if self.selected == 1:
+            self.mode = "skills"
+            self.skill_index = min(self.skill_index, len(self.skill_list()) - 1)
+            return
+        self._run(("attack", None, "item", "flee")[self.selected])
+
+    def _run(self, action, skill_id=None):
+        events = self.engine.act(action, skill_id)
+        self.game.save_game()
+        self.queue = list(events)
+        self.current = None
+        self.event_timer = 0
+        self.mode = "playing"
+
+    # --- playback -------------------------------------------------------------------
+    def update(self, dt):
+        for side in self.shake:
+            self.shake[side] = max(0.0, self.shake[side] - dt)
+            self.lunge[side] = max(0.0, self.lunge[side] - dt)
+        for popup in self.popups:
+            popup["age"] += dt
+        self.popups = [p for p in self.popups if p["age"] < 1.0]
+        if self.mode == "playing":
+            self.event_timer -= dt
+            while self.event_timer <= 0:
+                if not self.queue:
+                    self._finish_round()
+                    break
+                self._start(self.queue.pop(0))
+        elif self.mode == "done":
+            self.done_timer += dt
+
+    def _start(self, event):
+        self.current = event
+        self.event_timer = EVENT_TIME.get(event["type"], 0.4)
+        if event.get("text"):
+            self.lines = (self.lines + [event["text"]])[-3:]
+        kind, target = event["type"], event.get("target")
+        x = {"hero": battle_art.HERO_SPOT * 2, "enemy": battle_art.ENEMY_SPOT * 2}.get(target, 400)
+        if kind in ("attack", "skill"):
+            self.lunge[event["actor"]] = 0.25
+        elif kind in ("damage", "status_tick"):
+            self.shake[target] = 0.35
+            if event.get("weak"):
+                label, color = f"{event['amount']} 약점!", (255, 214, 90)
+            elif event.get("crit"):
+                label, color = f"{event['amount']}!!", (255, 120, 90)
+            elif kind == "status_tick":
+                label, color = str(event["amount"]), STATUS_COLORS[event["status"]]
+            else:
+                label, color = str(event["amount"]), ELEMENT_COLORS.get(event.get("element"), (255, 255, 255))
+            self._popup(label, color, x)
+            if target == "enemy":
+                self.shown_enemy_hp = max(0, self.shown_enemy_hp - event["amount"])
+        elif kind == "heal":
+            self._popup(f"+{event['amount']}", (130, 230, 140), x)
+            if target == "enemy":
+                self.shown_enemy_hp = min(self.engine.enemy_max_hp, self.shown_enemy_hp + event["amount"])
+        elif kind == "miss":
+            self._popup("MISS", (200, 210, 230), x)
+        elif kind == "status":
+            self._popup(STATUS_NAMES[event["status"]], STATUS_COLORS[event["status"]], x)
+        elif kind == "level_up":
+            self._popup(f"LEVEL {event['level']}!", (255, 222, 110), battle_art.HERO_SPOT * 2)
+
+    def _popup(self, text, color, x):
+        self.popups.append({"text": text, "color": color, "x": x, "y": 186 - 30 * len(self.popups), "age": 0.0})
+
+    def _finish_round(self):
+        self.current = None
+        self.shown_enemy_hp = max(0, self.engine.enemy_hp)
+        self.mode = "done" if self.engine.result else "menu"
+
+    # --- scene picking (used by draw and tests) ----------------------------------------
     def backdrop_kind(self):
         """Fight where you stand: dungeon style, route theme, or the village square."""
         field = self.game.field
@@ -160,36 +185,114 @@ class BattleScene(BaseScene):
             return "village"
         return getattr(field, "theme", "forest")
 
+    # --- drawing --------------------------------------------------------------------
+    def _buttons(self):
+        return [pygame.Rect(104 + (i % 2) * 310, 446 + (i // 2) * 56, 280, 46) for i in range(4)]
+
+    def _skill_buttons(self):
+        return [pygame.Rect(36 + (i % 3) * 248, 446 + (i // 3) * 56, 236, 46)
+                for i in range(len(self.skill_list()))]
+
+    def _offset(self, side, direction):
+        shake = self.shake[side]
+        dx = int(6 * (1 if int(shake * 40) % 2 else -1)) if shake else 0
+        lunge = self.lunge[side]
+        dx += int(direction * 28 * (lunge / 0.25) * (1 - lunge / 0.25) * 4) if lunge else 0
+        return dx
+
     def draw(self, surface):
-        surface.blit(battle_art.backdrop(self.backdrop_kind()), (0, 0))
+        field = self.game.field
+        surface.blit(battle_art.backdrop(self.kind), (0, 0))
         feet = battle_art.FEET_Y * 2
-        hero = hero_sprite(self.game.field.weapon, self.game.field.armor, (80, 120))
-        surface.blit(hero, (battle_art.HERO_SPOT * 2 - hero.get_width() // 2, feet - hero.get_height()))
-        enemy = fit_sprite(self.enemy["sprite"], self.enemy["size"])
-        surface.blit(enemy, (battle_art.ENEMY_SPOT * 2 - enemy.get_width() // 2, feet - enemy.get_height() + 4))
-        self._panel(surface, pygame.Rect(54, 24, 263, 94))
-        self.text(surface, "\uc218\ud638\uc790", (78, 42), 20)
-        self._bar(surface, 78, 77, 215, self.game.field.hp, self.game.field.max_hp, self.game.colors["red"])
-        self._panel(surface, pygame.Rect(482, 24, 263, 94))
-        self.text(surface, self.enemy["name"], (506, 42), 20)
-        self._bar(surface, 506, 77, 215, max(0, self.enemy_hp), self.enemy_max_hp, self.game.colors["green"])
+        hero = hero_sprite(field.weapon, field.armor, (80, 120))
+        hx = battle_art.HERO_SPOT * 2 - hero.get_width() // 2 + self._offset("hero", 1)
+        surface.blit(hero, (hx, feet - hero.get_height()))
+        if self.mode == "done" and self.engine.result == "win":
+            pass  # the defeated enemy is gone
+        else:
+            enemy = fit_sprite(self.enemy["sprite"], self.enemy["size"])
+            ex = battle_art.ENEMY_SPOT * 2 - enemy.get_width() // 2 + self._offset("enemy", -1)
+            if self.shake["enemy"] and int(self.shake["enemy"] * 30) % 2:
+                enemy = enemy.copy()
+                enemy.fill((255, 255, 255, 0), special_flags=pygame.BLEND_RGBA_MAX)
+            surface.blit(enemy, (ex, feet - enemy.get_height() + 4))
+        self._draw_status_panels(surface)
+        for popup in self.popups:
+            alpha = 255 if popup["age"] < 0.6 else int(255 * (1 - (popup["age"] - 0.6) / 0.4))
+            font = self.game.font(36)
+            image = font.render(popup["text"], True, popup["color"])
+            edge = font.render(popup["text"], True, (36, 24, 22))
+            y = popup["y"] - int(popup["age"] * 40)
+            layers = [(edge, dx, dy) for dx in (-2, 0, 2) for dy in (-2, 0, 2) if dx or dy] + [(image, 0, 0)]
+            for img, dx, dy in layers:
+                img.set_alpha(max(0, alpha))
+                surface.blit(img, img.get_rect(center=(popup["x"] + dx, y + dy)))
+        self._draw_bottom(surface)
+
+    def _draw_status_panels(self, surface):
+        field, engine = self.game.field, self.engine
+        ui.frame(surface, pygame.Rect(54, 24, 263, 104), "walnut")
+        self.text(surface, f"수호자  Lv.{field.level}", (78, 38), 20)
+        self._bar(surface, 78, 70, 215, field.hp, field.max_hp, self.game.colors["red"])
+        self._bar(surface, 78, 90, 215, field.mp, field.max_mp, self.game.colors["blue"], 8)
+        badges = [STATUS_NAMES[s] for s in engine.statuses["hero"]] + (["수호"] if engine.guarding else [])
+        self._badges(surface, badges, (78, 104))
+        ui.frame(surface, pygame.Rect(482, 24, 263, 104), "walnut")
+        self.text(surface, self.enemy["name"], (506, 38), 20)
+        self._bar(surface, 506, 70, 215, self.shown_enemy_hp, engine.enemy_max_hp, self.game.colors["green"])
+        self._badges(surface, [STATUS_NAMES[s] for s in engine.statuses["enemy"]], (506, 92))
+
+    def _badges(self, surface, names, pos):
+        x, y = pos
+        for name in names:
+            image = self.game.font(16).render(name, True, (250, 240, 220))
+            rect = pygame.Rect(x, y, image.get_width() + 10, 18)
+            pygame.draw.rect(surface, (96, 62, 48), rect, border_radius=4)
+            surface.blit(image, image.get_rect(center=rect.center))
+            x = rect.right + 4
+
+    def _draw_bottom(self, surface):
+        field = self.game.field
         ui.plank_strip(surface, (0, 374, 800, 226))
         ui.frame(surface, pygame.Rect(8, 380, 784, 214), "walnut")
-        self.text(surface, self.message, (400, 401), 18, self.game.colors["gold"], True)
-        for index, (label, rect) in enumerate(zip(self.ACTIONS, self._buttons())):
-            if index == 2:
-                label = f"\ud3ec\uc158 ({self.game.field.potions}/{self.game.field.high_potions})"
-            self.button(surface, rect, label, index == self.selected)
-        field = self.game.field
-        self.text(surface, f"HP {field.hp}/{field.max_hp}   MP {field.mp}/{field.max_mp}   ATK {field.attack_power}   DEF {field.defense_power}",
-                  (400, 570), 16, self.game.colors["muted"], True)
+        recent = self.lines[-2:]
+        for index, line in enumerate(recent):
+            latest = index == len(recent) - 1
+            self.text(surface, line, (400, 402 + index * 22), 18,
+                      self.game.colors["gold"] if latest else self.game.colors["muted"], True)
+        if self.mode == "skills":
+            skills = self.skill_list()
+            for index, (skill, rect) in enumerate(zip(skills, self._skill_buttons())):
+                usable = field.mp >= skill["mp"]
+                label = f"{skill['name']}  {skill['mp']}MP"
+                self.button(surface, rect, label if usable else f"({label})", index == self.skill_index, 20)
+            chosen = skills[self.skill_index]
+            footer = f"{chosen['desc']}   ·   MP {field.mp}/{field.max_mp}   ·   Esc: 뒤로"
+        elif self.mode == "done":
+            footer = "Enter: 계속"
+            self.text(surface, footer, (400, 520), 22, self.game.colors["cream"], True)
+            footer = ""
+        elif self.mode == "playing":
+            footer = "Enter: 빨리 보기"
+        else:
+            for index, (label, rect) in enumerate(zip(self.ACTIONS, self._buttons())):
+                if index == 2:
+                    label = f"포션 ({field.potions}/{field.high_potions})"
+                self.button(surface, rect, label, index == self.selected)
+            footer = (f"HP {field.hp}/{field.max_hp}   MP {field.mp}/{field.max_mp}   "
+                      f"ATK {field.attack_power}   DEF {field.defense_power}   "
+                      f"EXP {field.xp}/{self._xp_needed()}")
+        if footer:
+            self.text(surface, footer, (400, 572), 16, self.game.colors["muted"], True)
 
-    def _panel(self, surface, rect):
-        ui.frame(surface, rect, "walnut")
+    def _xp_needed(self):
+        from gameplay.combat import xp_to_next
+
+        return xp_to_next(self.game.field.level)
 
     @staticmethod
-    def _bar(surface, x, y, width, value, maximum, color):
-        pygame.draw.rect(surface, (55, 61, 73), (x, y, width, 14))
+    def _bar(surface, x, y, width, value, maximum, color, height=14):
+        pygame.draw.rect(surface, (55, 61, 73), (x, y, width, height))
         fill = int(width * max(0, value) / maximum) if maximum else 0
         if fill:
-            pygame.draw.rect(surface, color, (x, y, fill, 14))
+            pygame.draw.rect(surface, color, (x, y, min(width, fill), height))

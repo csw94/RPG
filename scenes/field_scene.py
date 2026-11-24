@@ -404,7 +404,6 @@ class FieldScene(BaseScene):
         if self.quest_flags[shrine_key]:
             return False
         self.quest_flags[shrine_key] = 1
-        self.level += 1
         self.max_hp += 30
         self.hp = self.max_hp
         self.atk += 5
@@ -431,6 +430,23 @@ class FieldScene(BaseScene):
                 self.owned_weapons.append("star_sword")
             self.game.save_game()
         return True
+
+    def gain_xp(self, amount):
+        """Add experience; returns one ``{"level", "skills"}`` entry per level gained."""
+        from gameplay.combat import LEVEL_GAINS, skills_for_level, xp_to_next
+
+        self.xp += max(0, amount)
+        ups = []
+        while self.xp >= xp_to_next(self.level):
+            self.xp -= xp_to_next(self.level)
+            known = {skill["id"] for skill in skills_for_level(self.level)}
+            self.level += 1
+            for stat, gain in LEVEL_GAINS.items():
+                setattr(self, stat, getattr(self, stat) + gain)
+            self.hp, self.mp = self.max_hp, self.max_mp
+            ups.append({"level": self.level,
+                        "skills": [s["name"] for s in skills_for_level(self.level) if s["id"] not in known]})
+        return ups
 
     def resolve_battle_victory(self, enemy_id):
         from gameplay.enemies import ENEMIES
@@ -562,7 +578,7 @@ class FieldScene(BaseScene):
             self.high_potions = min(10, self.high_potions + 1)
             self.message = "\uc0c1\uc790\uc5d0\uc11c \uace0\uae09 \ud68c\ubcf5\uc57d\uc744 \uc5bb\uc5c8\uc2b5\ub2c8\ub2e4!"
         else:
-            self.xp += 20
+            self.gain_xp(20)
             self.gold += 25
             self.message = "\uc0c1\uc790\uc5d0\uc11c \uae08\ud654\uc640 \uacbd\ud5d8\uce58 20\uc744 \uc5bb\uc5c8\uc2b5\ub2c8\ub2e4!"
         self.game.save_game()
