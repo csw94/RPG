@@ -1,10 +1,10 @@
-# HANDOVER — Chronicles of Pixel (v0.18.0)
+# HANDOVER — Chronicles of Pixel (v0.19.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.18.0 (태그 `v0.18.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.18.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.19.0 (태그 `v0.19.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.19.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 272개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 292개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
@@ -168,7 +168,22 @@
     3. 처치형 부탁이면 `kill`만 적으면 진행도가 자동으로 오름
   - 세이브의 `sub_quests`, 상태 화면 이름, 보상 지급은 모두 이 표를 따름. `test_quest_data`가 표의 일관성과 보상 지급을 검사함
 
+## 난이도·도감·자동 저장 (v0.19.0)
+- 난이도(`gameplay/difficulty.py`): `DIFFICULTIES`의 easy/normal/hard 배율(`enemy_hp`, `damage`, `gold`)
+  - 적 HP는 `BattleEngine.__init__`에서, 받는 피해는 `_hit_hero`에서, 골드는 `resolve_battle_victory`에서 배율을 곱함
+  - 세이브에 `difficulty`를 저장함. 예전 세이브와 잘못된 값은 normal로 처리함
+  - 타이틀에서 슬롯을 고른 뒤 `mode == "difficulty"`로 난이도를 고름. 모험 중에 설정 화면을 열면 난이도 줄이 추가됨(`SettingsScene.rows`)
+  - 밸런스 시뮬레이터는 normal 기준
+- 도감: 세이브에 `bestiary`({적 id: 처치 수}, 0이면 만나기만 함)를 저장함. 전투를 시작할 때 등록되고, 이기면 수가 오름
+  - 상태 화면 세 번째 페이지(`PAGES`)에 6열 그리드로 표시함
+  - 장비 수집 수는 `LEGACY_IDS`를 뺀 전체 장비 기준
+- 자동 저장: `main.AUTOSAVE_SECONDS`(60초)마다 `Game.tick_autosave`가 저장함
+  - 장면이 필드 계열일 때만 저장하고, 대화 중이면 대화가 끝난 뒤로 미룸
+  - 저장하면 HUD에 "자동 저장됨"이 표시됨(`autosave_flash`)
+  - 창을 닫을 때는 `Game.shutdown`이 모험 중이면 저장함
+
 ## 릴리즈 기록
+- **v0.19.0:** 난이도 선택(쉬움·보통·어려움, 모험 중 변경 가능), 상태 화면의 몬스터·장비 도감, 1분마다 자동 저장과 창을 닫을 때 저장
 - **v0.18.0:** 플레이 시간과 전투 기록(세이브 슬롯과 엔딩 화면에 표시), 마을 부탁 데이터를 한 곳으로 정리
 - **v0.17.0:** 서리 고원 사냥꾼 하른과 부탁(얼음 심장), 빙결 대비 장비와 제단 3·4곳 정화 단계의 상품, Lv.10 별빛 폭풍·Lv.12 성스러운 기도, 별빛 심연 난이도 재조정
 - **v0.16.0:** 새 지역 「서리 고원」과 네 번째 제단 「얼음 제단」(제단 두 곳을 정화하면 열림), 새 적 4종과 빙결 상태이상, 인장 4개 기준으로 이야기 확장, 불꽃·최종 보스 밸런스 조정
@@ -265,6 +280,7 @@
 | `tools/release_notes.py` / `.github/workflows/` | 릴리즈 노트 추출 / CI 테스트와 릴리즈 빌드 |
 | `gameplay/objectives.py` | 다음 목표 안내 |
 | `gameplay/quests.py` / `gameplay/records.py` | 마을 부탁 데이터 / 플레이 시간 표시와 세이브 슬롯 요약 |
+| `gameplay/difficulty.py` | 난이도 배율 |
 | `utils/interior_art.py` | 실내 스프라이트. `interior_sprite(name, scale=2)`, 러그는 `rug_<색>_<w>x<h>` 형식 |
 | `utils/ui.py` | 공용 UI: 프레임, 막대, 버튼, 판자 띠 |
 | `utils/battle_art.py` | 전투 배경 `backdrop(kind)`, 발판 위치 상수 |
