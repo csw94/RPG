@@ -59,6 +59,9 @@ ACCESSORIES = {
                     "desc": "공격력 +8 · 회피 +8% · 승리 시 MP +3"},
 }
 
+# Gear kept only so very old saves still load; not part of the collection.
+LEGACY_IDS = {"iron_sword", "silver_sword", "leather_armor", "chainmail"}
+
 SMALL_POTION = {"name": "회복약(소)", "price": 30, "heal": 50, "desc": "HP 50 회복"}
 HIGH_POTION = {"name": "고급 회복약", "price": 80, "heal": 120, "desc": "HP 120 회복"}
 POTION_CAP = 10

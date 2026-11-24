@@ -3,19 +3,22 @@
 import pygame
 
 from gameplay.combat import SKILLS, xp_to_next
-from gameplay.equipment import POTION_CAP
+from gameplay.combat import BOSS_PATTERNS
+from gameplay.enemies import ENEMIES
+from gameplay.equipment import ACCESSORIES, ARMORS, LEGACY_IDS, POTION_CAP, WEAPONS
 from gameplay.objectives import next_objective
 from gameplay.quests import QUESTS
 from scenes.base_scene import BaseScene
 from utils import ui
-from utils.pixel_art import hero_sprite
+from utils.pixel_art import fit_sprite, hero_sprite
 
 QUEST_NAMES = {quest_id: quest["name"] for quest_id, quest in QUESTS.items()}
 SEALS = (("shrine_wind", "바람의 제단"), ("shrine_earth", "대지의 폐광"), ("shrine_fire", "불꽃의 신전"),
          ("shrine_ice", "얼음 제단"))
 ITEM_NAMES = {"broken_old_sword": "부러진 옛 검", "knights_crest": "기사단 휘장"}
 TOGGLE_KEYS = (pygame.K_i, pygame.K_TAB)
-PAGES = (("record", "기록"), ("map", "지도"))
+PAGES = (("record", "기록"), ("map", "지도"), ("bestiary", "도감"))
+ELEMENT_NAMES = {"light": "빛", "wind": "바람", "earth": "대지", "fire": "불", "dark": "어둠"}
 HERO_MARK = (255, 200, 40)
 MAP_COLORS = {"ground": (118, 150, 92), "path": (204, 176, 124), "water": (88, 150, 200), "lava": (224, 112, 52), "ice": (150, 196, 230), "snow": (226, 232, 240),
               "tree": (58, 104, 64), "rock": (120, 116, 112), "wall": (62, 52, 58), "floor": (150, 138, 128)}
@@ -64,7 +67,9 @@ class StatusScene(BaseScene):
             if event.type == pygame.KEYDOWN and event.key in (*TOGGLE_KEYS, pygame.K_ESCAPE):
                 self._close()
             elif event.type == pygame.KEYDOWN and event.key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_d):
-                self.page = "map" if self.page == "record" else "record"
+                step = -1 if event.key in (pygame.K_LEFT, pygame.K_a) else 1
+                order = [page for page, _ in PAGES]
+                self.page = order[(order.index(self.page) + step) % len(order)]
                 self.sfx("cursor")
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.close_rect().collidepoint(event.pos):
@@ -87,12 +92,58 @@ class StatusScene(BaseScene):
         ui.frame(surface, pygame.Rect(20, 14, 760, 572), "walnut", border=8)
         if self.page == "map":
             self._draw_map(surface)
+        elif self.page == "bestiary":
+            self._draw_bestiary(surface)
         else:
             self._draw_record(surface)
         for index, (page, label) in enumerate(PAGES):
-            self.button(surface, pygame.Rect(600 + index * 82, 28, 74, 30), label, page == self.page, 15)
+            self.button(surface, pygame.Rect(540 + index * 78, 28, 72, 30), label, page == self.page, 15)
         self.button(surface, self.close_rect(), "닫기", False, 18)
-        self.text(surface, "←→ 기록 / 지도 · I / Tab / ESC 닫기", (400, 570), 13, self.game.colors["muted"], True)
+        self.text(surface, "←→ 기록 / 지도 / 도감 · I / Tab / ESC 닫기", (400, 570), 13, self.game.colors["muted"], True)
+
+    # --- bestiary page ----------------------------------------------------------------
+    def bestiary_rows(self):
+        book = getattr(self.field, "bestiary", {})
+        return [{"id": enemy_id, "seen": enemy_id in book, "defeats": book.get(enemy_id, 0),
+                 "boss": enemy["pattern"] in BOSS_PATTERNS, **{k: enemy[k] for k in ("name", "sprite", "weak")}}
+                for enemy_id, enemy in ENEMIES.items()]
+
+    @staticmethod
+    def bestiary_cells():
+        cols, width, height = 6, 118, 92
+        return [pygame.Rect(46 + (i % cols) * (width + 2), 98 + (i // cols) * (height + 4), width, height)
+                for i in range(len(ENEMIES))]
+
+    def gear_collection(self):
+        f = self.field
+        owned = set(f.owned_weapons) | set(f.owned_armors) | set(f.owned_accessories)
+        everything = (set(WEAPONS) | set(ARMORS) | set(ACCESSORIES)) - LEGACY_IDS
+        return len(owned & everything), len(everything)
+
+    def _draw_bestiary(self, surface):
+        colors = self.game.colors
+        rows = self.bestiary_rows()
+        seen = sum(row["seen"] for row in rows)
+        owned, total = self.gear_collection()
+        self.text(surface, "도감", (400, 44), 28, colors["gold"], True)
+        self.text(surface, f"만난 적 {seen}/{len(rows)}  ·  모은 장비 {owned}/{total}", (400, 80), 15,
+                  colors["cream"], True)
+        for row, cell in zip(rows, self.bestiary_cells()):
+            body = ui.frame(surface, cell, "parchment")
+            image = fit_sprite(row["sprite"], (44, 40))
+            if not row["seen"]:
+                image = image.copy()
+                image.fill((0, 0, 0, 255), special_flags=pygame.BLEND_RGB_MULT)
+                image.fill((72, 62, 60, 0), special_flags=pygame.BLEND_RGB_ADD)  # one flat silhouette tone
+            surface.blit(image, image.get_rect(midbottom=(body.centerx, body.y + 44)))
+            name = row["name"] if row["seen"] else "???"
+            color = (150, 96, 40) if row["boss"] and row["seen"] else ui.INK
+            label = self.game.font(12).render(name, True, color)
+            surface.blit(label, label.get_rect(midtop=(body.centerx, body.y + 46)))
+            if row["seen"]:
+                weak = "·".join(ELEMENT_NAMES.get(e, e) for e in row["weak"]) or "없음"
+                detail = self.game.font(11).render(f"약점 {weak} · 처치 {row['defeats']}", True, ui.INK_SOFT)
+                surface.blit(detail, detail.get_rect(midtop=(body.centerx, body.y + 62)))
 
     # --- map page ---------------------------------------------------------------------
     def map_rect(self):

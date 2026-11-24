@@ -57,6 +57,9 @@ class BattleEngine:
         self.rng = rng or random.Random()
         self.enemy = ENEMIES.get(enemy_id, ENEMIES["slime"])
         self.difficulty = difficulty_of(field)
+        book = getattr(field, "bestiary", None)
+        if book is not None:
+            book.setdefault(self.enemy["id"], 0)
         self.enemy_hp = round(self.enemy["hp"] * self.difficulty["enemy_hp"])
         self.enemy_max_hp = self.enemy_hp
         self.statuses = {"hero": {}, "enemy": {}}
@@ -308,6 +311,9 @@ class BattleEngine:
         field = self.field
         self.result = "win"
         self._tally("wins")
+        book = getattr(field, "bestiary", None)
+        if book is not None:
+            book[self.enemy["id"]] = book.get(self.enemy["id"], 0) + 1
         self.enemy_hp = 0
         self._emit(events, type="defeat", target="enemy", text=f"{self.enemy['name']} 격파!")
         field.mp = min(field.max_mp, field.mp + VICTORY_MP + field.accessory_info.get("victory_mp", 0))

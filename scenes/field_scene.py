@@ -10,6 +10,7 @@ from settings import HEIGHT, TILE_SIZE, WIDTH
 from utils import ui
 from gameplay.save_migration import LAYOUT_VERSION
 from utils.pixel_art import NPC_SIZE, hero_sprite, walk_frame, sprite, tile_noise, npc_sprite
+from gameplay.enemies import ENEMIES
 from gameplay.equipment import ACCESSORIES, ARMORS, WEAPONS
 from gameplay.difficulty import DIFFICULTIES, difficulty_of
 from gameplay.quests import QUESTS, kill_quests
@@ -46,6 +47,8 @@ class FieldScene(BaseScene):
         self.xp = int(state.get("xp", 0))
         self.play_time = float(state.get("play_time", 0))
         self.difficulty = state.get("difficulty") if state.get("difficulty") in DIFFICULTIES else "normal"
+        # Bestiary: enemy id -> times defeated (0 = met but not yet beaten).
+        self.bestiary = {key: int(value) for key, value in (state.get("bestiary") or {}).items() if key in ENEMIES}
         saved_stats = state.get("stats") or {}
         self.stats = {key: int(saved_stats.get(key, 0)) for key in ("wins", "losses", "flees")}
         self.potions = int(state.get("potions", 0))
@@ -330,6 +333,7 @@ class FieldScene(BaseScene):
         opened_by_world[self.world] = [list(position) for position in sorted(self.opened)]
         return {**self.player, "world": self.world, "layout_version": LAYOUT_VERSION,
                 "play_time": round(self.play_time, 1), "stats": dict(self.stats), "difficulty": self.difficulty,
+                "bestiary": dict(self.bestiary),
                 "hp": self.hp, "max_hp": self.max_hp,
                 "mp": self.mp, "max_mp": self.max_mp, "level": self.level, "xp": self.xp,
                 "potions": self.potions, "high_potions": self.high_potions, "gold": self.gold,
