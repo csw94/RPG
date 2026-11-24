@@ -87,6 +87,27 @@ class VillageSizeTests(unittest.TestCase):
         for point in targets:
             self.assertTrue(next_to(point, reach), point)
 
+    def test_buildings_leave_a_walkable_alley_between_them(self):
+        v = self.village
+        rects = sorted(v.BUILDINGS.values())
+        for (ax, ay, aw, ah), (bx, by, bw, bh) in zip(rects, rects[1:]):
+            gap = range(ax + aw, bx)
+            self.assertGreaterEqual(len(gap), 2, (rects, "buildings too close"))
+            rows = range(max(ay, by), min(ay + ah, by + bh))
+            for y in rows:
+                self.assertTrue(any(not v._blocked(x, y) for x in gap), (y, list(gap)))
+        reach = reachable(v, v.START)
+        top = min(y for _, y, _, _ in rects) - 1
+        for (ax, ay, aw, ah), (bx, by, bw, bh) in zip(rects, rects[1:]):
+            self.assertTrue(any((x, top) in reach for x in range(ax + aw, bx)), "alley leads north")
+
+    def test_building_walls_match_the_layout(self):
+        v = self.village
+        for x, y, w, h in v.BUILDINGS.values():
+            for tx in range(x, x + w):
+                for ty in range(y, y + h):
+                    self.assertIn((tx, ty), v.walls)
+
     def test_returning_from_fields_and_houses_lands_on_free_tiles(self):
         v = self.village
         spots = [data["return_village"] for data in FIELD_ROUTES.values()]

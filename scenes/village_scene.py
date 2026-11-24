@@ -27,14 +27,18 @@ class VillageScene(FieldScene):
     GATE = (15, 20)
     FIELD_GATES = {"field_west": (0, 10), "field_east": (31, 10), "field_south": (15, 20),
                    "village_north_shrine": (15, 0)}
-    QUEST_HOUSE_DOOR = (8, 9)
-    KNIGHT_HOUSE_DOOR = (22, 9)
+    QUEST_HOUSE_DOOR = (6, 9)
+    KNIGHT_HOUSE_DOOR = (24, 9)
+    # Solid footprint of each building (x, y, w, h). The side houses sit two tiles further
+    # out than in the old 25x16 plaza so a 2-3 tile alley runs between every building.
+    BUILDINGS = {"herb_cottage": (4, 5, 4, 4), "chief_hall": (11, 4, 9, 5), "general_store": (22, 5, 6, 4)}
+    HOUSE_TILES = {"herb_cottage": (3, 4), "general_store": (21, 4)}
     LOGAN = (19, 12)
     LOGAN_CRATES = ((18, 12), (20, 12))
     START = (15, 15)
     SHRINE_SPAWN = (15, 17)
     SHRINE_RETURN = (15, 1)
-    HOUSE_EXITS = {"village_house_1": (8, 10), "village_house_2": (22, 10), "village_chief_house": (15, 9)}
+    HOUSE_EXITS = {"village_house_1": (6, 10), "village_house_2": (24, 10), "village_chief_house": (15, 9)}
     GARDEN = tuple((x, y) for x in range(24, 29) for y in (18, 19))
 
     def __init__(self, game, state=None):
@@ -54,17 +58,16 @@ class VillageScene(FieldScene):
             and (x, y) not in self.FIELD_GATES.values()
         }
         # Buildings (core layout, shifted into the bigger map).
-        self.walls.update((x + ox, y + oy) for x in range(3, 7) for y in range(3, 7))
-        self.walls.update((x + ox, y + oy) for x in range(17, 23) for y in range(3, 7))
-        self.walls.update((x + ox, y + oy) for x in range(8, 17) for y in range(2, 7))
+        for bx, by, bw, bh in self.BUILDINGS.values():
+            self.walls.update((x, y) for x in range(bx, bx + bw) for y in range(by, by + bh))
         core_trees = {
             (2, 11), (3, 11), (4, 12), (6, 12), (7, 13), (3, 14),
             (21, 11), (22, 11), (20, 12), (22, 13), (19, 14),
             (9, 13), (15, 13),
         }
         outskirts = {
-            (2, 2), (4, 1), (1, 4), (3, 5), (1, 7),            # orchard (north-west)
-            (27, 1), (29, 2), (30, 4), (28, 6), (30, 7),       # pines (north-east)
+            (2, 2), (4, 1), (1, 4), (1, 7),                    # orchard (north-west)
+            (27, 1), (29, 2), (30, 4), (29, 6), (30, 8),       # pines (north-east)
             (1, 13), (2, 15), (29, 13), (30, 15), (28, 17),    # flanks
             (11, 19), (20, 19), (30, 19),                      # south hedge line
         }
@@ -170,7 +173,7 @@ class VillageScene(FieldScene):
         x, y = tile_x * TILE_SIZE, tile_y * TILE_SIZE
         width = (7 if shop else 6) * TILE_SIZE
         bounds = pygame.Rect(x - 10, y - 10, width + 24, 214)
-        layer = pygame.Surface((WIDTH, 512), pygame.SRCALPHA)
+        layer = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
         self._paint_house(layer, tile_x, tile_y, shop)
         crop = layer.subsurface(bounds).copy()
         scaled = pygame.transform.smoothscale(crop, (round(bounds.width * 0.8), round(bounds.height * 0.8)))
@@ -330,9 +333,9 @@ class VillageScene(FieldScene):
             layer.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * t - 8, ty * t - 32))
         # The plaza buildings keep their hand-painted core coordinates.
         ox, oy = self.CORE_OFFSET
+        self._draw_house(layer, *self.HOUSE_TILES["herb_cottage"])
+        self._draw_house(layer, *self.HOUSE_TILES["general_store"], shop=True)
         core = layer.subsurface(pygame.Rect(ox * t, oy * t, 25 * t, 16 * t))
-        self._draw_house(core, 2, 2)
-        self._draw_house(core, 16, 2, shop=True)
         self._draw_chief_house(core)
         self._draw_logan_stall(core)
         fx, fy = self.FOUNTAIN

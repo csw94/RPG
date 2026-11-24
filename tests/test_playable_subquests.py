@@ -28,8 +28,8 @@ class PlayableSubquestTests(unittest.TestCase):
     def test_house_doors_lead_to_marta_and_garen_and_logan_runs_the_plaza_stall(self):
         game = FakeGame()
         village = VillageScene(game, {"world": "village", "x": 15, "y": 15})
-        village.player.update(x=8, y=9)
-        self.assertFalse(village._blocked(8, 9))
+        village.player.update(x=village.QUEST_HOUSE_DOOR[0], y=village.QUEST_HOUSE_DOOR[1])
+        self.assertFalse(village._blocked(*village.QUEST_HOUSE_DOOR))
         village._interact()
         self.assertEqual(game.destination[0], "village_house_1")
 
@@ -38,9 +38,9 @@ class PlayableSubquestTests(unittest.TestCase):
         cottage._interact()
         self.assertEqual(cottage.dialogue_action, "accept_subquest:sq_moon_herb")
 
-        village.player.update(x=22, y=10)
-        self.assertFalse(village._blocked(22, 9))
-        self.assertFalse(village._blocked(22, 10))
+        village.player.update(x=village.HOUSE_EXITS["village_house_2"][0], y=village.HOUSE_EXITS["village_house_2"][1])
+        self.assertFalse(village._blocked(*village.KNIGHT_HOUSE_DOOR))
+        self.assertFalse(village._blocked(*village.HOUSE_EXITS["village_house_2"]))
         village._interact()
         self.assertEqual(game.destination[0], "village_house_2")
         quarters = HouseInteriorScene(game, {"world": "village_house_2"})
