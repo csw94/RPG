@@ -4,8 +4,31 @@
 - **최신 릴리즈:** v0.23.0 (태그 `v0.23.0`)
   - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.23.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- 테스트 358개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- main에는 v0.23.0 이후 커밋이 있고 아직 릴리즈하지 않음. 테스트 399개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
+## 그래픽 개편·시작 연출·세이브 삭제 (v0.24.0 준비 중, 아직 릴리즈 전)
+- 주인공 새 디자인(`utils/pixel_art.py`)
+  - `_HERO_HEAD`/`_HERO_TORSO` 픽셀 문자 격자와 `_paint`로 그림. 구리빛 머리, 빨간 스카프(`HERO["scarf"]`)
+  - 튜닉 색은 갑옷 6종마다 다름(`HERO_ARMOR`). 옆모습 스카프 끝은 걸음마다 날림(`_SCARF_TAIL`)
+- 집 부품 조합(`utils/house_art.py`)
+  - `HOUSE_STYLES` 6채: 벽 재질, 지붕 모양(gable/hip/gambrel/thatch), 창문, 문, 소품
+  - 너비는 5칸 또는 7칸만 씀(홀수여야 문이 타일 가운데에 옴)
+  - `general_store` 키는 실제로 가렌의 거처라 `knight_quarters`로 바꿈(방패 문장, 무기 걸이). 로건은 광장 노점 상인
+- 비대칭 배치(맵 구조 4)
+  - `village_scene.PLACES`(집 그림 기준 타일) → `house_plot(key)`이 벽 영역과 문 좌표를 계산함
+  - `BUILDINGS`, `DISTRICT`, `HOUSE_EXITS`가 모두 여기서 나옴
+  - 나무는 집 그림과 겹치면 자동으로 빠짐. 길은 `road_tiles()`에 절대 좌표로 적음
+  - `save_migration.LAYOUT_VERSION = 4`: 예전 문 앞 좌표를 새 문 앞으로 옮김(`VILLAGE_DOORS_V4`)
+  - 촌장 집, 분수, 시작 위치, 로건, 출입구 4곳은 그대로
+- 새 게임 시작 연출(`gameplay/intro.py` `ChiefCallIntro`, `VillageScene.update`)
+  - 단계: 페이드 인 → 토미가 뛰어옴 → 대화 → 촌장 집 문 앞까지 안내(문 위 "!") → 문 앞에서 대기
+  - 새 게임만 `quest_flags["intro_seen"]=0`을 저장함. 이 값이 없는 예전 세이브에서는 연출이 나오지 않음
+  - `FieldScene.input_locked`, `skip_cutscene()`, `dialogue_done(action)`은 다른 장면에서도 쓸 수 있는 일반 연결점
+- 세이브 삭제: 타이틀 슬롯 화면의 휴지통 버튼 또는 Del 키 → 예/아니오 확인 → `SaveManager.delete(slot)`
+- 새 테스트: `test_house_art`, `test_village_layout`, `test_intro`, `test_save_delete`. 걷기 테스트에도 추가함
+- 보류 중: 소스 저장소 비공개 + EXE만 공개 저장소에 배포
+  - 업로드 방식과 저장소 이름이 아직 정해지지 않음
+  - `gh` CLI 설치와 로그인이 필요함
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
   - `_hero_head` / `_hero_torso` / `_hero_legs`로 나눔

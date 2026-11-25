@@ -86,6 +86,12 @@ class SaveManager:
                 (slot, payload),
             )
 
+    def delete(self, slot: int) -> bool:
+        """Erase a slot; True if there was a save in it."""
+        slot = self._validate_slot(slot)
+        with self._connect() as connection:
+            return connection.execute("DELETE FROM saves WHERE slot = ?", (slot,)).rowcount > 0
+
     def load(self, slot: int = 1) -> dict[str, Any] | None:
         slot = self._validate_slot(slot)
         with self._connect() as connection:

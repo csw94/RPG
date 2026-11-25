@@ -57,6 +57,13 @@ class TitleScene(BaseScene):
                             self._choose_menu()
                             break
                 else:
+                    bins = [self.delete_button(index) for index in range(self.SLOT_COUNT)]
+                    hit = next((i for i, rect in enumerate(bins) if rect and rect.collidepoint(event.pos)), None)
+                    if hit is not None:
+                        self.selected = hit
+                        self.confirm_overwrite = False
+                        self._ask_delete()
+                        continue
                     for index, rect in enumerate(self._slot_cards()):
                         if rect.collidepoint(event.pos):
                             if self.selected == index and self.confirm_overwrite:
@@ -94,6 +101,37 @@ class TitleScene(BaseScene):
         elif key in (pygame.K_RETURN, pygame.K_SPACE):
             self.sfx("confirm")
             self._choose_slot()
+        elif key == pygame.K_DELETE:
+            self.confirm_overwrite = False
+            self._ask_delete()
+
+    def delete_button(self, index):
+        """The bin button in a slot card's corner, or None for an empty slot."""
+        if index + 1 not in self.slot_data:
+            return None
+        card = self._slot_cards()[index]
+        return pygame.Rect(card.right - 34, card.top + 10, 24, 24)
+
+    def _ask_delete(self):
+        slot = self.selected + 1
+        if slot not in self.slot_data:
+            self.notice = "이 슬롯에는 지울 기록이 없습니다."
+            return
+        from scenes.confirm_scene import ConfirmScene
+        label = self.SLOT_LABELS[self.selected]
+        self.sfx("cursor")
+        self.game.scene = ConfirmScene(self.game, self, f"{label} 기록을 삭제할까요?",
+                                       ["삭제한 모험 기록은 되돌릴 수 없습니다.",
+                                        "레벨, 장비, 진행 상황이 모두 사라집니다."],
+                                       lambda: self._delete_slot(slot))
+
+    def _delete_slot(self, slot):
+        self.game.save_manager.delete(slot)
+        if self.game.active_slot == slot:
+            # The adventure left open behind the title screen no longer has a save to go back to.
+            self.game.active_slot, self.game.field = None, None
+        self.slot_data = self.game.save_manager.list_saves()
+        self.notice = f"{self.SLOT_LABELS[slot - 1]}의 기록을 삭제했습니다."
 
     def _menu_buttons(self):
         return [pygame.Rect(285, 286 + i * 46, 230, 38) for i in range(len(self.OPTIONS))]
@@ -236,12 +274,28 @@ class TitleScene(BaseScene):
                           self.game.colors["gold"] if ending else self.game.colors["muted"], True)
             else:
                 self.text(surface, "빈 슬롯", (rect.centerx, rect.top + 149), 18, self.game.colors["muted"], True)
+            bin_rect = self.delete_button(index)
+            if bin_rect:
+                self._draw_bin(surface, bin_rect, index == self.selected)
         self.button(surface, pygame.Rect(328, 492, 144, 42), "뒤로", False, 18)
         action_text = "선택한 슬롯에 새 모험을 기록합니다." if self.slot_action == "new" else "선택한 저장 기록을 불러옵니다."
-        help_text = f"{action_text}  ·  방향키/Enter 선택  ·  ESC 뒤로"
+        help_text = f"{action_text}  ·  Enter 선택  ·  Del 기록 삭제  ·  ESC 뒤로"
         self.text(surface, help_text, (400, 564), 15, self.game.colors["muted"], True)
         if self.notice:
             self.text(surface, self.notice, (400, 190), 16, self.game.colors["gold"], True)
+
+    def _draw_bin(self, surface, rect, active):
+        """A small rubbish-bin button; it turns red on the selected card."""
+        pygame.draw.rect(surface, (30, 22, 20), rect.inflate(4, 4), border_radius=6)
+        pygame.draw.rect(surface, (150, 58, 46) if active else (92, 70, 54), rect, border_radius=5)
+        ink = (246, 230, 200)
+        cx = rect.centerx
+        pygame.draw.rect(surface, ink, (cx - 3, rect.y + 4, 6, 2))            # handle
+        pygame.draw.rect(surface, ink, (rect.x + 5, rect.y + 6, rect.width - 10, 2))  # lid
+        body = pygame.Rect(rect.x + 7, rect.y + 9, rect.width - 14, rect.height - 13)
+        pygame.draw.rect(surface, ink, body, 2)
+        for x in (cx - 2, cx + 1):
+            pygame.draw.line(surface, ink, (x, body.y + 3), (x, body.bottom - 3), 1)
 
     def _draw_crest(self, surface, center, small=False):
         scale = 2 if small else 3
