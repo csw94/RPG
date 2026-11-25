@@ -21,22 +21,22 @@ ROOF_SHAPES = ("gable", "hip", "gambrel", "thatch")
 HOUSE_STYLES = {
     # Marta's herb cottage: a round straw roof over cream plaster, shutters and drying herbs.
     "herb_cottage": {
-        "width": 6, "roof": "thatch", "roof_colors": ((198, 158, 84), (228, 192, 112), (146, 108, 58), (238, 210, 136)),
+        "width": 5, "roof": "thatch", "roof_colors": ((198, 158, 84), (228, 192, 112), (146, 108, 58), (238, 210, 136)),
         "wall": "plaster", "wall_colors": ((236, 220, 184), (248, 238, 212), (196, 172, 136)),
         "chimney": ("left", "stone"), "smoke": True, "windows": "shuttered", "trim": (84, 132, 92),
         "door": "arched", "props": ("planters", "herbs"),
     },
-    # Logan's general store: a lopsided terracotta gable, warm planks and a striped awning.
-    "general_store": {
+    # Old knight Garen's quarters: a lopsided gable over sturdy planks, his shield above the door.
+    "knight_quarters": {
         "width": 7, "roof": "gable", "apex": 0.62,
         "roof_colors": ((166, 98, 62), (200, 130, 84), (128, 72, 50), (226, 164, 106)),
         "wall": "plank", "wall_colors": ((180, 130, 84), (204, 152, 98), (96, 64, 46)),
         "chimney": ("right", "brick"), "windows": "square", "trim": (211, 177, 115),
-        "door": "double", "props": ("awning", "crates"), "awning": ((204, 72, 64), (244, 232, 206)),
+        "door": "double", "props": ("shield", "weapon_rack", "barrel"),
     },
     # The Sleepy Bear inn: two storeys, a timber-framed upper floor with a balcony.
     "inn": {
-        "width": 6, "stories": 2, "roof": "gable", "apex": 0.5,
+        "width": 7, "stories": 2, "roof": "gable", "apex": 0.5,
         "roof_colors": ((96, 128, 74), (128, 160, 98), (72, 100, 58), (170, 200, 128)),
         "wall": "log", "wall_colors": ((150, 100, 62), (186, 132, 82), (100, 64, 44)),
         "upper_wall": "timber", "upper_colors": ((238, 224, 192), (250, 242, 220), (92, 58, 42)),
@@ -45,7 +45,7 @@ HOUSE_STYLES = {
     },
     # Bron's smithy: squat stone walls under a slate hip roof, a forge glowing in the window.
     "smithy": {
-        "width": 6, "roof": "hip",
+        "width": 5, "roof": "hip",
         "roof_colors": ((86, 90, 104), (118, 122, 136), (62, 64, 78), (150, 154, 168)),
         "wall": "stone", "wall_colors": ((132, 128, 126), (168, 164, 158), (92, 88, 90)),
         "chimney": ("right", "stone_big"), "smoke": True, "windows": "forge", "trim": (82, 70, 64),
@@ -53,7 +53,7 @@ HOUSE_STYLES = {
     },
     # The Starlight library: brick under a blue mansard roof, arched windows and a round oculus.
     "library": {
-        "width": 6, "roof": "gambrel",
+        "width": 7, "roof": "gambrel",
         "roof_colors": ((64, 82, 140), (92, 112, 172), (48, 60, 108), (136, 156, 210)),
         "wall": "brick", "wall_colors": ((168, 92, 70), (204, 130, 98), (120, 66, 54)),
         "chimney": None, "windows": "arched", "trim": (226, 214, 182),
@@ -61,7 +61,7 @@ HOUSE_STYLES = {
     },
     # Mira's apothecary: white half-timbering, a steep purple clay roof and potted flowers.
     "apothecary": {
-        "width": 6, "roof": "gable", "apex": 0.5, "steep": True, "tiles": "clay",
+        "width": 5, "roof": "gable", "apex": 0.5, "steep": True, "tiles": "clay",
         "roof_colors": ((128, 84, 144), (160, 112, 176), (98, 62, 112), (196, 150, 210)),
         "wall": "timber", "wall_colors": ((240, 234, 222), (252, 248, 240), (88, 60, 52)),
         "chimney": ("left", "brick"), "windows": "round", "trim": (120, 84, 60),
@@ -283,7 +283,7 @@ def _paint_smoke(surface, chimney_top, big=False):
 
 # --- windows and doors ------------------------------------------------------------------
 
-def _window(surface, rect, kind, trim, flower_box=False):
+def _window(surface, rect, kind, trim, flower_box=False, side=None):
     if kind == "round":
         center, r = rect.center, min(rect.width, rect.height) // 2 + 1
         pygame.draw.circle(surface, OUTLINE, center, r + 3)
@@ -318,7 +318,8 @@ def _window(surface, rect, kind, trim, flower_box=False):
             pygame.draw.line(surface, (235, 205, 150), rect.midleft, rect.midright, 2)
             pygame.draw.rect(surface, GLASS_LIGHT, (rect.x + 4, rect.y + 4, 3, 3))
         if kind == "shuttered":
-            for sx in (rect.x - 13, rect.right + 3):
+            spots = {"left": (rect.x - 13,), "right": (rect.right + 3,)}.get(side, (rect.x - 13, rect.right + 3))
+            for sx in spots:
                 shutter = pygame.Rect(sx, rect.y - 2, 10, rect.height + 4)
                 pygame.draw.rect(surface, OUTLINE, shutter.inflate(2, 2))
                 pygame.draw.rect(surface, trim, shutter)
@@ -438,13 +439,30 @@ def _paint_props(surface, x, width, wall_top, ground, style, door):
             pygame.draw.circle(surface, (250, 220, 110), (pot.centerx + 3, pot.y - 2), 2)
     if "herbs" in props:
         hang = wall_top + 28  # just under the eave, between the windows and the door
-        for i, hx in enumerate((x + 66, x + 72, x + width - 72, x + width - 66)):
+        for i, hx in enumerate((x + 22, x + 60, x + width - 60, x + width - 22)):
             length = 10 + (i % 2) * 4
             color = ((96, 150, 80), (150, 110, 180), (186, 170, 86), (96, 150, 80))[i]
             pygame.draw.line(surface, OUTLINE, (hx, hang - 3), (hx, hang + length - 8), 1)
             tip = hang + length
             pygame.draw.polygon(surface, OUTLINE, [(hx - 4, tip - 9), (hx + 4, tip - 9), (hx, tip + 1)])
             pygame.draw.polygon(surface, color, [(hx - 2, tip - 8), (hx + 2, tip - 8), (hx, tip - 2)])
+    if "shield" in props:
+        cx, top = door.centerx, door.y - 26
+        points = [(cx - 9, top), (cx + 9, top), (cx + 9, top + 10), (cx, top + 20), (cx - 9, top + 10)]
+        pygame.draw.polygon(surface, OUTLINE, points)
+        inner = [(cx - 7, top + 2), (cx + 7, top + 2), (cx + 7, top + 10), (cx, top + 17), (cx - 7, top + 10)]
+        pygame.draw.polygon(surface, (58, 84, 150), inner)
+        pygame.draw.line(surface, GOLD, (cx, top + 3), (cx, top + 15), 2)
+        pygame.draw.line(surface, GOLD, (cx - 5, top + 7), (cx + 5, top + 7), 2)
+    if "weapon_rack" in props:
+        rx, base = x - 2, ground - 2
+        pygame.draw.rect(surface, OUTLINE, (rx - 2, base - 34, 26, 36))
+        pygame.draw.rect(surface, (126, 84, 54), (rx, base - 6, 22, 6))
+        pygame.draw.rect(surface, (126, 84, 54), (rx, base - 26, 22, 4))
+        for i, px in enumerate((rx + 4, rx + 11, rx + 18)):
+            pygame.draw.line(surface, (196, 204, 210), (px, base - 32), (px, base - 6), 2)
+            tip = (236, 240, 240) if i != 1 else GOLD
+            pygame.draw.polygon(surface, tip, [(px - 2, base - 31), (px + 2, base - 31), (px, base - 36)])
     if "anvil" in props:
         ax, ay = x + 4, ground - 12
         pygame.draw.rect(surface, OUTLINE, (ax - 2, ay - 14, 26, 18))
@@ -487,8 +505,9 @@ def paint_house(surface, x, y, style):
     else:
         ground_y = wall_top + 32
     planters = "planters" in style.get("props", ()) and kind != "round"
-    _window(surface, pygame.Rect(x + 29, ground_y, 27, 24), kind, trim, flower_box=kind == "square" or planters)
-    _window(surface, pygame.Rect(x + width - 56, ground_y, 27, 24), kind, trim, flower_box=planters)
+    _window(surface, pygame.Rect(x + 29, ground_y, 27, 24), kind, trim,
+            flower_box=kind == "square" or planters, side="left")
+    _window(surface, pygame.Rect(x + width - 56, ground_y, 27, 24), kind, trim, flower_box=planters, side="right")
     door = _door(surface, x, width, ground, style.get("door", "plank"))
     _paint_props(surface, x, width, wall_top, ground, style, door)
     if style.get("smoke"):

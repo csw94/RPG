@@ -17,6 +17,29 @@ ROOFS = {
     "chief": ((160, 76, 62), (196, 106, 80), (122, 56, 50), (226, 140, 102)),
 }
 
+# Layout v4: where each part-built house is drawn (top-left tile of its canvas). Small houses
+# are 5 tiles wide, big ones 7, and they sit off-grid so the town is not a mirror image.
+PLACES = {
+    "herb_cottage": (3, 3),       # Marta, tucked up by the north-west orchard
+    "knight_quarters": (22, 5),   # Garen, a step lower than the chief's hall
+    "inn": (31, 2),               # the big two-storey inn on the east road
+    "smithy": (37, 12),           # Bron's forge off a side lane
+    "library": (3, 19),           # past the pond
+    "apothecary": (27, 21),       # by the vegetable garden
+}
+
+
+def house_plot(key):
+    """(footprint, door) of a house: the solid wall tiles (x, y, w, h) and the door tile below."""
+    tx, ty = PLACES[key]
+    width = HOUSE_STYLES[key]["width"]
+    return (tx + 1, ty + 1, width - 2, 4), (tx + width // 2, ty + 5)
+
+
+def _district(key, title, world, sign):
+    footprint, door = house_plot(key)
+    return {"title": title, "footprint": footprint, "door": door, "world": world, "sign": sign}
+
 
 class VillageScene(FieldScene):
     # The map is 44x30 tiles. The 32x21 village of v0.7-v0.20 keeps its coordinates in the
@@ -31,36 +54,32 @@ class VillageScene(FieldScene):
     GATE = (15, 29)
     FIELD_GATES = {"field_west": (0, 10), "field_east": (43, 10), "field_south": (15, 29),
                    "village_north_shrine": (15, 0)}
-    # New districts: each place is a 4x4 building; its keeper waits inside (HouseInteriorScene).
+    # Districts: each keeper waits inside their building (HouseInteriorScene).
     DISTRICT = {
-        "inn": {"title": "여관 「졸린 곰」", "footprint": (35, 4, 4, 4), "door": (37, 8), "world": "village_inn",
-                "sign": "bed"},
-        "smithy": {"title": "브론의 대장간", "footprint": (35, 13, 4, 4), "door": (37, 17), "world": "village_smithy",
-                   "sign": "anvil"},
-        "library": {"title": "별빛 도서관", "footprint": (5, 22, 4, 4), "door": (7, 26), "world": "village_library",
-                    "sign": "book"},
-        "apothecary": {"title": "미라의 물약 상점", "footprint": (23, 22, 4, 4), "door": (25, 26),
-                       "world": "village_apothecary", "sign": "flask"},
+        "inn": _district("inn", "여관 「졸린 곰」", "village_inn", "bed"),
+        "smithy": _district("smithy", "브론의 대장간", "village_smithy", "anvil"),
+        "library": _district("library", "별빛 도서관", "village_library", "book"),
+        "apothecary": _district("apothecary", "미라의 물약 상점", "village_apothecary", "flask"),
     }
     RESIDENTS = {
         "tomi": {"pos": (35, 24), "sprite": "child",
                  "lines": ["꼬마 토미: 나도 크면 수호 기사가 될 거예요! 이 나무 칼 보이죠?",
                            "도서관 할머니가 그러는데, 적마다 약한 속성이 있대요!"]},
     }
-    QUEST_HOUSE_DOOR = (6, 9)
-    KNIGHT_HOUSE_DOOR = (24, 9)
-    # Solid footprint of each building (x, y, w, h). The side houses sit two tiles further
-    # out than in the old 25x16 plaza so a 2-3 tile alley runs between every building.
-    BUILDINGS = {"herb_cottage": (4, 5, 4, 4), "chief_hall": (11, 4, 9, 5), "general_store": (22, 5, 6, 4)}
-    HOUSE_TILES = {"herb_cottage": (3, 4), "general_store": (21, 4)}
+    QUEST_HOUSE_DOOR = house_plot("herb_cottage")[1]
+    KNIGHT_HOUSE_DOOR = house_plot("knight_quarters")[1]
+    # Solid footprint of each plaza building (x, y, w, h); a 3-4 tile alley runs between them.
+    BUILDINGS = {"herb_cottage": house_plot("herb_cottage")[0], "chief_hall": (11, 4, 9, 5),
+                 "knight_quarters": house_plot("knight_quarters")[0]}
     LOGAN = (19, 12)
     LOGAN_CRATES = ((18, 12), (20, 12))
     START = (15, 15)
     SHRINE_SPAWN = (15, 17)
     SHRINE_RETURN = (15, 1)
-    HOUSE_EXITS = {"village_house_1": (6, 10), "village_house_2": (24, 10), "village_chief_house": (15, 9),
-                   "village_inn": (37, 8), "village_smithy": (37, 17), "village_library": (7, 26),
-                   "village_apothecary": (25, 26)}
+    HOUSE_EXITS = {"village_house_1": (QUEST_HOUSE_DOOR[0], QUEST_HOUSE_DOOR[1] + 1),
+                   "village_house_2": (KNIGHT_HOUSE_DOOR[0], KNIGHT_HOUSE_DOOR[1] + 1),
+                   "village_chief_house": (15, 9),
+                   **{place["world"]: place["door"] for place in DISTRICT.values()}}
     GARDEN = tuple((x, y) for x in range(24, 29) for y in (18, 19))
 
     def __init__(self, game, state=None):
@@ -92,13 +111,19 @@ class VillageScene(FieldScene):
             (27, 1), (29, 2), (30, 4), (29, 6), (30, 8),       # pines (north-east)
             (1, 13), (2, 15), (29, 13), (30, 15), (28, 17),    # flanks
             (11, 19), (20, 19), (30, 19),                      # south hedge line
-            (33, 2), (41, 2), (42, 5), (33, 8), (42, 15), (33, 18), (42, 18),   # east district
-            (1, 23), (2, 27), (12, 23), (18, 24), (30, 22), (31, 26),          # south district
-            (40, 22), (41, 25), (37, 27), (20, 28), (9, 28),
+            (41, 2), (42, 5), (39, 8), (42, 15), (33, 18), (42, 18),           # east district
+            (35, 14), (34, 16), (32, 12),                                      # copse by the smithy lane
+            (1, 23), (2, 27), (12, 23), (18, 24), (23, 22), (21, 25), (25, 24),  # south district
+            (40, 22), (41, 25), (37, 27), (20, 28), (9, 28), (34, 21),
         }
         self.water = ({(x, 16) for x in range(3, 7)} | {(x, 17) for x in range(2, 8)}
                       | {(x, 18) for x in range(3, 7)})
         self.trees = ({(x + ox, y + oy) for x, y in core_trees} | outskirts) - self.water - self.road_tiles()
+        # Keep trees off the houses' pictures, their doors and the spots outside them.
+        houses = [self._house_rect(key) for key in PLACES]
+        clear = {self.QUEST_HOUSE_DOOR, self.KNIGHT_HOUSE_DOOR, *self.HOUSE_EXITS.values()}
+        self.trees = {(tx, ty) for tx, ty in self.trees if (tx, ty) not in clear
+                      and pygame.Rect(tx * TILE_SIZE - 8, ty * TILE_SIZE - 32, 48, 64).collidelist(houses) < 0}
         self.solid_npcs = {self.VILLAGER, self.LOGAN, *(r["pos"] for r in self.RESIDENTS.values())}
         self.walls.update(self.LOGAN_CRATES)
         self.walls.update(self.trees)
@@ -289,44 +314,43 @@ class VillageScene(FieldScene):
             pygame.draw.circle(surface, (110, 220, 150), (cx, cy + 2), 5)
             pygame.draw.rect(surface, (220, 236, 240), (cx - 2, cy - 6, 4, 5))
 
-    def _draw_house(self, surface, tile_x, tile_y, style_key):
-        """Paint one building from its parts (utils.house_art) and scale it down to 80%."""
-        style = HOUSE_STYLES[style_key]
-        x, y = tile_x * TILE_SIZE, tile_y * TILE_SIZE
-        width = style["width"] * TILE_SIZE
-        bounds = pygame.Rect(x - 10, y - 10, width + 24, 214)
-        layer = pygame.Surface(bounds.size, pygame.SRCALPHA)
-        paint_house(layer, 10, 10, style)
-        scaled = pygame.transform.smoothscale(layer, (round(bounds.width * 0.8), round(bounds.height * 0.8)))
-        surface.blit(scaled, (round(bounds.centerx - scaled.get_width() / 2),
-                              round(bounds.centery - scaled.get_height() / 2)))
-    def road_tiles(self):
-        ox, oy = self.CORE_OFFSET
-        core = {(12, y) for y in range(9, 16)}
-        core.update({(11, 9), (10, 9), (9, 8), (8, 8), (7, 8), (6, 8), (5, 8), (4, 8), (3, 8)})
-        core.update({(13, 9), (14, 9), (15, 9), (16, 8), (17, 8), (18, 8), (19, 8), (20, 8), (21, 8)})
-        core.update((x, 8) for x in range(0, 4))
-        core.update((x, 8) for x in range(21, 25))
-        core.update((7, y) for y in range(1, 10))
-        core.update((x, 1) for x in range(7, 13))
-        core.update({(18, 9), (18, 10), (18, 11), (19, 11), (12, 7), (12, 8)})
-        road = {(x + ox, y + oy) for x, y in core}
-        # Roads continue out to the gates on the new map edges, plus a lane past the pond
-        # and the vegetable garden.
-        road.update((x, 10) for x in range(0, 3))
-        road.update((x, 10) for x in range(28, self.COLS))
-        road.update((15, y) for y in range(0, 3))
-        road.update((15, y) for y in range(18, self.ROWS))
-        road.update((x, 18) for x in range(9, 24))
-        # East district: a lane up to the inn door and round the smithy to its door.
-        road.update({(37, 9)})
-        road.update((40, y) for y in range(11, 18))
-        road.update((x, 18) for x in range(36, 41))
-        # South district: a high street linking the library, the apothecary and the park.
-        road.update((x, 27) for x in range(3, 40))
-        road.update((y_x, 26) for y_x in (7, 25))
-        return road
+    @staticmethod
+    def _house_rect(key):
+        """Where a house's picture lands: its painted canvas, scaled to 80% about the centre."""
+        tile_x, tile_y = PLACES[key]
+        bounds = pygame.Rect(tile_x * TILE_SIZE - 10, tile_y * TILE_SIZE - 10,
+                             HOUSE_STYLES[key]["width"] * TILE_SIZE + 24, 214)
+        size = (round(bounds.width * 0.8), round(bounds.height * 0.8))
+        return pygame.Rect(round(bounds.centerx - size[0] / 2), round(bounds.centery - size[1] / 2), *size)
 
+    def _draw_house(self, surface, key):
+        """Paint one building from its parts (utils.house_art) and scale it down to 80%."""
+        style = HOUSE_STYLES[key]
+        layer = pygame.Surface((style["width"] * TILE_SIZE + 24, 214), pygame.SRCALPHA)
+        paint_house(layer, 10, 10, style)
+        target = self._house_rect(key)
+        surface.blit(pygame.transform.smoothscale(layer, target.size), target)
+    def road_tiles(self):
+        road = {(15, y) for y in range(9, 18)}                     # plaza: chief's door down past the fountain
+        road.update((x, 10) for x in range(0, 13))                  # west road to the west gate
+        road.update({(13, 11), (14, 11), (16, 11), (17, 11), (18, 11)})
+        road.update((x, 10) for x in range(19, self.COLS))          # east road to the east gate
+        road.update((10, y) for y in range(3, 12))                  # north-west lane up to the shrine path
+        road.update((x, 3) for x in range(10, 16))
+        road.update((15, y) for y in range(0, 3))
+        road.update({(21, 11), (21, 12), (21, 13), (22, 13)})        # round Logan's stall
+        road.add(self.HOUSE_EXITS["village_house_1"])                # Marta's step
+        inn_x, inn_y = self.DISTRICT["inn"]["door"]
+        road.update((inn_x, y) for y in range(inn_y + 1, 10))       # inn porch down to the road
+        smithy_x, smithy_y = self.DISTRICT["smithy"]["door"]
+        road.update((36, y) for y in range(11, smithy_y + 2))       # smithy side lane
+        road.update((x, smithy_y + 1) for x in range(37, smithy_x + 1))
+        road.update((15, y) for y in range(18, self.ROWS))          # south road to the south gate
+        road.update((x, 18) for x in range(9, 24))
+        lib_x, lib_y = self.DISTRICT["library"]["door"]
+        road.update((lib_x, y) for y in range(lib_y + 1, 27))
+        road.update((x, 27) for x in range(3, 40))                  # south high street
+        return road
     def ground_decals(self):
         """Walkable, purely visual ground details: flowers and pebbles off the road."""
         if self._decals is None:
@@ -384,11 +408,9 @@ class VillageScene(FieldScene):
             layer.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * t - 8, ty * t - 32))
         # The plaza buildings keep their hand-painted core coordinates.
         ox, oy = self.CORE_OFFSET
-        for key, (tx, ty) in self.HOUSE_TILES.items():
-            self._draw_house(layer, tx, ty, key)
-        for key, place in self.DISTRICT.items():
-            bx, by, _bw, _bh = place["footprint"]
-            self._draw_house(layer, bx - 1, by - 1, key)
+        for key in sorted(PLACES, key=lambda k: PLACES[k][1]):
+            self._draw_house(layer, key)
+        for place in self.DISTRICT.values():
             self._draw_sign(layer, place)
         core = layer.subsurface(pygame.Rect(ox * t, oy * t, 25 * t, 16 * t))
         self._draw_chief_house(core)

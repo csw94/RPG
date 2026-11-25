@@ -10,7 +10,7 @@ import pygame
 from utils import house_art
 from utils.house_art import HOUSE_STYLES, paint_house
 
-BUILDINGS = {"herb_cottage", "general_store", "inn", "smithy", "library", "apothecary"}
+BUILDINGS = {"herb_cottage", "knight_quarters", "inn", "smithy", "library", "apothecary"}
 
 
 def render(key):
