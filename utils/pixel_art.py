@@ -75,12 +75,123 @@ def _rect(surface, color, x, y, width, height=1):
 
 
 HERO = {
-    "mantle": (56, 91, 66), "mantle_light": (89, 124, 78), "mantle_dark": (42, 70, 52),
-    "tunic": (201, 179, 128), "tunic_light": (232, 215, 174), "belt": (177, 145, 91),
-    "arm": (129, 87, 53), "trousers": (92, 94, 78), "legging": (67, 69, 63),
-    "legging_far": (50, 52, 48), "boot": (119, 83, 57), "boot_light": (177, 125, 72),
-    "boot_far": (90, 63, 45),
+    # Copper hair, a red guardian's scarf and a tunic whose colours follow the armour.
+    "hair": (178, 92, 50), "hair_light": (226, 146, 78), "hair_dark": (118, 56, 40),
+    "skin": (246, 196, 146), "skin_shadow": (212, 140, 102), "blush": (232, 128, 112),
+    "scarf": (204, 52, 58), "scarf_light": (240, 102, 88), "scarf_dark": (140, 34, 52),
+    "belt": (112, 72, 48), "buckle": (245, 194, 74),
+    "trousers": (74, 64, 86), "trousers_far": (56, 48, 66),
+    "boot": (104, 66, 46), "boot_light": (156, 104, 66), "boot_far": (78, 50, 38),
 }
+# (tunic, tunic light, tunic dark) per armour; the default is a deep blue that reads on grass.
+HERO_ARMOR = {
+    "traveler_clothes": ((58, 98, 172), (98, 146, 210), (38, 64, 124)),
+    "leather_armor": ((146, 92, 54), (192, 132, 78), (100, 62, 42)),
+    "chainmail": ((138, 148, 156), (186, 194, 198), (92, 102, 114)),
+    "mage_robe": ((114, 72, 156), (156, 114, 196), (78, 50, 112)),
+    "knight_breastplate": ((184, 194, 208), (230, 236, 244), (118, 130, 152)),
+    "dragon_scale": ((46, 128, 112), (88, 172, 142), (30, 88, 80)),
+}
+HERO_BLADES = {"silver_sword": (232, 239, 226), "steel_longsword": (206, 216, 216), "wind_dagger": (168, 226, 196),
+               "earth_hammer": (176, 150, 112), "flame_blade": (244, 150, 96), "star_sword": (252, 238, 156)}
+
+# Pixel maps, 16 columns each. "." is transparent; the letters are looked up in _hero_colors.
+_HERO_HEAD = {
+    "down": (
+        "................",
+        ".....H..H.H.....",
+        "....HHHHHHHH....",
+        "...HHhhHHHhhH...",
+        "..HHhHHHHHHHHH..",
+        "..HHHHHHHHHHHHH.",
+        "..HHSHHHSSHHHH..",
+        "..DSSSSSSSSSSD..",
+        "..DSSeSSSSeSSD..",
+        "..DSSeSSSSeSSD..",
+        "...ScSSSSSScS...",
+        "....sSSSSSSs....",
+    ),
+    "up": (
+        "................",
+        ".....H..H.H.....",
+        "....HHHHHHHH....",
+        "...HHhhHHHhhH...",
+        "..HHhHHHHHHHHH..",
+        "..HHHHHhHHHHHHH.",
+        "..HHHHHHHHHHHH..",
+        "..DHHHhHHHHHHD..",
+        "..DHHHHHHHhHHD..",
+        "..DHHHHHHHHHHD..",
+        "...DHHHHHHHHD...",
+        "....DDHDDHDD....",
+    ),
+    "right": (
+        "................",
+        "....H..H........",
+        "...HHHHHHH......",
+        "..HHhhHHHhH.....",
+        "..HHHhHHHHHH....",
+        ".HHHHHHHHHHHH...",
+        ".HHHHHHHSHHHHH..",
+        "..DHHHHHSSSSS...",
+        "..DHHHHsSSSeS...",
+        "..DHHHHsSSSeSS..",
+        "...DHHHSSSScS...",
+        "....DDDsSSSs....",
+    ),
+}
+_HERO_TORSO = {  # rows 12-18
+    "down": (
+        "...RrRRRRRRrR...",
+        "...TRRqtttttT...",
+        "...TtRqTTTTTT...",
+        "...TTRqTTTTTT...",
+        "...LLLLGGLLLL...",
+        "...TTTTTTTTTT...",
+        "....UTTUUTTU....",
+    ),
+    "up": (
+        "...RRRRRRRRRR...",
+        "...TtttttttLt...",
+        "...TTTTTTTLTT...",
+        "...TTTTTTLTTT...",
+        "...LLLLLLLLLL...",
+        "...TTTTTTTTTT...",
+        "....UTTUUTTU....",
+    ),
+    "right": (
+        ".....qRRRRR.....",
+        ".....RTTTTtt....",
+        ".....TTTTTTt....",
+        ".....TTTTTTT....",
+        ".....LLLLGLL....",
+        ".....TTTTTTT....",
+        ".....UTTTTU.....",
+    ),
+}
+# Side-view scarf tail behind the neck: (x, y, colour key) per walk frame (0 and 2 share a pose).
+_SCARF_TAIL = {
+    0: ((4, 12, "R"), (3, 13, "R"), (4, 13, "q"), (3, 14, "q")),
+    1: ((4, 12, "R"), (3, 12, "r"), (2, 12, "R"), (1, 11, "R"), (2, 13, "q")),
+    3: ((4, 12, "R"), (3, 12, "R"), (2, 13, "r"), (1, 13, "R"), (3, 13, "q")),
+}
+# Back-view scarf tails hanging down the back, swaying with the step.
+_SCARF_BACK = {0: 0, 1: -1, 2: 0, 3: 1}
+
+
+def _hero_colors(armor):
+    c = HERO
+    tunic, light, dark = HERO_ARMOR.get(armor, HERO_ARMOR["traveler_clothes"])
+    return {"H": c["hair"], "h": c["hair_light"], "D": c["hair_dark"], "S": c["skin"], "s": c["skin_shadow"],
+            "c": c["blush"], "e": PALETTE["ink"], "R": c["scarf"], "r": c["scarf_light"], "q": c["scarf_dark"],
+            "T": tunic, "t": light, "U": dark, "L": c["belt"], "G": c["buckle"]}
+
+
+def _paint(s, rows, colors, top=0, dx=0):
+    for y, row in enumerate(rows):
+        for x, key in enumerate(row):
+            if key != ".":
+                s.set_at((x + dx, y + top), colors[key])
 
 
 def walk_frame(clock):
@@ -88,153 +199,94 @@ def walk_frame(clock):
     return int(clock) % 4 if clock else 0
 
 
-def _hero_head(s, direction):
-    hair, light, skin, shade, ink = (PALETTE[k] for k in ("hair", "hair_light", "skin", "skin_shadow", "ink"))
-    if direction == "down":
-        _rect(s, hair, 4, 1, 8, 2)
-        _rect(s, hair, 2, 3, 12, 2)
-        _rect(s, hair, 1, 5, 14, 3)
-        _rect(s, hair, 2, 7, 3, 4)
-        _rect(s, hair, 11, 7, 3, 4)
-        _rect(s, skin, 4, 5, 8, 7)
-        _rect(s, shade, 3, 7, 1, 3)
-        _rect(s, shade, 12, 7, 1, 3)
-        _rect(s, light, 3, 3, 4, 1)
-        _rect(s, light, 9, 4, 3, 1)
-        _rect(s, hair, 4, 6, 3, 2)
-        _rect(s, hair, 9, 6, 3, 2)
-        _rect(s, skin, 5, 7, 6, 4)
-        _rect(s, ink, 6, 8, 1, 2)
-        _rect(s, ink, 9, 8, 1, 2)
-        _rect(s, (220, 126, 113), 5, 10, 1, 1)
-        _rect(s, (220, 126, 113), 10, 10, 1, 1)
-        _rect(s, shade, 7, 11, 2, 1)
-    elif direction == "up":
-        _rect(s, hair, 4, 1, 8, 2)
-        _rect(s, hair, 2, 3, 12, 2)
-        _rect(s, hair, 1, 5, 14, 3)
-        _rect(s, hair, 2, 8, 12, 3)
-        _rect(s, hair, 4, 11, 8, 1)
-        _rect(s, light, 4, 2, 4, 1)
-        _rect(s, light, 3, 4, 3, 1)
-        _rect(s, light, 9, 5, 3, 1)
-        _rect(s, PALETTE["hair"], 7, 9, 2, 2)
-        _rect(s, shade, 1, 8, 1, 2)
-        _rect(s, shade, 14, 8, 1, 2)
-    else:  # drawn facing right; "left" is mirrored afterwards
-        _rect(s, hair, 4, 1, 8, 2)
-        _rect(s, hair, 3, 3, 10, 4)
-        _rect(s, hair, 3, 6, 5, 6)
-        _rect(s, light, 5, 4, 4, 1)
-        _rect(s, skin, 8, 7, 5, 5)
-        _rect(s, shade, 7, 8, 2, 3)
-        _rect(s, hair, 9, 6, 4, 2)
-        _rect(s, ink, 11, 9, 1, 2)
-        _rect(s, shade, 13, 9, 1, 2)
-        _rect(s, shade, 9, 11, 3, 1)
-
-
-def _hero_torso(s, direction, frame, weapon, armor):
-    c = HERO
+def _hero_arms(s, direction, frame, colors, weapon):
     swing = {1: -1, 3: 1}.get(frame, 0)  # arms swing opposite to the stepping leg
-    blade = {"silver_sword": (232, 239, 226), "steel_longsword": (206, 216, 216), "wind_dagger": (168, 226, 196),
-             "earth_hammer": (176, 150, 112), "flame_blade": (244, 150, 96),
-             "star_sword": (252, 238, 156)}.get(weapon, (177, 193, 189))
+    blade = HERO_BLADES.get(weapon, (177, 193, 189))
+    tunic, dark, skin = colors["T"], colors["U"], HERO["skin"]
     if direction == "down":
-        _rect(s, c["mantle"], 2, 12, 12, 6)
-        _rect(s, c["tunic"], 4, 12, 8, 6)
-        _rect(s, c["tunic_light"], 5, 12, 6, 4)
-        _rect(s, c["belt"], 4, 16, 8, 2)
-        _rect(s, PALETTE["gold"], 7, 16, 2, 2)
-        _rect(s, c["mantle_light"], 2, 13 + swing, 2, 4)
-        _rect(s, c["arm"], 2, 13 + swing, 2, 4)
-        _rect(s, c["mantle_light"], 12, 13 - swing, 2, 4)
-        _rect(s, c["arm"], 12, 13 - swing, 2, 4)
-        _rect(s, PALETTE["metal"], 1, 12 + swing, 1, 5)
-        _rect(s, blade, 1, 11 + swing, 1, 5)
-        _rect(s, PALETTE["gold"], 0, 16 + swing, 3, 1)
-        _rect(s, PALETTE["boot"], 1, 17 + swing, 1, 3)
-        if armor == "leather_armor":
-            _rect(s, (126, 77, 45), 4, 13, 8, 4)
-            _rect(s, (171, 111, 59), 5, 13, 6, 1)
-            _rect(s, PALETTE["gold"], 7, 15, 2, 1)
-            _rect(s, (83, 55, 39), 4, 17, 8, 1)
-        elif armor == "chainmail":
-            _rect(s, (134, 145, 147), 4, 13, 8, 4)
-            _rect(s, (90, 103, 111), 4, 14, 8, 1)
-            _rect(s, (177, 188, 182), 5, 13, 2, 1)
-            _rect(s, (177, 188, 182), 9, 13, 2, 1)
-            _rect(s, PALETTE["gold"], 7, 16, 2, 2)
+        for x, dy in ((1, swing), (13, -swing)):
+            _rect(s, dark, x, 13 + dy, 2, 1)
+            _rect(s, tunic, x, 14 + dy, 2, 3)
+            _rect(s, skin, x, 17 + dy, 2, 1)
+        # Sword held point-down in the right hand (viewer's left).
+        _rect(s, HERO["buckle"], 0, 18 + swing, 3, 1)
+        _rect(s, blade, 1, 19 + swing, 1, 3)
+        _rect(s, PALETTE["white"], 1, 19 + swing, 1, 1)
     elif direction == "up":
-        _rect(s, PALETTE["metal"], 13, 9, 1, 3)        # hilt over the shoulder
-        _rect(s, PALETTE["gold"], 12, 11, 3, 1)
-        _rect(s, c["mantle"], 2, 12, 12, 6)
-        _rect(s, c["mantle_light"], 3, 12, 10, 1)
-        _rect(s, c["mantle_dark"], 5, 14, 1, 4)
-        _rect(s, c["mantle_dark"], 10, 14, 1, 4)
-        _rect(s, PALETTE["boot"], 11, 13, 3, 1)       # sword strap
-        _rect(s, PALETTE["boot"], 9, 14, 2, 1)
-        _rect(s, c["arm"], 1, 13 - swing, 2, 4)
-        _rect(s, c["arm"], 13, 13 + swing, 2, 4)
-        _rect(s, c["belt"], 3, 17, 10, 1)
+        for x, dy in ((1, -swing), (13, swing)):
+            _rect(s, dark, x, 13 + dy, 2, 4)
+            _rect(s, skin, x, 17 + dy, 2, 1)
+        sway = _SCARF_BACK[frame]
+        _rect(s, HERO["scarf"], 5 + sway, 13, 2, 3)
+        _rect(s, HERO["scarf_dark"], 5 + sway, 16, 1, 1)
+        _rect(s, HERO["scarf_dark"], 7 + sway, 13, 1, 2)
     else:
-        _rect(s, c["mantle"], 3, 12, 5, 6)             # cape trails behind
-        _rect(s, c["mantle_dark"], 3, 15, 2, 3)
-        _rect(s, PALETTE["metal"], 4, 15, 1, 4)        # sheathed sword at the far hip
-        _rect(s, PALETTE["gold"], 3, 15, 3, 1)
-        _rect(s, c["tunic"], 6, 12, 6, 6)
-        _rect(s, c["tunic_light"], 7, 12, 4, 3)
-        if armor == "leather_armor":
-            _rect(s, (126, 77, 45), 6, 13, 6, 4)
-        elif armor == "chainmail":
-            _rect(s, (134, 145, 147), 6, 13, 6, 4)
-            _rect(s, (90, 103, 111), 6, 14, 6, 1)
-        _rect(s, c["belt"], 6, 16, 6, 2)
-        _rect(s, PALETTE["gold"], 10, 16, 1, 2)
-        _rect(s, c["arm"], 8 + swing, 13, 2, 4)
-        _rect(s, PALETTE["skin"], 8 + swing, 16, 2, 1)
+        _rect(s, colors["U"], 7 + swing, 13, 2, 1)
+        _rect(s, colors["U"], 7 + swing, 14, 1, 3)
+        _rect(s, tunic, 8 + swing, 14, 1, 3)
+        _rect(s, skin, 7 + swing, 17, 2, 1)
+
+
+def _hero_back_hilt(s, weapon):
+    """The sword rides on the back: its hilt peeks over the right shoulder in the back view."""
+    blade = HERO_BLADES.get(weapon, (177, 193, 189))
+    _rect(s, HERO["belt"], 12, 8, 1, 3)
+    _rect(s, HERO["buckle"], 11, 11, 3, 1)
+    _rect(s, blade, 12, 12, 1, 1)
 
 
 def _hero_legs(s, direction, frame):
     c = HERO
-    _rect(s, c["trousers"], 5, 18, 6, 2)
+    _rect(s, c["trousers"], 5, 19, 6, 1)
     if direction in ("down", "up"):
         for side, x, bx in (("left", 5, 4), ("right", 9, 9)):
             lifted = (frame == 1 and side == "left") or (frame == 3 and side == "right")
             top = 21 if lifted else 22
-            _rect(s, c["legging"], x, 20, 2, top - 20)
-            _rect(s, c["boot"], bx, top, 4, 2)
+            _rect(s, c["trousers"], x, 20, 2, top - 20)
+            _rect(s, c["boot"], bx, top, 3, 2)
             if direction == "down":
-                _rect(s, c["boot_light"], bx, top, 4, 1)
+                _rect(s, c["boot_light"], bx, top, 3, 1)
         return
     if frame in (1, 3):
         near_fwd = frame == 1
-        front = ("legging", "boot") if near_fwd else ("legging_far", "boot_far")
-        back = ("legging_far", "boot_far") if near_fwd else ("legging", "boot")
+        front = ("trousers", "boot") if near_fwd else ("trousers_far", "boot_far")
+        back = ("trousers_far", "boot_far") if near_fwd else ("trousers", "boot")
         _rect(s, c[back[0]], 5, 20, 2, 1)
         _rect(s, c[back[1]], 3, 21, 4, 2)
         _rect(s, c[front[0]], 9, 20, 2, 2)
-        _rect(s, c[front[1]], 9, 22, 5, 2)
-        _rect(s, c["boot_light"], 9 + (0 if near_fwd else 4), 22, 1, 1)
+        _rect(s, c[front[1]], 9, 22, 4, 2)
+        _rect(s, c["boot_light"], 9 + (0 if near_fwd else 3), 22, 1, 1)
     else:
-        _rect(s, c["legging"], 7, 20, 3, 2)
-        _rect(s, c["boot"], 7, 22, 5, 2)
-        _rect(s, c["boot_light"], 7, 22, 5, 1)
+        _rect(s, c["trousers"], 6, 20, 4, 2)
+        _rect(s, c["boot"], 6, 22, 5, 2)
+        _rect(s, c["boot_light"], 6, 22, 5, 1)
 
 
 def _player(weapon="rusty_sword", armor="traveler_clothes", direction="down", frame=0):
-    """Chibi adventurer (16x24) with front, back and side bodies and a 4-pose walk cycle.
+    """Young guardian (16x24): copper hair, red scarf, armour-coloured tunic; 4-pose walk cycle.
 
     Frames: 0 stand, 1 left step, 2 stand, 3 right step. Steps lower the body by 1px.
     """
     frame %= 4
     side = direction in ("left", "right")
+    view = "right" if side else direction
+    colors = _hero_colors(armor)
     upper = _canvas((16, 24))
-    _hero_torso(upper, "right" if side else direction, frame, weapon, armor)
-    _hero_head(upper, "right" if side else direction)
+    if view == "right":
+        # Sheathed sword at the far hip, drawn behind the body.
+        _rect(upper, HERO["belt"], 3, 16, 3, 1)
+        _rect(upper, HERO_BLADES.get(weapon, (177, 193, 189)), 2, 17, 1, 2)
+        _rect(upper, HERO["buckle"], 4, 15, 1, 3)
+        for x, y, key in _SCARF_TAIL[0 if frame == 2 else frame]:
+            upper.set_at((x, y), colors[key])
+    _paint(upper, _HERO_TORSO[view], colors, top=12)
+    _hero_arms(upper, view, frame, colors, weapon)
+    _paint(upper, _HERO_HEAD[view], colors)
+    if view == "up":
+        _hero_back_hilt(upper, weapon)
     surface = _canvas((16, 24))
-    _hero_legs(surface, "right" if side else direction, frame)
-    surface.blit(upper, (0, 1 if frame in (1, 3) else 0), pygame.Rect(0, 0, 16, 18))
+    _hero_legs(surface, view, frame)
+    surface.blit(upper, (0, 1 if frame in (1, 3) else 0))
     surface = _outline(surface)
     if direction == "left":
         surface = pygame.transform.flip(surface, True, False)

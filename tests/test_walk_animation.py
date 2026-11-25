@@ -67,6 +67,29 @@ class HeroWalkTests(unittest.TestCase):
         frames = {id(hero_sprite(size=(32, 48), direction="down", frame=f)) for f in range(4)}
         self.assertEqual(len(frames), 4)
 
+    def test_every_armor_dresses_the_hero_differently(self):
+        armors = ("traveler_clothes", "leather_armor", "chainmail", "mage_robe",
+                  "knight_breastplate", "dragon_scale")
+        for direction in DIRECTIONS:
+            looks = {pygame.image.tobytes(pixel_art._player("rusty_sword", a, direction), "RGBA") for a in armors}
+            self.assertEqual(len(looks), len(armors), direction)
+
+    def test_red_scarf_is_visible_from_every_side(self):
+        scarf = pixel_art.HERO["scarf"]
+        for direction in DIRECTIONS:
+            self.assertIn(scarf, [p[:3] for p in pixels(base(direction))], direction)
+
+    def test_scarf_tail_flutters_while_walking_sideways(self):
+        scarf = pixel_art.HERO["scarf"]
+        tail = lambda s: [(x, y) for x in range(0, 5) for y in range(10, 18) if tuple(s.get_at((x, y)))[:3] == scarf]
+        self.assertNotEqual(tail(base("right", 0)), tail(base("right", 1)))
+        self.assertNotEqual(tail(base("right", 1)), tail(base("right", 3)))
+
+    def test_hero_stands_out_from_the_grass(self):
+        # The tunic must not be a grass-like green (the old hero blended into the fields).
+        r, g, b = pixel_art.HERO_ARMOR["traveler_clothes"][0]
+        self.assertFalse(g > r and g > b, "default tunic is green")
+
 
 
 NPCS = ("chief", "old_knight", "merchant", "shopkeeper", "villager", "townsfolk")
