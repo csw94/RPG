@@ -2,7 +2,7 @@
 
 ## 현재 상태
 - **최신 릴리즈:** v0.24.0 (태그 `v0.24.0`)
-  - 공개 릴리즈: https://github.com/csw94/Star/releases/tag/v0.24.0 (로컬에서 빌드한 `ChroniclesOfPixel.exe`를 `gh`로 직접 올림)
+  - 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.24.0 , https://github.com/csw94/Star/releases/tag/v0.24.0 (같은 로컬 빌드 `ChroniclesOfPixel.exe`를 `gh`로 두 곳에 올림)
   - 소스 저장소 `csw94/RPG`는 아직 공개(비공개 전환 보류). 배포용 공개 저장소 `csw94/Star`에는 README와 EXE 릴리즈만 있음. 절차는 CLAUDE.md 참고
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
 - 테스트 399개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
@@ -138,7 +138,7 @@
 ## CI·별빛 심연·지도·서브퀘스트 (v0.15.0)
 - CI와 릴리즈 노트(`.github/workflows/ci.yml`, `tools/release_notes.py`). 예전 `release.yml`(태그 푸시 시 Actions 빌드)은 v0.24.0 이후 삭제함
   - `main`에 푸시할 때마다 테스트가 돌아감
-- 릴리즈는 로컬에서 빌드한 EXE를 `gh release create --repo csw94/Star`로 올림. 릴리즈 노트는 이 파일의 "릴리즈 기록" 줄(`- **vX.Y.Z:** ...`)에서 가져오므로, **릴리즈 전에 릴리즈 기록을 먼저 적을 것**
+- 릴리즈는 로컬에서 빌드한 EXE를 `gh release create`로 RPG와 Star 두 곳에 올림. 릴리즈 노트는 이 파일의 "릴리즈 기록" 줄(`- **vX.Y.Z:** ...`)에서 가져오므로, **릴리즈 전에 릴리즈 기록을 먼저 적을 것**
   - Python은 로컬과 같은 3.14. `test_release_tooling`이 버전이 같은지 검사함
 - 엔딩 후 던전 별빛 심연(`POSTGAME_DUNGEONS["shrine_abyss"]`, 3층)
   - `DUNGEONS = SHRINE_DUNGEONS + POSTGAME_DUNGEONS`. 층 수는 `floors`, 층별 상자는 `floor_chests`로 정함. 층이 3개 이상인 던전에서는 EXIT가 위층, STAIRS가 아래층으로 이어짐

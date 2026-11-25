@@ -8,8 +8,8 @@
 
 ## 릴리즈 절차 (새 버전을 낼 때마다 전부 수행)
 
-공개 저장소의 릴리즈와 프로젝트 폴더의 EXE는 **항상 같은 버전, 같은 파일**이어야 한다.
-EXE는 로컬에서 한 번 빌드하고, 그 파일을 그대로 공개 저장소에 올린다.
+RPG·Star 두 저장소의 릴리즈와 프로젝트 폴더의 EXE는 **항상 같은 버전, 같은 파일**이어야 한다.
+EXE는 로컬에서 한 번 빌드하고, 그 파일을 그대로 두 저장소에 올린다(태그 푸시로 빌드하는 Actions는 없음).
 
 1. 테스트 통과 확인
    ```powershell
@@ -29,15 +29,17 @@ EXE는 로컬에서 한 번 빌드하고, 그 파일을 그대로 공개 저장�
      .venv\Scripts\python.exe -m PyInstaller --noconfirm --onefile --windowed --add-data "assets;assets" --icon "assets/icon.ico" --name "ChroniclesOfPixel" main.py
      ```
    - 빌드 후 EXE를 잠깐 실행해 정상적으로 뜨는지 확인하고 닫는다(`Get-Process ChroniclesOfPixel`로 남은 프로세스까지 종료).
-5. 공개 저장소에 릴리즈 업로드
+5. **두 저장소(RPG, Star) 모두에** 같은 로컬 EXE로 릴리즈 업로드
    ```powershell
    .venv\Scripts\python.exe tools/release_notes.py vX.Y.Z --out release_notes.md
-   & "C:\Program Files\GitHub CLI\gh.exe" release create vX.Y.Z dist/ChroniclesOfPixel.exe --repo csw94/Star --title "Chronicles of Pixel vX.Y.Z" --notes-file release_notes.md
+   foreach ($repo in "csw94/RPG", "csw94/Star") {
+       & "C:\Program Files\GitHub CLI\gh.exe" release create vX.Y.Z dist/ChroniclesOfPixel.exe --repo $repo --title "Chronicles of Pixel vX.Y.Z" --notes-file release_notes.md
+   }
    Remove-Item release_notes.md
    ```
-   - 공개 저장소에는 태그가 없으므로 `gh`가 기본 브랜치에 태그를 만든다. 소스는 올라가지 않는다.
-   - 릴리즈 페이지에 `ChroniclesOfPixel.exe`가 첨부됐는지 확인한다.
-6. 사용자에게 공개 릴리즈 링크(`https://github.com/csw94/Star/releases/tag/vX.Y.Z`)와 로컬 EXE 경로를 함께 보고한다.
+   - RPG는 3번에서 푸시한 태그를 쓴다. Star에는 태그가 없으므로 `gh`가 Star 기본 브랜치에 태그를 만든다(소스는 올라가지 않음).
+   - 두 릴리즈 모두 `ChroniclesOfPixel.exe`가 첨부됐고 크기가 로컬 파일과 같은지 확인한다.
+6. 사용자에게 두 릴리즈 링크(`https://github.com/csw94/RPG/releases/tag/vX.Y.Z`, `https://github.com/csw94/Star/releases/tag/vX.Y.Z`)와 로컬 EXE 경로를 함께 보고한다.
 
 ## 참고
 
