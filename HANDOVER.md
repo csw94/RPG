@@ -1,12 +1,12 @@
-# HANDOVER — Chronicles of Pixel (v0.23.0)
+# HANDOVER — Chronicles of Pixel (v0.24.0)
 
 ## 현재 상태
-- **최신 릴리즈:** v0.23.0 (태그 `v0.23.0`)
-  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.23.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
+- **최신 릴리즈:** v0.24.0 (태그 `v0.24.0`)
+  - GitHub 릴리즈: https://github.com/csw94/RPG/releases/tag/v0.24.0 (Actions가 `ChroniclesOfPixel.exe`를 빌드해 첨부)
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
-- main에는 v0.23.0 이후 커밋이 있고 아직 릴리즈하지 않음. 테스트 399개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
+- 테스트 399개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
-## 그래픽 개편·시작 연출·세이브 삭제 (v0.24.0 준비 중, 아직 릴리즈 전)
+## 그래픽 개편·시작 연출·세이브 삭제 (v0.24.0)
 - 주인공 새 디자인(`utils/pixel_art.py`)
   - `_HERO_HEAD`/`_HERO_TORSO` 픽셀 문자 격자와 `_paint`로 그림. 구리빛 머리, 빨간 스카프(`HERO["scarf"]`)
   - 튜닉 색은 갑옷 6종마다 다름(`HERO_ARMOR`). 옆모습 스카프 끝은 걸음마다 날림(`_SCARF_TAIL`)
@@ -265,6 +265,7 @@
   - 2회차는 너무 쉬웠음. 그래서 `CYCLE_STEP`을 적 HP +160%, 받는 피해 +60%로 올림. 이제 2회차 최종 보스 승률은 약 75%
 
 ## 릴리즈 기록
+- **v0.24.0:** 주인공 새 디자인(갑옷마다 옷 색 변화), 집마다 다른 모습(부품 조합), 비대칭 마을 배치, 새 게임 시작 연출(토미의 길 안내), 타이틀에서 세이브 삭제
 - **v0.23.0:** 여관·대장간·도서관·물약 상점 실내 추가(주인이 안에서 기다림), 밸런스 시뮬레이터에 강화·마나 물약·2회차 반영, 회차 난이도 상향
 - **v0.22.0:** 가방 페이지(B 키). 필드에서 물약 사용, 어디서든 장비 교체, 장신구 해제, 아이템 상세 정보
 - **v0.21.0:** 마을 확장(44×30), 여관·대장간 강화·도서관·물약 상점, 전투 아이템 메뉴와 새 소모품, 새 주민 5명과 부탁 4개
