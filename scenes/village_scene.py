@@ -4,19 +4,14 @@ import pygame
 from scenes.field_scene import FieldScene
 from gameplay.world_data import FIELD_ROUTES, SHRINES
 from settings import TILE_SIZE, WIDTH
+from utils.house_art import HOUSE_STYLES, paint_house
 from utils.pixel_art import NPC_SIZE, PALETTE, hero_sprite, sprite, walk_frame, tile_noise, npc_sprite
 
 OUTLINE = PALETTE["outline"]
-# One cozy roof family: each building gets its own hue at the same softness and value.
+# The chief's hall paints its own roof; every other building is built from parts (utils.house_art).
 # (base, row line, shingle seam, bright eave)
 ROOFS = {
-    "cottage": ((72, 120, 126), (100, 152, 150), (54, 92, 104), (140, 190, 176)),
-    "shop": ((166, 98, 62), (200, 130, 84), (128, 72, 50), (226, 164, 106)),
     "chief": ((160, 76, 62), (196, 106, 80), (122, 56, 50), (226, 140, 102)),
-    "inn": ((96, 128, 74), (128, 160, 98), (72, 100, 58), (170, 200, 128)),
-    "smithy": ((92, 96, 108), (122, 126, 138), (68, 70, 82), (160, 164, 176)),
-    "library": ((64, 82, 140), (92, 112, 172), (48, 60, 108), (136, 156, 210)),
-    "apothecary": ((128, 84, 144), (160, 112, 176), (98, 62, 112), (196, 150, 210)),
 }
 
 
@@ -36,13 +31,13 @@ class VillageScene(FieldScene):
     # New districts: each place is a 4x4 building; its keeper waits inside (HouseInteriorScene).
     DISTRICT = {
         "inn": {"title": "여관 「졸린 곰」", "footprint": (35, 4, 4, 4), "door": (37, 8), "world": "village_inn",
-                "roof": "inn", "sign": "bed"},
+                "sign": "bed"},
         "smithy": {"title": "브론의 대장간", "footprint": (35, 13, 4, 4), "door": (37, 17), "world": "village_smithy",
-                   "roof": "smithy", "sign": "anvil"},
+                   "sign": "anvil"},
         "library": {"title": "별빛 도서관", "footprint": (5, 22, 4, 4), "door": (7, 26), "world": "village_library",
-                    "roof": "library", "sign": "book"},
+                    "sign": "book"},
         "apothecary": {"title": "미라의 물약 상점", "footprint": (23, 22, 4, 4), "door": (25, 26),
-                       "world": "village_apothecary", "roof": "apothecary", "sign": "flask"},
+                       "world": "village_apothecary", "sign": "flask"},
     }
     RESIDENTS = {
         "tomi": {"pos": (35, 24), "sprite": "child",
@@ -249,93 +244,17 @@ class VillageScene(FieldScene):
             pygame.draw.circle(surface, (110, 220, 150), (cx, cy + 2), 5)
             pygame.draw.rect(surface, (220, 236, 240), (cx - 2, cy - 6, 4, 5))
 
-    def _draw_house(self, surface, tile_x, tile_y, shop=False, roof=None):
+    def _draw_house(self, surface, tile_x, tile_y, style_key):
+        """Paint one building from its parts (utils.house_art) and scale it down to 80%."""
+        style = HOUSE_STYLES[style_key]
         x, y = tile_x * TILE_SIZE, tile_y * TILE_SIZE
-        width = (7 if shop else 6) * TILE_SIZE
+        width = style["width"] * TILE_SIZE
         bounds = pygame.Rect(x - 10, y - 10, width + 24, 214)
-        layer = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        self._paint_house(layer, tile_x, tile_y, shop, roof)
-        crop = layer.subsurface(bounds).copy()
-        scaled = pygame.transform.smoothscale(crop, (round(bounds.width * 0.8), round(bounds.height * 0.8)))
+        layer = pygame.Surface(bounds.size, pygame.SRCALPHA)
+        paint_house(layer, 10, 10, style)
+        scaled = pygame.transform.smoothscale(layer, (round(bounds.width * 0.8), round(bounds.height * 0.8)))
         surface.blit(scaled, (round(bounds.centerx - scaled.get_width() / 2),
                               round(bounds.centery - scaled.get_height() / 2)))
-
-    def _paint_house(self, surface, tile_x, tile_y, shop=False, roof_key=None):
-        """Paint the two plaza cottages as detailed timber buildings with steep tiled roofs."""
-        x, y = tile_x * TILE_SIZE, tile_y * TILE_SIZE
-        width = (7 if shop else 6) * TILE_SIZE
-        eaves_y = y + 94
-        wall_top = y + 81
-        wall_bottom = y + 190
-
-        # Rear chimney and shadow make the gabled silhouette stand out from the grass.
-        chimney_x = x + width - 53 if shop else x + 31
-        pygame.draw.rect(surface, OUTLINE, (chimney_x, y + 7, 25, 61))
-        pygame.draw.rect(surface, (143, 116, 92), (chimney_x + 4, y + 12, 17, 52))
-        for brick_y in range(y + 19, y + 61, 12):
-            pygame.draw.line(surface, (94, 74, 61), (chimney_x + 4, brick_y),
-                             (chimney_x + 21, brick_y), 2)
-        for brick_x in (chimney_x + 10, chimney_x + 19):
-            pygame.draw.line(surface, (94, 74, 61), (brick_x, y + 20), (brick_x, y + 31), 1)
-
-        # Deep shadow, stone foundation, and timber framed front wall.
-        pygame.draw.rect(surface, (54, 43, 38), (x + 10, wall_top + 10, width - 20, wall_bottom - wall_top))
-        pygame.draw.rect(surface, (111, 82, 60), (x + 14, wall_top, width - 28, wall_bottom - wall_top))
-        pygame.draw.rect(surface, (75, 62, 54), (x + 10, wall_bottom - 12, width - 20, 15))
-        for stone_x in range(x + 12, x + width - 12, 18):
-            pygame.draw.rect(surface, (135, 119, 103), (stone_x, wall_bottom - 10, 14, 6))
-            pygame.draw.line(surface, (81, 72, 65), (stone_x + 7, wall_bottom - 10),
-                             (stone_x + 7, wall_bottom - 4), 1)
-
-        wall_color = (176, 128, 84) if shop else (150, 106, 70)
-        pygame.draw.rect(surface, wall_color, (x + 20, wall_top, width - 40, wall_bottom - wall_top - 12))
-        for plank_x in range(x + 23, x + width - 22, 12):
-            pygame.draw.line(surface, (93, 63, 47), (plank_x, wall_top + 4),
-                             (plank_x, wall_bottom - 14), 2)
-            pygame.draw.line(surface, (195, 145, 92), (plank_x + 3, wall_top + 6),
-                             (plank_x + 3, wall_bottom - 17), 1)
-        pygame.draw.rect(surface, (70, 52, 42), (x + 15, wall_top - 4, width - 30, 10))
-        pygame.draw.line(surface, (207, 166, 109), (x + 19, wall_top + 3),
-                         (x + width - 19, wall_top + 3), 2)
-
-        # The silhouettes differ: a centered cottage gable and a taller offset shop gable.
-        if shop:
-            apex_x = x + int(width * 0.62)
-            roof_points = [(x - 7, eaves_y + 12), (apex_x, y - 3),
-                           (x + width + 7, eaves_y + 12)]
-        else:
-            apex_x = x + width // 2
-            roof_points = [(x - 7, eaves_y + 12), (apex_x, y - 4),
-                           (x + width + 7, eaves_y + 12)]
-        roof = ROOFS[roof_key or ("shop" if shop else "cottage")]
-        self._draw_shingles(surface, roof_points,
-                            (x, y, width, eaves_y - y + 20), (roof[0], roof[1], roof[2]))
-        pygame.draw.line(surface, roof[3], (x + 8, eaves_y + 10),
-                         (x + width - 8, eaves_y + 10), 4)
-        pygame.draw.line(surface, OUTLINE, (x + 8, eaves_y + 17),
-                         (x + width - 8, eaves_y + 17), 3)
-
-        # Gable timber and a small attic vent sit above the front wall.
-        pygame.draw.line(surface, (77, 48, 39), (x + 25, eaves_y - 2), (apex_x, y + 17), 5)
-        pygame.draw.line(surface, (77, 48, 39), (apex_x, y + 17), (x + width - 25, eaves_y - 2), 5)
-        pygame.draw.rect(surface, (68, 49, 39), (apex_x - 9, y + 44, 18, 16))
-        pygame.draw.rect(surface, (194, 152, 94), (apex_x - 6, y + 47, 12, 10), 2)
-
-        # Windows, door, and threshold keep the two fronts readable at game scale.
-        window_y = wall_top + 28
-        self._draw_window(surface, pygame.Rect(x + 29, window_y, 27, 24), flower_box=shop)
-        self._draw_window(surface, pygame.Rect(x + width - 56, window_y, 27, 24), flower_box=not shop)
-        door_width = 34 if shop else 30
-        door_x = x + (width - door_width) // 2
-        door_y = wall_bottom - 51
-        pygame.draw.rect(surface, (48, 38, 34), (door_x - 4, door_y - 5, door_width + 8, 55))
-        pygame.draw.rect(surface, (91, 54, 38), (door_x, door_y, door_width, 50))
-        pygame.draw.rect(surface, (161, 101, 59), (door_x + 4, door_y + 4, door_width - 8, 42))
-        pygame.draw.line(surface, (101, 61, 42), (door_x + door_width // 2, door_y + 5),
-                         (door_x + door_width // 2, door_y + 44), 2)
-        pygame.draw.circle(surface, self.game.colors["gold"], (door_x + door_width - 7, door_y + 27), 2)
-        pygame.draw.rect(surface, (191, 163, 111), (door_x - 6, wall_bottom - 5, door_width + 12, 7))
-
     def road_tiles(self):
         ox, oy = self.CORE_OFFSET
         core = {(12, y) for y in range(9, 16)}
@@ -420,11 +339,11 @@ class VillageScene(FieldScene):
             layer.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * t - 8, ty * t - 32))
         # The plaza buildings keep their hand-painted core coordinates.
         ox, oy = self.CORE_OFFSET
-        self._draw_house(layer, *self.HOUSE_TILES["herb_cottage"])
-        self._draw_house(layer, *self.HOUSE_TILES["general_store"], shop=True)
-        for place in self.DISTRICT.values():
+        for key, (tx, ty) in self.HOUSE_TILES.items():
+            self._draw_house(layer, tx, ty, key)
+        for key, place in self.DISTRICT.items():
             bx, by, _bw, _bh = place["footprint"]
-            self._draw_house(layer, bx - 1, by - 1, roof=place["roof"])
+            self._draw_house(layer, bx - 1, by - 1, key)
             self._draw_sign(layer, place)
         core = layer.subsurface(pygame.Rect(ox * t, oy * t, 25 * t, 16 * t))
         self._draw_chief_house(core)
