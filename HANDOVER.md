@@ -27,9 +27,11 @@
   - `FieldScene.input_locked`, `skip_cutscene()`, `dialogue_done(action)`은 다른 장면에서도 쓸 수 있는 일반 연결점
 - 세이브 삭제: 타이틀 슬롯 화면의 휴지통 버튼 또는 Del 키 → 예/아니오 확인 → `SaveManager.delete(slot)`
 - 새 테스트: `test_house_art`, `test_village_layout`, `test_intro`, `test_save_delete`. 걷기 테스트에도 추가함
+- 배포 방식 변경: 태그 푸시 릴리즈 워크플로(`release.yml`)를 없애고, 로컬 EXE를 `gh`로 RPG와 배포용 공개 저장소 `csw94/Star`에 같이 올림
+
 ## 걷기·대기 애니메이션 (v0.9.0)
 - 주인공(`utils/pixel_art.py`의 `_player`):
-  - `_hero_head` / `_hero_torso` / `_hero_legs`로 나눔
+  - (v0.24.0에서 다시 그림: 머리·몸통은 `_HERO_HEAD`/`_HERO_TORSO` 격자, 팔은 `_hero_arms`, 다리는 `_hero_legs`. 아래 프레임 규칙은 그대로)
   - 정면·뒷모습·옆모습이 각각 따로 있고, 왼쪽은 오른쪽을 좌우 반전한 그림
   - 4프레임: 0 서기, 1 왼발, 2 서기, 3 오른발. 걸음을 디딜 때 상체가 1px 내려가고 팔이 흔들림
   - 장면에서는 `walk_frame(self.walk_clock)`을 씀. `walk_clock`은 초당 8씩 늘어남
@@ -125,7 +127,7 @@
   - 무기·방어구·장신구·소모품 탭으로 나뉨
   - 파는 물건은 `shop_stock(정화한 제단 수, 종류)`로 정함. `tier`는 그 물건이 나오는 데 필요한 제단 수
   - 이미 가진 장비는 무료로 다시 장착할 수 있음
-- 별빛의 검은 빛 속성. 주인공 그림의 칼날 색이 무기에 따라 바뀜(`_hero_torso`의 `blade`)
+- 별빛의 검은 빛 속성. 주인공 그림의 칼날 색이 무기에 따라 바뀜(`HERO_BLADES`)
 - 시뮬레이터는 강철 장검과 흉갑만 사도록 되어 있음. 새 장비를 쓰면 시뮬레이션 결과보다 조금 쉬워짐
 
 ## 북쪽 제단 그리는 순서 수정 (v0.14.1)
@@ -223,7 +225,7 @@
 - 마을을 44×30으로 확장함(`VillageScene.COLS, ROWS`)
   - 기존 32×21 마을은 좌표를 그대로 두었으므로 세이브 보정이 필요 없음
   - 동쪽·남쪽 출입구만 새 가장자리로 옮김((43,10), (15,29)). 필드에서 돌아오는 위치(`return_village`)도 함께 옮김
-  - 새 건물은 `DISTRICT`에, 주민은 `RESIDENTS`에 정의함. 건물은 4×4이고 주인이 문 앞에 서 있음(실내 없음). 기존 `BUILDINGS`(원래 세 건물, 골목 테스트용)와는 따로 관리함
+  - 새 건물은 `DISTRICT`에, 주민은 `RESIDENTS`에 정의함. 기존 `BUILDINGS`(원래 세 건물, 골목 테스트용)와는 따로 관리함 (v0.23.0부터 주인은 실내에 있고, v0.24.0부터 크기·위치는 `PLACES`/`house_plot`에서 나옴)
   - 새 NPC 그림: innkeeper, blacksmith, librarian, apothecary, child
 - 여관(로사): `inn_offer` → `ConfirmScene` → `rest_at_inn`. 숙박비는 10 + 2×레벨. 소문은 `RUMOURS` 목록에서 플레이 시간 1분마다 바뀜
 - 물약 상점(미라): `ShopScene(game, "mira")`
@@ -291,7 +293,7 @@
 1. **마을 외부**
    - 체커보드 없는 풀 타일, 테두리 있는 흙길
    - 나무 3종(둥근 나무, 과일나무, 침엽수), 꽃·조약돌 장식, 나무 울타리, 그림자
-   - 지붕 색 통일(`ROOFS`): 오두막 청록, 상점 테라코타, 촌장 집 벽돌색
+   - 지붕 색 통일(`ROOFS`): 오두막 청록, 상점 테라코타, 촌장 집 벽돌색 (v0.24.0부터 `ROOFS`는 촌장 집만 쓰고, 나머지 집은 `utils/house_art.py`)
    - 출입구는 나무 아치(`gate_arch`)
 2. **집 내부**
    - 아담한 방으로 줄이고, 집마다 테마를 줌: 약초상 오두막, 노기사 거처, 촌장 집무실
@@ -325,12 +327,11 @@
   - 적 그림은 `fit_sprite()`로 정수 배율로만 키움(비율 유지)
   - 무작위 배치(장식, 바닥 변형, 나무 종류)는 줄무늬가 생기지 않도록 `tile_noise(x, y, seed)`로 함
 - **마을**(`VillageScene`)
-  - 기존 25×16 광장(core)을 `CORE_OFFSET=(3,2)`만큼 옮겨 둠
-  - 집·촌장 집·상점 그림 함수는 core 좌표 기준. 그 안에서 마을 좌표 상수를 쓸 때는 `CORE_OFFSET`을 빼야 함
+  - 집 6채의 위치는 `PLACES`(그림 기준 타일) 한 곳에서만 정함. `house_plot(key)`이 벽 영역 `(x, y, w, h)`와 문 타일을 계산하고, `BUILDINGS`·`DISTRICT`·`HOUSE_EXITS`·`QUEST_HOUSE_DOOR`·`KNIGHT_HOUSE_DOOR`가 모두 여기서 나옴
+  - 집을 옮기면 `road_tiles()`(절대 좌표)의 길도 함께 고치고, 문 좌표가 바뀌면 `save_migration`에 맵 구조 단계를 추가할 것
   - 좌표는 숫자로 직접 쓰지 말고 상수를 씀: `START`, `HOUSE_EXITS`, `SHRINE_RETURN`, `SHRINE_SPAWN`, `FIELD_GATES`
-  - 건물 충돌 영역은 `BUILDINGS`(x, y, w, h). 양옆 집을 그리는 위치는 `HOUSE_TILES`(마을 좌표)
-  - 건물 사이에는 걸어갈 수 있는 통로를 2칸 이상 둠. 현재 오두막↔촌장 집 x 8~10, 촌장 집↔잡화점 x 20~21이고, `test_map_size`가 검사함
-  - core 좌표로 그리는 것은 촌장 집, 로건 노점, 분수뿐
+  - 건물 사이에는 걸어갈 수 있는 통로를 2칸 이상 둠. 현재 오두막↔촌장 집 x 7~10, 촌장 집↔가렌 거처 x 20~22이고, `test_map_size`가 검사함
+  - `CORE_OFFSET=(3,2)`는 이제 촌장 집, 로건 노점, 분수, 광장 나무(`core_trees`)를 그릴 때만 씀
   - 고정 배경은 `_paint_static()`으로 한 번만 그려 캐시
 - **필드**
   - 데이터는 `gameplay/world_data.py`의 `FIELD_ROUTES`(52×31)
@@ -348,7 +349,12 @@
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
+- 사용자 결정 대기
+  - `csw94/RPG` 비공개 전환은 보류 중. 사용자가 정확히 지시하기 전에는 공개 범위를 바꾸지 말 것(한 번 미리 바꿨다가 되돌린 적 있음)
+  - 비공개로 바꾸면 RPG 릴리즈도 함께 숨겨짐. 그때는 CLAUDE.md 5번(두 곳 업로드)을 Star만 올리도록 고칠지 함께 확인할 것
 - 선택 과제
+  - 이번 그래픽 개편을 직접 플레이로 확인: 주인공 색감, 집 크기와 위치, 토미 연출 속도(`gameplay/intro.py`의 `RUN_SPEED`, `LEAD_SPEED`)
+  - 다른 NPC나 필드에도 `PLACES`/`house_art` 방식이나 `input_locked` 연출 연결점을 재사용할 수 있음
   - 직접 플레이한 뒤의 피드백 반영: 소리 음량·곡 분위기(`SFX_VOLUME`, `MUSIC_VOLUME`, `MUSIC`), 난이도(`tools/balance_sim.py`로 다시 측정)
 
 ## 핵심 파일
@@ -362,7 +368,10 @@
 | `scenes/settings_scene.py` / `scenes/help_scene.py` | 설정 화면(O) / 조작법 화면 |
 | `utils/display.py` / `utils/user_settings.py` | 창 크기 확대와 마우스 좌표 변환 / 설정 파일 |
 | `tools/balance_sim.py` | 전투 밸런스 시뮬레이터 |
-| `tools/release_notes.py` / `.github/workflows/` | 릴리즈 노트 추출 / CI 테스트와 릴리즈 빌드 |
+| `tools/release_notes.py` / `.github/workflows/ci.yml` | 릴리즈 노트 추출 / 푸시할 때 도는 테스트 CI(릴리즈 빌드 워크플로는 없음) |
+| `utils/house_art.py` | 마을 집 부품 조합 `HOUSE_STYLES`, `paint_house()` |
+| `gameplay/intro.py` | 새 게임 시작 연출 `ChiefCallIntro`(토미의 안내) |
+| `db/save_manager.py` | 세이브 슬롯 저장·불러오기·삭제(`delete`) |
 | `gameplay/objectives.py` | 다음 목표 안내 |
 | `gameplay/quests.py` / `gameplay/records.py` | 마을 부탁 데이터 / 플레이 시간 표시와 세이브 슬롯 요약 |
 | `gameplay/difficulty.py` | 난이도 배율 |
@@ -373,15 +382,19 @@
 | `utils/battle_art.py` | 전투 배경 `backdrop(kind)`, 발판 위치 상수 |
 | `utils/title_art.py` | 타이틀 배경 `backdrop()`과 애니메이션 `draw_overlay(surface, clock)` |
 | `scenes/field_scene.py` | 필드 공통 로직: 테마, 장식, `_blob`, HUD, 대화창 |
-| `scenes/village_scene.py` | 마을 레이아웃, 정적 레이어 캐시 |
+| `scenes/village_scene.py` | 마을 레이아웃(`PLACES`, `house_plot`, `road_tiles`), 정적 레이어 캐시, 시작 연출 그리기 |
 | `scenes/house_scene.py` | `LAYOUTS`, `ROOM`, `solid_tiles()` |
 | `scenes/dungeon_scene.py` | 던전 레이아웃과 타일 그리기 |
 | `scenes/battle_scene.py` | `backdrop_kind()`, 전투 그리기 |
 | `gameplay/world_data.py` / `gameplay/enemies.py` | 필드 데이터 / 적 데이터(스프라이트 이름, 표시 크기) |
-| `tests/` | `test_pixel_art`, `test_interiors`, `test_field_art`, `test_ui`, `test_map_size`, `test_dungeon_battle_art`, `test_title_art` 및 기존 테스트 |
+| `tests/` | `test_pixel_art`, `test_interiors`, `test_field_art`, `test_ui`, `test_map_size`, `test_dungeon_battle_art`, `test_title_art`, `test_house_art`, `test_village_layout`, `test_intro`, `test_save_delete` 및 기존 테스트 |
 
 ## 주의사항
 - 화면 확인은 `main.Game()._create_world(state)`로 장면을 만들어 렌더링한다. `new_game()`은 세이브를 덮어쓰니 쓰지 않는다.
+  - 대화를 끝까지 넘기는 스크립트에서는 `game.save_game = lambda *a, **k: None`으로 저장을 막는다. 시작 연출처럼 대화가 끝날 때 저장하는 경우가 있다.
+  - 세이브 관련 테스트와 스크립트는 임시 DB(`SaveManager(임시경로)`)를 쓴다. 윈도우에서는 SQLite 파일이 열려 있어 `TemporaryDirectory(ignore_cleanup_errors=True)`가 필요하다.
+- GitHub CLI는 `C:\Program Files\GitHub CLI\gh.exe`(`csw94`로 로그인됨). 사용자에게 `!` 명령을 안내할 때는 bash 문법(`"/c/Program Files/GitHub CLI/gh.exe" ...`)으로 적는다.
+- 푸시가 `Internal Server Error`로 거부되면 잠시 뒤 다시 시도한다(일시적인 GitHub 오류).
 - 풀(`grass_*`)과 나무 그림은 마을·필드·제단 공터가 같이 쓴다. 바꾸면 세 화면을 모두 확인해야 한다.
 - 실행 확인용으로 EXE를 띄운 뒤에는 `Get-Process ChroniclesOfPixel`로 남은 프로세스까지 모두 종료한다. 단일 파일 빌드라 자식 프로세스가 따로 남는다.
 - git 명령에는 `-c safe.directory=C:/Users/dongb/IdeaProjects/RPG`를 붙이고, 작성자는 `Codex <codex@openai.com>`로 한다.
