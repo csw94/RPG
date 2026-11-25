@@ -1,7 +1,10 @@
 """The Oak Valley plaza: chief's hall, Marta's cottage, Garen's quarters and Logan's stall."""
 
+import math
+
 import pygame
 from scenes.field_scene import FieldScene
+from gameplay.intro import DOOR_LINES, LEAD_MESSAGE, LINES as INTRO_LINES, ChiefCallIntro
 from gameplay.world_data import FIELD_ROUTES, SHRINES
 from settings import TILE_SIZE, WIDTH
 from utils.house_art import HOUSE_STYLES, paint_house
@@ -106,6 +109,39 @@ class VillageScene(FieldScene):
         self.position_recovered = self._restore_player_position(self.START) or self.position_recovered
         if self.position_recovered:
             self.message = "저장 위치를 마을 입구로 복구했습니다."
+        # The opening plays once on a brand-new game ("intro_seen" is only written by new_game);
+        # until the hero meets the chief, Tomi then waits by the hall's door.
+        flags = self.quest_flags
+        self.intro = None
+        if "intro_seen" in flags and not flags["prologue_done"]:
+            self.intro = ChiefCallIntro(waiting=bool(flags["intro_seen"]))
+            self.solid_npcs.discard(self.RESIDENTS["tomi"]["pos"])
+            self.input_locked = self.intro.locks_player
+            self.message = LEAD_MESSAGE if flags["intro_seen"] else ""
+
+    def update(self, dt):
+        if self.intro:
+            if self.intro.update(dt) == "talk":
+                self._start_intro_talk()
+            self.input_locked = self.intro.locks_player
+        super().update(dt)
+
+    def _start_intro_talk(self):
+        self.facing = "left"  # turn towards Tomi
+        self.walk_clock = 0.0
+        self.show_dialogue(INTRO_LINES, action="intro_lead")
+
+    def skip_cutscene(self):
+        if self.intro and self.intro.skip() == "talk":
+            self._start_intro_talk()
+
+    def dialogue_done(self, action):
+        if action == "intro_lead" and self.intro:
+            self.intro.finish_talk()
+            self.quest_flags["intro_seen"] = 1
+            self.input_locked = False
+            self.message = LEAD_MESSAGE
+            self.game.save_game()
 
     def map_markers(self):
         markers = [("gate", p) for p in self.FIELD_GATES.values()]
@@ -118,7 +154,9 @@ class VillageScene(FieldScene):
     def _interact(self):
         x, y = self.player["x"], self.player["y"]
         near = lambda target, radius=1.0: (x - target[0]) ** 2 + (y - target[1]) ** 2 <= radius ** 2
-        if near(self.QUEST_HOUSE_DOOR):
+        if self.intro and near(self.intro.tomi, 1.2):
+            self.show_dialogue(DOOR_LINES)
+        elif near(self.QUEST_HOUSE_DOOR):
             self.game.enter_world("village_house_1", (12, 12))
         elif near(self.KNIGHT_HOUSE_DOOR):
             self.game.enter_world("village_house_2", (12, 12))
@@ -127,9 +165,10 @@ class VillageScene(FieldScene):
         elif any(near(place["door"], 1.2) for place in self.DISTRICT.values()):
             place = min(self.DISTRICT.values(), key=lambda p: (p["door"][0] - x) ** 2 + (p["door"][1] - y) ** 2)
             self.game.enter_world(place["world"], (12, 12))
-        elif any(near(resident["pos"], 1.2) for resident in self.RESIDENTS.values()):
-            name = min(self.RESIDENTS, key=lambda key: (self.RESIDENTS[key]["pos"][0] - x) ** 2
-                       + (self.RESIDENTS[key]["pos"][1] - y) ** 2)
+        elif any(near(resident["pos"], 1.2) for resident in self._residents().values()):
+            residents = self._residents()
+            name = min(residents, key=lambda key: (residents[key]["pos"][0] - x) ** 2
+                       + (residents[key]["pos"][1] - y) ** 2)
             if name == "tomi" and self.sub_quests["sq_tomi"]["status"] != "COMPLETED":
                 self._offer_sidequest("sq_tomi")
             else:
@@ -169,6 +208,12 @@ class VillageScene(FieldScene):
                                     "지치면 마르타 할머니 오두막 침대에서 쉬어 가세요. 공짜랍니다!"])
         else:
             self.message = "\uc8fc\ubcc0\uc5d0\ub294 \uc0c1\ud638\uc791\uc6a9\ud560 \ub300\uc0c1\uc774 \uc5c6\uc2b5\ub2c8\ub2e4."
+
+    def _residents(self):
+        """Residents at their usual spots; Tomi is away while the opening has him at the chief's."""
+        if self.intro:
+            return {key: r for key, r in self.RESIDENTS.items() if key != "tomi"}
+        return self.RESIDENTS
 
     def _interact_logan(self):
         ore = self.sub_quests["sq_magma_ore"]
@@ -365,11 +410,19 @@ class VillageScene(FieldScene):
         surface.fill((0, 0, 0), (0, 0, WIDTH, self.VIEW_HEIGHT))
         surface.blit(self._static, (0, 0), pygame.Rect(cam_x, cam_y, WIDTH, self.VIEW_HEIGHT))
         people = [(self.VILLAGER, "townsfolk"), (self.LOGAN, "shopkeeper")]
-        people += [(resident["pos"], resident["sprite"]) for resident in self.RESIDENTS.values()]
+        people += [(resident["pos"], resident["sprite"]) for resident in self._residents().values()]
+        if self.intro:
+            people.append((self.intro.tomi, "child"))
         for position, sprite_name in people:
-            sx, sy = position[0] * t - cam_x, position[1] * t - cam_y
+            sx, sy = round(position[0] * t - cam_x), round(position[1] * t - cam_y)
             self._draw_shadow(surface, sx + t / 2, sy + t)
-            surface.blit(npc_sprite(sprite_name, NPC_SIZE, self.portal_clock, position[0]), (sx, sy - 16))
+            hop = 0
+            if self.intro and position is self.intro.tomi:
+                hop = round(abs(math.sin(self.portal_clock * 14)) * 4) if self.intro.walking else 0
+                if self.intro.phase == "wait":  # bounce on the spot to catch the eye
+                    hop = round(max(0.0, math.sin(self.portal_clock * 6)) * 3)
+            surface.blit(npc_sprite(sprite_name, NPC_SIZE, self.portal_clock, round(position[0])),
+                         (sx, sy - 16 - hop))
         px = round(self.player["x"] * t + t / 2) - cam_x
         py = round((self.player["y"] + 1) * t) - cam_y
         self._draw_shadow(surface, px, py)
@@ -379,8 +432,27 @@ class VillageScene(FieldScene):
         for tx, ty in self.trees:
             if self.player["y"] < ty <= self.player["y"] + 1.2:
                 surface.blit(sprite(self.tree_kind((tx, ty)), (48, 64)), (tx * t - 8 - cam_x, ty * t - 32 - cam_y))
+        if self.intro and self.intro.phase in ("lead", "wait"):
+            self._draw_door_beacon(surface, cam_x, cam_y)
+        if self.intro and self.intro.fade > 0:
+            veil = pygame.Surface((WIDTH, self.VIEW_HEIGHT), pygame.SRCALPHA)
+            veil.fill((0, 0, 0, round(255 * self.intro.fade)))
+            surface.blit(veil, (0, 0))
         self._draw_dialogue(surface)
         self._draw_hud(surface)
+
+    def _draw_door_beacon(self, surface, cam_x, cam_y):
+        """A bobbing "!" bubble over the chief's door while Tomi is leading the way."""
+        t = TILE_SIZE
+        bob = round(math.sin(self.portal_clock * 4) * 3)
+        cx = round(self.CHIEF[0] * t + t / 2 - cam_x)
+        top = round(self.CHIEF[1] * t - 34 - cam_y + bob)
+        bubble = pygame.Rect(cx - 9, top, 18, 22)
+        pygame.draw.rect(surface, OUTLINE, bubble.inflate(4, 4), border_radius=7)
+        pygame.draw.rect(surface, (255, 236, 160), bubble, border_radius=6)
+        pygame.draw.polygon(surface, OUTLINE, [(cx - 4, bubble.bottom + 1), (cx + 4, bubble.bottom + 1), (cx, bubble.bottom + 7)])
+        pygame.draw.rect(surface, (200, 72, 52), (cx - 2, top + 4, 4, 9))
+        pygame.draw.rect(surface, (200, 72, 52), (cx - 2, top + 15, 4, 3))
 
     def _draw_chief_house(self, surface):
         """Paint the chief's hall: steep red tile roof, half-timbered gable, striped awning and planters."""

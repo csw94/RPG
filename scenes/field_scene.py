@@ -109,6 +109,7 @@ class FieldScene(BaseScene):
         self.facing = "down"
         self.walk_clock = 0.0
         self.portal_clock = 0.0
+        self.input_locked = False  # a scripted scene (e.g. the opening) holds the hero still
         self.encounter_rate = 0.10
         self.enemy_pool = ("slime", "goblin")
         self.chests = {}
@@ -623,6 +624,14 @@ class FieldScene(BaseScene):
             self.game.start_battle("final_boss")
         elif action == "epilogue":
             self.game.start_epilogue()
+        elif action:
+            self.dialogue_done(action)
+
+    def dialogue_done(self, action):
+        """Scene-specific dialogue endings (e.g. the village opening)."""
+
+    def skip_cutscene(self):
+        """Action key while a scripted scene holds the hero; scenes with cutscenes override it."""
 
     def sync_quest_progress(self):
         """Requests that count something the save already tracks (e.g. the bestiary)."""
@@ -811,8 +820,12 @@ class FieldScene(BaseScene):
                 elif event.key in ACTION_KEYS:
                     if self.dialogue_lines:
                         self._press_dialogue()
+                    elif self.input_locked:
+                        self.skip_cutscene()
                     else:
                         self._interact()
+                elif self.input_locked and not self.dialogue_lines:
+                    continue
                 elif event.key in (pygame.K_i, pygame.K_TAB) and not self.dialogue_lines:
                     self.game.open_status()
                 elif event.key == pygame.K_b and not self.dialogue_lines:
@@ -905,7 +918,7 @@ class FieldScene(BaseScene):
                 self.achievement_toasts.pop(0)
                 self.toast_clock = 0.0
         keys = pygame.key.get_pressed()
-        dx, dy = self._key_direction(keys)
+        dx, dy = (0, 0) if self.input_locked else self._key_direction(keys)
         moving = bool(dx or dy)
         if moving:
             self.facing = "right" if dx > 0.25 else "left" if dx < -0.25 else "down" if dy > 0 else "up"

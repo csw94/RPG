@@ -80,7 +80,7 @@ class Game:
             "weapon": "rusty_sword", "armor": "traveler_clothes",
             "owned_weapons": ["rusty_sword"], "owned_armors": ["traveler_clothes"],
             "quest_flags": {
-                "prologue_done": 0, "shrine_wind": 0, "shrine_earth": 0,
+                "prologue_done": 0, "intro_seen": 0, "shrine_wind": 0, "shrine_earth": 0,
                 "shrine_fire": 0, "star_sword_awakened": 0, "final_boss": 0,
             },
         }
