@@ -2,7 +2,7 @@
 
 ## 저장소 구성
 
-- 소스: `csw94/RPG` (**비공개**). 코드, 테스트, CI(`.github/workflows/ci.yml`)
+- 소스: `csw94/RPG` (현재 **공개**. 비공개 전환은 사용자가 정할 때까지 보류, 임의로 바꾸지 말 것). 코드, 테스트, CI(`.github/workflows/ci.yml`)
 - 배포: `csw94/Star` (**공개**). README와 GitHub 릴리즈(EXE)만 둔다. 소스는 절대 올리지 않는다.
 - GitHub CLI: `C:\Program Files\GitHub CLI\gh.exe` (PATH에 없으면 전체 경로로 실행)
 
@@ -16,7 +16,7 @@ EXE는 로컬에서 한 번 빌드하고, 그 파일을 그대로 공개 저장�
    .venv\Scripts\python.exe -m unittest discover -s tests
    ```
 2. `HANDOVER.md`의 "릴리즈 기록"에 `- **vX.Y.Z:** 변경 요약` 줄을 추가하고 README도 필요하면 고친다.
-3. 커밋 후 `main` 푸시, 버전 태그(`vX.Y.Z`)를 만들어 푸시 (비공개 소스 저장소)
+3. 커밋 후 `main` 푸시, 버전 태그(`vX.Y.Z`)를 만들어 푸시 (소스 저장소)
    - 작성자는 기존 커밋과 같은 `Codex <codex@openai.com>`로 한다.
    - `.git` 소유자가 다른 계정이라 git 명령마다 `-c safe.directory=C:/Users/dongb/IdeaProjects/RPG`를 붙인다.
 4. 로컬 EXE 빌드

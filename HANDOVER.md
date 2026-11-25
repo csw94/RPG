@@ -3,7 +3,7 @@
 ## 현재 상태
 - **최신 릴리즈:** v0.24.0 (태그 `v0.24.0`)
   - 공개 릴리즈: https://github.com/csw94/Star/releases/tag/v0.24.0 (로컬에서 빌드한 `ChroniclesOfPixel.exe`를 `gh`로 직접 올림)
-  - 소스 저장소 `csw94/RPG`는 비공개. 공개 저장소 `csw94/Star`에는 README와 EXE 릴리즈만 있음. 절차는 CLAUDE.md 참고
+  - 소스 저장소 `csw94/RPG`는 아직 공개(비공개 전환 보류). 배포용 공개 저장소 `csw94/Star`에는 README와 EXE 릴리즈만 있음. 절차는 CLAUDE.md 참고
   - 로컬 EXE `dist\ChroniclesOfPixel.exe`도 같은 태그로 빌드함
 - 테스트 399개 모두 통과: `.venv\Scripts\python.exe -m unittest discover -s tests`
 
@@ -344,7 +344,7 @@
 - **던전**
   - 크기 25×16은 손으로 짠 미로 구조라 그대로 유지
   - 타일 결정은 `floor_tile()`, `wall_tile()`(아래가 바닥이면 앞면), `dungeon_decals()`
-- **릴리즈**: CLAUDE.md 절차를 따름. `gh`는 `C:\Program Files\GitHub CLI\gh.exe`에 설치됨. 소스 저장소가 비공개라 공개 API로는 조회되지 않으니 `gh`로 확인할 것
+- **릴리즈**: CLAUDE.md 절차를 따름. `gh`는 `C:\Program Files\GitHub CLI\gh.exe`에 설치됨. 릴리즈 확인은 `gh`로 할 것
 
 ## 남은 작업 및 아이디어
 - 필수로 남은 작업은 없음
